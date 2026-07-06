@@ -8,8 +8,8 @@ public sealed class JsonToolFactory : IToolFactory
 {
     public string ToolId => "json";
     public string DisplayName => "JSON Tools";
-    public string IconGlyph => "";
+    public string IconGlyph => "{}";
 
-    public UserControl CreateView(IMessageBus bus, Action<OpenToolMessage> openTool)
-        => new JsonToolView(bus);
+    public UserControl CreateView(IMessageBus bus, Action<OpenToolMessage> openTool) =>
+        new JsonToolView(bus);
 }

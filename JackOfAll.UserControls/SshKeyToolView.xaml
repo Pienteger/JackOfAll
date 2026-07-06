@@ -1,0 +1,128 @@
+<UserControl x:Class="JackOfAll.UserControls.SshKeyToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Refresh" Click="OnRefreshClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
+                <Button Content="Copy Public Key" Click="OnCopyPublicKeyClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+            </StackPanel>
+            <TextBlock Text="SSH Keys" Foreground="{DynamicResource TextPrimary}"
+                       FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <!-- Key List -->
+        <DataGrid x:Name="KeyGrid" Grid.Row="1" AutoGenerateColumns="False"
+                  IsReadOnly="True" SelectionMode="Single" SelectionChanged="OnKeySelected"
+                  Background="{DynamicResource SurfaceBackground}"
+                  Foreground="{DynamicResource TextPrimary}"
+                  BorderBrush="{DynamicResource SurfaceBorder}"
+                  RowBackground="{DynamicResource SurfaceBackground}"
+                  AlternatingRowBackground="{DynamicResource AppBackground}"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="{DynamicResource SurfaceBorder}"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource HeaderColor}"/>
+                            <Setter Property="FontFamily" Value="Cascadia Code,Consolas,Courier New"/>
+                            <Setter Property="FontSize" Value="{DynamicResource MonoFontSize}"/>
+                            <Setter Property="Padding" Value="6,4"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="150">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource PayloadColor}"/>
+                            <Setter Property="Padding" Value="6,4"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Path" Binding="{Binding PrivateKeyPath}" Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                            <Setter Property="Padding" Value="6,4"/>
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Public Key Preview -->
+        <TextBox x:Name="PublicKeyPreview" Grid.Row="2" IsReadOnly="True"
+                 AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="80"
+                 VerticalScrollBarVisibility="Auto"
+                 FontFamily="Cascadia Code,Consolas,Courier New"
+                 FontSize="{DynamicResource MonoFontSize}"
+                 Background="{DynamicResource AppBackground}"
+                 Foreground="{DynamicResource TextPrimary}"
+                 BorderBrush="{DynamicResource SurfaceBorder}"
+                 Padding="8" Margin="0,8,0,0" Visibility="Collapsed"/>
+
+        <!-- Generate New Key -->
+        <Border Grid.Row="3" Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource SurfaceBorder}"
+                BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,12,0,0">
+            <StackPanel>
+                <TextBlock Text="GENERATE NEW KEY" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,8"/>
+                <WrapPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="Name:" Foreground="{DynamicResource TextPrimary}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="NewKeyName" Text="id_ed25519_new" Width="160" Padding="4,4"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="Type:" Foreground="{DynamicResource TextPrimary}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="KeyType" Padding="4,4" Width="100"
+                                  Background="{DynamicResource SurfaceBackground}"
+                                  Foreground="{DynamicResource TextPrimary}"
+                                  BorderBrush="{DynamicResource SurfaceBorder}">
+                            <ComboBoxItem Content="ed25519" IsSelected="True"/>
+                            <ComboBoxItem Content="rsa"/>
+                            <ComboBoxItem Content="ecdsa"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="Comment:" Foreground="{DynamicResource TextPrimary}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="KeyComment" Width="200" Padding="4,4"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"/>
+                    </StackPanel>
+                    <Button Content="Generate" Click="OnGenerateClick" Padding="12,4"
+                            Background="{DynamicResource AccentBrush}" Foreground="White"
+                            BorderThickness="0" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                </WrapPanel>
+                <TextBlock x:Name="GenerateStatus" Foreground="{DynamicResource TextSecondary}"
+                           FontSize="12" Visibility="Collapsed"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
