@@ -8,7 +8,7 @@
     <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
         <StackPanel>
             <TextBlock Text="Select a tool" FontSize="24" FontWeight="Light"
-                       Foreground="#aaa" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+                       Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,0,0,30"/>
             <ItemsControl x:Name="ToolGrid">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -19,7 +19,8 @@
                     <DataTemplate>
                         <Button Width="140" Height="120" Margin="8"
                                 Click="OnToolClick" Tag="{Binding ToolId}"
-                                Background="#2d2d30" BorderBrush="#3e3e42"
+                                Background="{DynamicResource SurfaceBackground}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"
                                 BorderThickness="1" Cursor="Hand">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
@@ -31,18 +32,18 @@
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="#3e3e42"/>
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#007acc"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TabHoverBackground}"/>
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Button.Template>
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Path Data="{Binding Icon}" Fill="#ccc" Stretch="Uniform"
+                                <Path Data="{Binding Icon}" Fill="{DynamicResource TextPrimary}" Stretch="Uniform"
                                       Width="36" Height="36" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                                <TextBlock Text="{Binding DisplayName}" Foreground="#ccc"
-                                           FontSize="13" HorizontalAlignment="Center" TextWrapping="Wrap"
-                                           TextAlignment="Center"/>
+                                <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}"
+                                           FontSize="{DynamicResource AppFontSize}" HorizontalAlignment="Center"
+                                           TextWrapping="Wrap" TextAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </DataTemplate>

@@ -1,0 +1,84 @@
+<Window x:Class="JackOfAll.AppUi.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="480" Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource AppBackground}"
+        Icon="Assets/app-icon.png">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel MaxWidth="460" HorizontalAlignment="Left">
+            <!-- Theme -->
+            <TextBlock Text="APPEARANCE" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,20">
+                <StackPanel>
+                    <!-- Theme Mode -->
+                    <DockPanel Margin="0,0,0,16">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="Theme" FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="Choose your preferred color scheme" FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <ComboBox x:Name="ThemeCombo" DockPanel.Dock="Right" Width="140"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  SelectionChanged="OnThemeChanged"
+                                  Background="{DynamicResource SurfaceBackground}"
+                                  Foreground="{DynamicResource TextPrimary}"
+                                  BorderBrush="{DynamicResource SurfaceBorder}">
+                            <ComboBoxItem Content="Dark" Tag="Dark"/>
+                            <ComboBoxItem Content="Light" Tag="Light"/>
+                            <ComboBoxItem Content="System" Tag="System"/>
+                        </ComboBox>
+                    </DockPanel>
+
+                    <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,0,0,16"/>
+
+                    <!-- Font Size -->
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="Font Size" FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="Adjust the text size across the app" FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                    VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock x:Name="FontSizeLabel" FontSize="14" MinWidth="30"
+                                       TextAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimary}" Margin="0,0,12,0"/>
+                            <Slider x:Name="FontSizeSlider" Width="150" Minimum="10" Maximum="24"
+                                    TickFrequency="1" IsSnapToTickEnabled="True"
+                                    ValueChanged="OnFontSizeChanged" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Preview -->
+            <TextBlock Text="PREVIEW" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16">
+                <StackPanel>
+                    <TextBlock x:Name="PreviewNormal" Text="The quick brown fox jumps over the lazy dog."
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="PreviewMono" Text='{}{ "preview": "monospace text" }'
+                               FontFamily="Cascadia Code,Consolas,Courier New"
+                               Foreground="{DynamicResource HeaderColor}" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="PreviewSecondary" Text="Secondary text appears like this."
+                               Foreground="{DynamicResource TextSecondary}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Info -->
+            <TextBlock Foreground="{DynamicResource TextDimmed}" FontSize="11" Margin="0,16,0,0"
+                       Text="Settings are saved automatically and persist across app restarts."/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

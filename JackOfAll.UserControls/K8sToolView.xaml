@@ -7,13 +7,16 @@
              d:DesignHeight="600" d:DesignWidth="900">
     <Grid>
         <!-- Not available alert -->
-        <Border x:Name="AlertPanel" Visibility="Collapsed" Background="#3a1d1d"
-                BorderBrush="#d32f2f" BorderThickness="1" CornerRadius="6"
+        <Border x:Name="AlertPanel" Visibility="Collapsed"
+                Background="{DynamicResource ErrorBackground}"
+                BorderBrush="{DynamicResource ErrorBorder}" BorderThickness="1" CornerRadius="6"
                 Padding="20" VerticalAlignment="Center" HorizontalAlignment="Center">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="kubectl not found" FontSize="18" Foreground="#ef9a9a"
+                <TextBlock Text="kubectl not found" FontSize="18"
+                           Foreground="{DynamicResource ErrorText}"
                            HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                <TextBlock Text="Install kubectl and ensure it is in your PATH." Foreground="#999"
+                <TextBlock Text="Install kubectl and ensure it is in your PATH."
+                           Foreground="{DynamicResource TextSecondary}"
                            HorizontalAlignment="Center"/>
             </StackPanel>
         </Border>
@@ -29,24 +32,33 @@
 
             <!-- Toolbar -->
             <DockPanel Grid.Row="0" Margin="8">
-                <TextBlock Text="Namespace:" Foreground="#ccc" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="Namespace:" Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"
+                           FontSize="{DynamicResource AppFontSize}"/>
                 <ComboBox x:Name="NamespaceCombo" Width="200" SelectionChanged="OnNamespaceChanged"
-                          Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"/>
+                          Background="{DynamicResource SurfaceBackground}"
+                          Foreground="{DynamicResource TextPrimary}"
+                          BorderBrush="{DynamicResource SurfaceBorder}"/>
                 <Button x:Name="RefreshBtn" Content="↻ Refresh" Margin="8,0,0,0"
                         Click="OnRefreshClick" Padding="8,4"
-                        Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"/>
-                <TextBlock x:Name="StatusText" Foreground="#888" VerticalAlignment="Center"
-                           Margin="12,0,0,0" DockPanel.Dock="Right"/>
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+                <TextBlock x:Name="StatusText" Foreground="{DynamicResource TextDimmed}"
+                           VerticalAlignment="Center" Margin="12,0,0,0" DockPanel.Dock="Right"/>
             </DockPanel>
 
             <!-- Pod list -->
             <DataGrid Grid.Row="1" x:Name="PodGrid" AutoGenerateColumns="False"
                       IsReadOnly="True" SelectionMode="Single"
                       SelectionChanged="OnPodSelected"
-                      Background="#1e1e1e" Foreground="#ccc"
-                      RowBackground="#1e1e1e" AlternatingRowBackground="#252526"
-                      BorderBrush="#3e3e42" GridLinesVisibility="None"
-                      HeadersVisibility="Column" CanUserReorderColumns="False">
+                      Background="{DynamicResource AppBackground}"
+                      Foreground="{DynamicResource TextPrimary}"
+                      RowBackground="{DynamicResource AppBackground}"
+                      AlternatingRowBackground="{DynamicResource GridAltRow}"
+                      BorderBrush="{DynamicResource SurfaceBorder}" GridLinesVisibility="None"
+                      HeadersVisibility="Column" CanUserReorderColumns="False"
+                      FontSize="{DynamicResource AppFontSize}">
                 <DataGrid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="Restart Deployment" Click="OnRestartClick"/>
@@ -55,10 +67,10 @@
                 </DataGrid.ContextMenu>
                 <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#2d2d30"/>
-                        <Setter Property="Foreground" Value="#999"/>
+                        <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
                         <Setter Property="Padding" Value="8,4"/>
-                        <Setter Property="BorderBrush" Value="#3e3e42"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorder}"/>
                         <Setter Property="BorderThickness" Value="0,0,1,1"/>
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
@@ -72,21 +84,28 @@
 
             <!-- Splitter -->
             <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"
-                          Background="#3e3e42" ResizeDirection="Rows"/>
+                          Background="{DynamicResource SurfaceBorder}" ResizeDirection="Rows"/>
 
             <!-- Log viewer -->
             <DockPanel Grid.Row="3">
                 <DockPanel DockPanel.Dock="Top" Margin="8,4">
-                    <TextBlock x:Name="LogTitle" Text="Logs" Foreground="#999" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="LogTitle" Text="Logs"
+                               Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                     <Button x:Name="JumpToBottomBtn" Content="↓ Jump to bottom" Visibility="Collapsed"
                             Click="OnJumpToBottom" Margin="12,0,0,0"
-                            Padding="8,2" Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"/>
-                    <TextBlock x:Name="LogLineCount" Foreground="#666" VerticalAlignment="Center"
+                            Padding="8,2" Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"/>
+                    <TextBlock x:Name="LogLineCount" Foreground="{DynamicResource TextDimmed}"
+                               VerticalAlignment="Center"
                                HorizontalAlignment="Right" DockPanel.Dock="Right"/>
                 </DockPanel>
-                <ListBox x:Name="LogList" Background="#1e1e1e" Foreground="#ccc"
-                         BorderBrush="#3e3e42" FontFamily="Cascadia Code,Consolas,Courier New"
-                         FontSize="12" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                <ListBox x:Name="LogList" Background="{DynamicResource AppBackground}"
+                         Foreground="{DynamicResource TextPrimary}"
+                         BorderBrush="{DynamicResource SurfaceBorder}"
+                         FontFamily="Cascadia Code,Consolas,Courier New"
+                         FontSize="{DynamicResource MonoFontSize}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
                          VirtualizingPanel.IsVirtualizing="True"
                          VirtualizingPanel.VirtualizationMode="Recycling"
                          ScrollViewer.ScrollChanged="OnLogScrollChanged">
@@ -94,7 +113,7 @@
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Padding" Value="4,1"/>
                             <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="#ccc"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             <Setter Property="BorderThickness" Value="0"/>
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">

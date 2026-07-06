@@ -14,20 +14,24 @@
 
         <!-- Input -->
         <DockPanel Grid.Row="0">
-            <TextBlock Text="JWT Token" Foreground="#ccc" FontSize="14" VerticalAlignment="Center"
-                       DockPanel.Dock="Left"/>
             <Button Content="Decode" Click="OnDecodeClick" DockPanel.Dock="Right"
-                    Padding="12,4" Background="#007acc" Foreground="White"
+                    Padding="12,4" Background="{DynamicResource AccentBrush}" Foreground="White"
                     BorderThickness="0" Margin="8,0,0,0"/>
             <Button Content="Clear" Click="OnClearClick" DockPanel.Dock="Right"
-                    Padding="12,4" Background="#2d2d30" Foreground="#ccc"
-                    BorderBrush="#3e3e42" Margin="8,0,0,0"/>
+                    Padding="12,4" Background="{DynamicResource SurfaceBackground}"
+                    Foreground="{DynamicResource TextPrimary}"
+                    BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+            <TextBlock Text="JWT Token" Foreground="{DynamicResource TextPrimary}"
+                       FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
         </DockPanel>
 
         <TextBox x:Name="TokenInput" Grid.Row="1" Margin="0,8,0,0"
                  Height="80" TextWrapping="Wrap" AcceptsReturn="False"
-                 Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"
-                 FontFamily="Cascadia Code,Consolas,Courier New" FontSize="12"
+                 Background="{DynamicResource SurfaceBackground}"
+                 Foreground="{DynamicResource TextPrimary}"
+                 BorderBrush="{DynamicResource SurfaceBorder}"
+                 FontFamily="Cascadia Code,Consolas,Courier New"
+                 FontSize="{DynamicResource MonoFontSize}"
                  Padding="8" VerticalScrollBarVisibility="Auto"/>
 
         <!-- Decoded output -->
@@ -37,64 +41,68 @@
                 <Border x:Name="StatusBorder" CornerRadius="4" Padding="12,8" Margin="0,0,0,12">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock x:Name="StatusIcon" FontSize="16" Margin="0,0,8,0"/>
-                        <TextBlock x:Name="StatusText" Foreground="#ccc"/>
+                        <TextBlock x:Name="StatusText" Foreground="{DynamicResource TextPrimary}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Info -->
                 <WrapPanel Margin="0,0,0,12">
-                    <Border Background="#2d2d30" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
-                        <TextBlock Foreground="#999">
-                            <Run Text="Algorithm: "/><Run x:Name="AlgorithmText" Foreground="#ccc"/>
+                    <Border Background="{DynamicResource SurfaceBackground}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
+                        <TextBlock Foreground="{DynamicResource TextSecondary}">
+                            <Run Text="Algorithm: "/><Run x:Name="AlgorithmText" Foreground="{DynamicResource TextPrimary}"/>
                         </TextBlock>
                     </Border>
-                    <Border Background="#2d2d30" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
-                        <TextBlock Foreground="#999">
-                            <Run Text="Issuer: "/><Run x:Name="IssuerText" Foreground="#ccc"/>
+                    <Border Background="{DynamicResource SurfaceBackground}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
+                        <TextBlock Foreground="{DynamicResource TextSecondary}">
+                            <Run Text="Issuer: "/><Run x:Name="IssuerText" Foreground="{DynamicResource TextPrimary}"/>
                         </TextBlock>
                     </Border>
-                    <Border Background="#2d2d30" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
-                        <TextBlock Foreground="#999">
-                            <Run Text="Subject: "/><Run x:Name="SubjectText" Foreground="#ccc"/>
+                    <Border Background="{DynamicResource SurfaceBackground}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
+                        <TextBlock Foreground="{DynamicResource TextSecondary}">
+                            <Run Text="Subject: "/><Run x:Name="SubjectText" Foreground="{DynamicResource TextPrimary}"/>
                         </TextBlock>
                     </Border>
                 </WrapPanel>
 
                 <!-- Header -->
-                <TextBlock Text="HEADER" Foreground="#999" FontSize="11" FontWeight="SemiBold"
-                           Margin="0,0,0,4"/>
-                <Border Background="#2d2d30" CornerRadius="4" Padding="12" Margin="0,0,0,12">
+                <TextBlock Text="HEADER" Foreground="{DynamicResource TextSecondary}" FontSize="11"
+                           FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <Border Background="{DynamicResource SurfaceBackground}" CornerRadius="4" Padding="12" Margin="0,0,0,12">
                     <TextBox x:Name="HeaderText" IsReadOnly="True" TextWrapping="Wrap"
-                             Background="Transparent" Foreground="#4ec9b0" BorderThickness="0"
-                             FontFamily="Cascadia Code,Consolas,Courier New" FontSize="12"/>
+                             Background="Transparent" Foreground="{DynamicResource HeaderColor}" BorderThickness="0"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"/>
                 </Border>
 
                 <!-- Payload -->
-                <TextBlock Text="PAYLOAD" Foreground="#999" FontSize="11" FontWeight="SemiBold"
-                           Margin="0,0,0,4"/>
-                <Border Background="#2d2d30" CornerRadius="4" Padding="12" Margin="0,0,0,12">
+                <TextBlock Text="PAYLOAD" Foreground="{DynamicResource TextSecondary}" FontSize="11"
+                           FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <Border Background="{DynamicResource SurfaceBackground}" CornerRadius="4" Padding="12" Margin="0,0,0,12">
                     <TextBox x:Name="PayloadText" IsReadOnly="True" TextWrapping="Wrap"
-                             Background="Transparent" Foreground="#dcdcaa" BorderThickness="0"
-                             FontFamily="Cascadia Code,Consolas,Courier New" FontSize="12"/>
+                             Background="Transparent" Foreground="{DynamicResource PayloadColor}" BorderThickness="0"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"/>
                 </Border>
 
                 <!-- Signature -->
-                <TextBlock Text="SIGNATURE" Foreground="#999" FontSize="11" FontWeight="SemiBold"
-                           Margin="0,0,0,4"/>
-                <Border Background="#2d2d30" CornerRadius="4" Padding="12">
+                <TextBlock Text="SIGNATURE" Foreground="{DynamicResource TextSecondary}" FontSize="11"
+                           FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <Border Background="{DynamicResource SurfaceBackground}" CornerRadius="4" Padding="12">
                     <TextBox x:Name="SignatureText" IsReadOnly="True" TextWrapping="Wrap"
-                             Background="Transparent" Foreground="#888" BorderThickness="0"
-                             FontFamily="Cascadia Code,Consolas,Courier New" FontSize="12"/>
+                             Background="Transparent" Foreground="{DynamicResource TextDimmed}" BorderThickness="0"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"/>
                 </Border>
             </StackPanel>
         </ScrollViewer>
 
         <!-- Error display -->
         <Border x:Name="ErrorPanel" Grid.Row="2" Visibility="Collapsed"
-                Background="#3a1d1d" BorderBrush="#d32f2f" BorderThickness="1"
+                Background="{DynamicResource ErrorBackground}"
+                BorderBrush="{DynamicResource ErrorBorder}" BorderThickness="1"
                 CornerRadius="6" Padding="16" Margin="0,12,0,0"
                 VerticalAlignment="Top">
-            <TextBlock x:Name="ErrorText" Foreground="#ef9a9a" TextWrapping="Wrap"/>
+            <TextBlock x:Name="ErrorText" Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap"/>
         </Border>
     </Grid>
 </UserControl>

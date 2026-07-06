@@ -70,28 +70,28 @@ public partial class JwtToolView : UserControl, IDisposable
         {
             if (result.IsExpired)
             {
-                StatusBorder.Background = new SolidColorBrush(Color.FromRgb(0x3a, 0x1d, 0x1d));
+                StatusBorder.Background = FindBrush("ErrorBackground");
                 StatusIcon.Text = "✕";
-                StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xef, 0x9a, 0x9a));
+                StatusIcon.Foreground = FindBrush("ErrorText");
                 StatusText.Text = $"Expired {result.Expiry.Value:yyyy-MM-dd HH:mm:ss} UTC";
-                StatusText.Foreground = new SolidColorBrush(Color.FromRgb(0xef, 0x9a, 0x9a));
+                StatusText.Foreground = FindBrush("ErrorText");
             }
             else
             {
-                StatusBorder.Background = new SolidColorBrush(Color.FromRgb(0x1d, 0x3a, 0x1d));
+                StatusBorder.Background = FindBrush("SuccessBackground");
                 StatusIcon.Text = "✓";
-                StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(0x81, 0xc7, 0x84));
+                StatusIcon.Foreground = FindBrush("SuccessText");
                 StatusText.Text = $"Valid until {result.Expiry.Value:yyyy-MM-dd HH:mm:ss} UTC";
-                StatusText.Foreground = new SolidColorBrush(Color.FromRgb(0x81, 0xc7, 0x84));
+                StatusText.Foreground = FindBrush("SuccessText");
             }
         }
         else
         {
-            StatusBorder.Background = new SolidColorBrush(Color.FromRgb(0x2d, 0x2d, 0x30));
+            StatusBorder.Background = FindBrush("SurfaceBackground");
             StatusIcon.Text = "—";
-            StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+            StatusIcon.Foreground = FindBrush("TextSecondary");
             StatusText.Text = "No expiry claim";
-            StatusText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+            StatusText.Foreground = FindBrush("TextSecondary");
         }
     }
 
@@ -101,6 +101,9 @@ public partial class JwtToolView : UserControl, IDisposable
         ErrorPanel.Visibility = Visibility.Visible;
         ErrorText.Text = message;
     }
+
+    private Brush FindBrush(string key) =>
+        (Brush)Application.Current.FindResource(key);
 
     public void Dispose()
     {

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using JackOfAll.Lib.Messaging;
+using JackOfAll.Lib.Settings;
 using JackOfAll.Lib.Tools;
 using JackOfAll.UserControls;
 
@@ -12,23 +13,29 @@ public partial class MainWindow : Window
 {
     private readonly ToolRegistry _registry;
     private readonly IMessageBus _bus;
+    private readonly AppSettings _settings;
+    private readonly Action _applyTheme;
     private readonly ObservableCollection<ToolTab> _tabs = new();
     private IDisposable? _openToolSub;
 
     public ICommand NewTabCommand { get; }
     public ICommand CloseTabCommand { get; }
+    public ICommand SettingsCommand { get; }
 
-    public MainWindow(ToolRegistry registry, IMessageBus bus)
+    public MainWindow(ToolRegistry registry, IMessageBus bus, AppSettings settings, Action applyTheme)
     {
         InitializeComponent();
         DataContext = this;
         _registry = registry;
         _bus = bus;
+        _settings = settings;
+        _applyTheme = applyTheme;
 
         TabList.ItemsSource = _tabs;
 
         NewTabCommand = new RelayCommand(AddNewTab);
         CloseTabCommand = new RelayCommand(CloseCurrentTab);
+        SettingsCommand = new RelayCommand(ShowSettings);
 
         _openToolSub = _bus.Subscribe<OpenToolMessage>(OnOpenTool);
 
@@ -132,6 +139,14 @@ public partial class MainWindow : Window
             if (tab is not null && tab.CanClose)
                 CloseTab(tab);
         }
+    }
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e) => ShowSettings();
+
+    private void ShowSettings()
+    {
+        var dialog = new SettingsWindow(_settings, _applyTheme) { Owner = this };
+        dialog.ShowDialog();
     }
 
     protected override void OnClosed(EventArgs e)
