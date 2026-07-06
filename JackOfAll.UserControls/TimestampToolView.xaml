@@ -1,0 +1,107 @@
+<UserControl x:Class="JackOfAll.UserControls.TimestampToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+        <StackPanel MaxWidth="700" HorizontalAlignment="Left" Margin="12">
+
+            <!-- Current Time -->
+            <TextBlock Text="CURRENT TIME" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
+                <DockPanel>
+                    <Button Content="Refresh" Click="OnRefreshNow" DockPanel.Dock="Right"
+                            Padding="12,6" Background="{DynamicResource AccentBrush}"
+                            Foreground="White" BorderThickness="0" Margin="8,0,0,0"
+                            VerticalAlignment="Top"/>
+                    <Button Content="Copy" Click="OnCopyNow" DockPanel.Dock="Right"
+                            Padding="12,6" Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"
+                            VerticalAlignment="Top"/>
+                    <TextBox x:Name="NowOutput" IsReadOnly="True" AcceptsReturn="True"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource HeaderColor}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             Padding="8,6"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Timestamp to Date -->
+            <TextBlock Text="TIMESTAMP → DATE" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button Content="Convert" Click="OnTimestampToDate" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <TextBox x:Name="TimestampInput"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Padding="8,6" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="Enter Unix timestamp (seconds or milliseconds)" FontSize="11"
+                               Foreground="{DynamicResource TextDimmed}" Margin="0,0,0,8"/>
+                    <TextBox x:Name="TimestampToDateOutput" IsReadOnly="True" AcceptsReturn="True"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource PayloadColor}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             Padding="8,6" Visibility="Collapsed"/>
+                    <TextBlock x:Name="TimestampError" Foreground="#e06c75" FontSize="12"
+                               Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Date to Timestamp -->
+            <TextBlock Text="DATE → TIMESTAMP" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button Content="Convert" Click="OnDateToTimestamp" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <TextBox x:Name="DateInput"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Padding="8,6" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="Enter date (e.g. 2024-01-15 10:30:00 or ISO 8601)" FontSize="11"
+                               Foreground="{DynamicResource TextDimmed}" Margin="0,0,0,8"/>
+                    <TextBox x:Name="DateToTimestampOutput" IsReadOnly="True" AcceptsReturn="True"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource PayloadColor}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             Padding="8,6" Visibility="Collapsed"/>
+                    <TextBlock x:Name="DateError" Foreground="#e06c75" FontSize="12"
+                               Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

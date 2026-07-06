@@ -1,0 +1,130 @@
+<UserControl x:Class="JackOfAll.UserControls.HashToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+        <StackPanel MaxWidth="700" HorizontalAlignment="Left" Margin="12">
+
+            <TextBlock Text="HASH GENERATOR" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <!-- Input -->
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,16">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button Content="Hash" Click="OnHashClick" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <Button Content="Clear" Click="OnClearClick" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <TextBlock Text="Input text" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" FontSize="12"/>
+                    </DockPanel>
+                    <TextBox x:Name="InputBox" AcceptsReturn="True" TextWrapping="Wrap"
+                             MinHeight="80" MaxHeight="200"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Padding="8" TextChanged="OnInputChanged"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Results -->
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="RESULTS" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+                    <!-- MD5 -->
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock Text="MD5" Width="60" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                        <Button Content="Copy" Click="OnCopyMd5" DockPanel.Dock="Right"
+                                Padding="8,2" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                Margin="8,0,0,0"/>
+                        <TextBox x:Name="Md5Output" IsReadOnly="True"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource PayloadColor}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 Padding="6,4" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- SHA-1 -->
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock Text="SHA-1" Width="60" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                        <Button Content="Copy" Click="OnCopySha1" DockPanel.Dock="Right"
+                                Padding="8,2" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                Margin="8,0,0,0"/>
+                        <TextBox x:Name="Sha1Output" IsReadOnly="True"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource PayloadColor}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 Padding="6,4" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- SHA-256 -->
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock Text="SHA-256" Width="60" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                        <Button Content="Copy" Click="OnCopySha256" DockPanel.Dock="Right"
+                                Padding="8,2" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                Margin="8,0,0,0"/>
+                        <TextBox x:Name="Sha256Output" IsReadOnly="True"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource PayloadColor}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 Padding="6,4" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- SHA-512 -->
+                    <DockPanel Margin="0,0,0,0">
+                        <TextBlock Text="SHA-512" Width="60" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                        <Button Content="Copy" Click="OnCopySha512" DockPanel.Dock="Right"
+                                Padding="8,2" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                Margin="8,0,0,0"/>
+                        <TextBox x:Name="Sha512Output" IsReadOnly="True"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource PayloadColor}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 Padding="6,4" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Uppercase toggle -->
+            <CheckBox x:Name="ChkUppercase" Content="Uppercase output" Margin="0,12,0,0"
+                      Foreground="{DynamicResource TextPrimary}"
+                      Checked="OnUppercaseChanged" Unchecked="OnUppercaseChanged"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

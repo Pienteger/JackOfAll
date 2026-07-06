@@ -23,6 +23,9 @@ public partial class App : Application
         registry.Register(new JwtToolFactory());
         registry.Register(new JsonToolFactory());
         registry.Register(new GeneratorToolFactory());
+        registry.Register(new Base64ToolFactory());
+        registry.Register(new HashToolFactory());
+        registry.Register(new TimestampToolFactory());
 
         ApplyTheme();
 
