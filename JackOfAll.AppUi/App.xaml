@@ -1,9 +1,8 @@
-﻿<Application x:Class="JackOfAll.AppUi.App"
+<Application x:Class="JackOfAll.AppUi.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:JackOfAll.AppUi"
-             StartupUri="MainWindow.xaml">
+             xmlns:local="clr-namespace:JackOfAll.AppUi">
     <Application.Resources>
-         
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </Application.Resources>
 </Application>

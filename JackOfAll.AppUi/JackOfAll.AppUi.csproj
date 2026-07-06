@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JackOfAll.CustomControls\JackOfAll.CustomControls.csproj" />
+    <ProjectReference Include="..\JackOfAll.Lib\JackOfAll.Lib.csproj" />
     <ProjectReference Include="..\JackOfAll.UserControls\JackOfAll.UserControls.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,116 @@
+<UserControl x:Class="JackOfAll.UserControls.K8sToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="900">
+    <Grid>
+        <!-- Not available alert -->
+        <Border x:Name="AlertPanel" Visibility="Collapsed" Background="#3a1d1d"
+                BorderBrush="#d32f2f" BorderThickness="1" CornerRadius="6"
+                Padding="20" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="kubectl not found" FontSize="18" Foreground="#ef9a9a"
+                           HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                <TextBlock Text="Install kubectl and ensure it is in your PATH." Foreground="#999"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main content -->
+        <Grid x:Name="MainContent">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Toolbar -->
+            <DockPanel Grid.Row="0" Margin="8">
+                <TextBlock Text="Namespace:" Foreground="#ccc" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="NamespaceCombo" Width="200" SelectionChanged="OnNamespaceChanged"
+                          Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"/>
+                <Button x:Name="RefreshBtn" Content="↻ Refresh" Margin="8,0,0,0"
+                        Click="OnRefreshClick" Padding="8,4"
+                        Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"/>
+                <TextBlock x:Name="StatusText" Foreground="#888" VerticalAlignment="Center"
+                           Margin="12,0,0,0" DockPanel.Dock="Right"/>
+            </DockPanel>
+
+            <!-- Pod list -->
+            <DataGrid Grid.Row="1" x:Name="PodGrid" AutoGenerateColumns="False"
+                      IsReadOnly="True" SelectionMode="Single"
+                      SelectionChanged="OnPodSelected"
+                      Background="#1e1e1e" Foreground="#ccc"
+                      RowBackground="#1e1e1e" AlternatingRowBackground="#252526"
+                      BorderBrush="#3e3e42" GridLinesVisibility="None"
+                      HeadersVisibility="Column" CanUserReorderColumns="False">
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Restart Deployment" Click="OnRestartClick"/>
+                        <MenuItem Header="Copy Pod Name" Click="OnCopyPodName"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#2d2d30"/>
+                        <Setter Property="Foreground" Value="#999"/>
+                        <Setter Property="Padding" Value="8,4"/>
+                        <Setter Property="BorderBrush" Value="#3e3e42"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                    <DataGridTextColumn Header="Restarts" Binding="{Binding Restarts}" Width="80"/>
+                    <DataGridTextColumn Header="Age" Binding="{Binding AgeDisplay}" Width="80"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"
+                          Background="#3e3e42" ResizeDirection="Rows"/>
+
+            <!-- Log viewer -->
+            <DockPanel Grid.Row="3">
+                <DockPanel DockPanel.Dock="Top" Margin="8,4">
+                    <TextBlock x:Name="LogTitle" Text="Logs" Foreground="#999" VerticalAlignment="Center"/>
+                    <Button x:Name="JumpToBottomBtn" Content="↓ Jump to bottom" Visibility="Collapsed"
+                            Click="OnJumpToBottom" Margin="12,0,0,0"
+                            Padding="8,2" Background="#2d2d30" Foreground="#ccc" BorderBrush="#3e3e42"/>
+                    <TextBlock x:Name="LogLineCount" Foreground="#666" VerticalAlignment="Center"
+                               HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+                </DockPanel>
+                <ListBox x:Name="LogList" Background="#1e1e1e" Foreground="#ccc"
+                         BorderBrush="#3e3e42" FontFamily="Cascadia Code,Consolas,Courier New"
+                         FontSize="12" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         ScrollViewer.ScrollChanged="OnLogScrollChanged">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="4,1"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="#ccc"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#264f78"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Decode JWT" Click="OnDecodeJwt"/>
+                            <MenuItem Header="Copy Line" Click="OnCopyLogLine"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>
