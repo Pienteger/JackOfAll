@@ -5,6 +5,7 @@
              xmlns:local="clr-namespace:JackOfAll.AppUi">
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
 
         <!-- Theme resources (defaults — overridden by ThemeManager at startup) -->
         <SolidColorBrush x:Key="AppBackground" Color="#1e1e1e"/>

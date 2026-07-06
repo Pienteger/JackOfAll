@@ -12,6 +12,7 @@
         <KeyBinding Key="T" Modifiers="Ctrl" Command="{Binding NewTabCommand}"/>
         <KeyBinding Key="W" Modifiers="Ctrl" Command="{Binding CloseTabCommand}"/>
         <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding SettingsCommand}"/>
+        <KeyBinding Key="T" Modifiers="Ctrl+Shift" Command="{Binding RestoreTabCommand}"/>
     </Window.InputBindings>
     <Grid>
         <Grid.RowDefinitions>
@@ -44,6 +45,31 @@
                     </Button.Template>
                 </Button>
 
+                <!-- Archived tabs button -->
+                <Button x:Name="ArchivedBtn" DockPanel.Dock="Right" Content="📋" FontSize="14"
+                        Width="36" Height="32" Margin="4,2" Visibility="Collapsed"
+                        Click="OnArchivedClick"
+                        Background="Transparent" Foreground="{DynamicResource TextSecondary}"
+                        BorderThickness="0" Cursor="Hand"
+                        ToolTip="Archived tabs">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="4" Padding="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TabHoverBackground}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ArchivedMenu"/>
+                    </Button.ContextMenu>
+                </Button>
+
                 <!-- New tab button -->
                 <Button DockPanel.Dock="Right" Content="＋" FontSize="18"
                         Width="36" Height="32" Margin="4,2"
@@ -70,6 +96,10 @@
                 <ListBox x:Name="TabList" DockPanel.Dock="Left"
                          SelectionChanged="OnTabSelectionChanged"
                          Background="Transparent" BorderThickness="0"
+                         AllowDrop="True"
+                         PreviewMouseLeftButtonDown="OnTabMouseDown"
+                         PreviewMouseMove="OnTabMouseMove"
+                         Drop="OnTabDrop"
                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
                     <ListBox.ItemsPanel>
@@ -82,6 +112,7 @@
                             <Setter Property="Padding" Value="0"/>
                             <Setter Property="Margin" Value="0"/>
                             <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="AllowDrop" Value="True"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
@@ -110,7 +141,27 @@
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <DockPanel Margin="8,6">
+                            <DockPanel Margin="8,6" MouseLeftButtonDown="OnTabHeaderDoubleClick">
+                                <DockPanel.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Rename" Click="OnRenameTab" Tag="{Binding Id}"/>
+                                        <MenuItem Header="{Binding PinMenuText}" Click="OnPinTab" Tag="{Binding Id}"/>
+                                        <MenuItem Header="Duplicate" Click="OnDuplicateTab" Tag="{Binding Id}"/>
+                                        <Separator/>
+                                        <MenuItem Header="Archive" Click="OnArchiveTab" Tag="{Binding Id}"/>
+                                        <Separator/>
+                                        <MenuItem Header="Close" Click="OnCloseTabClick" Tag="{Binding Id}"/>
+                                        <MenuItem Header="Close Others" Click="OnCloseOtherTabs" Tag="{Binding Id}"/>
+                                        <MenuItem Header="Close Tabs to the Right" Click="OnCloseTabsRight" Tag="{Binding Id}"/>
+                                    </ContextMenu>
+                                </DockPanel.ContextMenu>
+
+                                <!-- Pin indicator -->
+                                <TextBlock Text="📌" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"
+                                           Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
+                                           DockPanel.Dock="Left"/>
+
+                                <!-- Close button -->
                                 <Button DockPanel.Dock="Right" Content="✕" FontSize="10"
                                         Click="OnCloseTabClick" Tag="{Binding Id}"
                                         Visibility="{Binding CanClose, Converter={StaticResource BoolToVis}}"
@@ -132,9 +183,23 @@
                                         </ControlTemplate>
                                     </Button.Template>
                                 </Button>
+
+                                <!-- Title (display) -->
                                 <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextPrimary}" FontSize="12"
                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                           MaxWidth="150"/>
+                                           MaxWidth="150"
+                                           Visibility="{Binding IsRenaming, Converter={StaticResource InverseBoolToVis}}"/>
+
+                                <!-- Title (editing) -->
+                                <TextBox x:Name="RenameBox" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                         FontSize="12" MaxWidth="150" VerticalAlignment="Center"
+                                         Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVis}}"
+                                         Background="{DynamicResource SurfaceBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource AccentBrush}"
+                                         LostFocus="OnRenameBoxLostFocus"
+                                         KeyDown="OnRenameBoxKeyDown"
+                                         Loaded="OnRenameBoxLoaded"/>
                             </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
