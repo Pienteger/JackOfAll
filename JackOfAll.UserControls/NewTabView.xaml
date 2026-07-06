@@ -39,8 +39,9 @@
                                 </ControlTemplate>
                             </Button.Template>
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Path Data="{Binding Icon}" Fill="{DynamicResource TextPrimary}" Stretch="Uniform"
-                                      Width="36" Height="36" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,10"/>
                                 <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}"
                                            FontSize="{DynamicResource AppFontSize}" HorizontalAlignment="Center"
                                            TextWrapping="Wrap" TextAlignment="Center"/>

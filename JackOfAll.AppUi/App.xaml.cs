@@ -22,6 +22,7 @@ public partial class App : Application
         registry.Register(new K8sToolFactory());
         registry.Register(new JwtToolFactory());
         registry.Register(new JsonToolFactory());
+        registry.Register(new GeneratorToolFactory());
 
         ApplyTheme();
 

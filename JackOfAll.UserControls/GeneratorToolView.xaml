@@ -1,0 +1,149 @@
+<UserControl x:Class="JackOfAll.UserControls.GeneratorToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+        <StackPanel MaxWidth="600" HorizontalAlignment="Left" Margin="12">
+
+            <!-- Password Generator -->
+            <TextBlock Text="PASSWORD GENERATOR" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
+                <StackPanel>
+                    <!-- Options -->
+                    <DockPanel Margin="0,0,0,12">
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <TextBlock Text="Length:" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox x:Name="PasswordLength" Text="20" Width="50"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     Padding="4,2" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" Orientation="Horizontal">
+                            <CheckBox x:Name="ChkUpper" Content="A-Z" IsChecked="True" Margin="0,0,12,0"
+                                      Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkLower" Content="a-z" IsChecked="True" Margin="0,0,12,0"
+                                      Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkDigits" Content="0-9" IsChecked="True" Margin="0,0,12,0"
+                                      Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkSymbols" Content="!@#" IsChecked="True"
+                                      Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Output -->
+                    <DockPanel>
+                        <Button Content="Generate" Click="OnGeneratePassword" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <Button Content="Copy" Click="OnCopyPassword" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <TextBox x:Name="PasswordOutput" IsReadOnly="True"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource HeaderColor}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 Padding="8,6" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- Batch -->
+                    <DockPanel Margin="0,12,0,0">
+                        <Button Content="Generate 10" Click="OnGeneratePasswordBatch" DockPanel.Dock="Right"
+                                Padding="12,4" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <Button Content="Copy All" Click="OnCopyPasswordBatch" DockPanel.Dock="Right"
+                                Padding="12,4" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <TextBlock Foreground="{DynamicResource TextDimmed}" VerticalAlignment="Center"
+                                   FontSize="11" Text="Batch generate multiple passwords"/>
+                    </DockPanel>
+                    <TextBox x:Name="PasswordBatchOutput" IsReadOnly="True" Visibility="Collapsed"
+                             AcceptsReturn="True" TextWrapping="NoWrap" MaxHeight="200"
+                             VerticalScrollBarVisibility="Auto"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource HeaderColor}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             Padding="8" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- GUID Generator -->
+            <TextBlock Text="GUID / UUID GENERATOR" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
+                <StackPanel>
+                    <!-- Single GUID -->
+                    <DockPanel Margin="0,0,0,12">
+                        <Button Content="Generate" Click="OnGenerateGuid" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <Button Content="Copy" Click="OnCopyGuid" DockPanel.Dock="Right"
+                                Padding="12,6" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <TextBox x:Name="GuidOutput" IsReadOnly="True"
+                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                 FontSize="{DynamicResource MonoFontSize}"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource PayloadColor}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 Padding="8,6" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- Format options -->
+                    <WrapPanel Margin="0,0,0,12">
+                        <Button Content="No Dashes" Click="OnGuidNoDashes" Padding="10,4" Margin="0,0,8,4"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"/>
+                        <Button Content="UPPERCASE" Click="OnGuidUppercase" Padding="10,4" Margin="0,0,8,4"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"/>
+                    </WrapPanel>
+
+                    <!-- Batch -->
+                    <DockPanel>
+                        <Button Content="Generate 10" Click="OnGenerateGuidBatch" DockPanel.Dock="Right"
+                                Padding="12,4" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <Button Content="Copy All" Click="OnCopyGuidBatch" DockPanel.Dock="Right"
+                                Padding="12,4" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                        <TextBlock Foreground="{DynamicResource TextDimmed}" VerticalAlignment="Center"
+                                   FontSize="11" Text="Batch generate multiple GUIDs"/>
+                    </DockPanel>
+                    <TextBox x:Name="GuidBatchOutput" IsReadOnly="True" Visibility="Collapsed"
+                             AcceptsReturn="True" TextWrapping="NoWrap" MaxHeight="200"
+                             VerticalScrollBarVisibility="Auto"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource PayloadColor}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             Padding="8" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
