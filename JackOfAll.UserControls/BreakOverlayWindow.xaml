@@ -1,0 +1,36 @@
+<Window x:Class="JackOfAll.UserControls.BreakOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" AllowsTransparency="True" Topmost="True"
+        WindowState="Maximized" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False">
+    <Grid>
+        <!-- Dark overlay -->
+        <Border Background="#E5000000"/>
+
+        <!-- Content -->
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <!-- Eye icon -->
+            <TextBlock Text="&#xE7B3;" FontFamily="Segoe MDL2 Assets" FontSize="72"
+                       Foreground="#80FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+            <TextBlock Text="Time for a break!" FontSize="42" FontWeight="Light"
+                       Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+            <TextBlock Text="Look away from the screen. Rest your eyes."
+                       FontSize="18" Foreground="#99FFFFFF"
+                       HorizontalAlignment="Center" Margin="0,0,0,40"/>
+
+            <!-- Countdown -->
+            <TextBlock x:Name="CountdownText" Text="0:20" FontSize="96" FontWeight="Light"
+                       FontFamily="Cascadia Code,Consolas,Courier New"
+                       Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+            <ProgressBar x:Name="BreakProgress" Width="400" Height="6"
+                         Background="#33FFFFFF" Foreground="#007acc"
+                         BorderThickness="0" Maximum="100" Value="0"/>
+
+            <TextBlock x:Name="SkipHint" Text="" FontSize="13"
+                       Foreground="#55FFFFFF" HorizontalAlignment="Center" Margin="0,30,0,0"/>
+        </StackPanel>
+    </Grid>
+</Window>

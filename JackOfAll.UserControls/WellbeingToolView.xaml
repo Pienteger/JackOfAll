@@ -1,0 +1,127 @@
+<UserControl x:Class="JackOfAll.UserControls.WellbeingToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="900">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+        <StackPanel Margin="12">
+
+            <!-- ══════ Pomodoro Timer ══════ -->
+            <TextBlock Text="POMODORO TIMER" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="24" Margin="0,0,0,24">
+                <StackPanel>
+                    <!-- Timer display -->
+                    <TextBlock x:Name="TimerDisplay" Text="25:00" FontSize="64" FontWeight="Light"
+                               FontFamily="Cascadia Code,Consolas,Courier New"
+                               Foreground="{DynamicResource HeaderColor}"
+                               HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TimerLabel" Text="Ready to focus" FontSize="14"
+                               Foreground="{DynamicResource TextSecondary}"
+                               HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+                    <!-- Progress bar -->
+                    <ProgressBar x:Name="TimerProgress" Height="6" Margin="0,0,0,16"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 BorderThickness="0" Maximum="100" Value="0"/>
+
+                    <!-- Controls -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+                        <Button x:Name="BtnStartPause" Content="Start" Click="OnStartPauseClick"
+                                Padding="20,8" Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" FontSize="14" Margin="0,0,8,0"/>
+                        <Button Content="Reset" Click="OnResetClick"
+                                Padding="20,8" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="14" Margin="0,0,8,0"/>
+                        <Button Content="Skip" Click="OnSkipClick"
+                                Padding="20,8" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="14"/>
+                    </StackPanel>
+
+                    <!-- Settings -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="Work:" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox x:Name="WorkMinutes" Text="25" Width="40" Padding="4,2"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
+                        <TextBlock Text="min" Foreground="{DynamicResource TextDimmed}"
+                                   VerticalAlignment="Center" Margin="2,0,16,0"/>
+
+                        <TextBlock Text="Break:" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox x:Name="BreakMinutes" Text="5" Width="40" Padding="4,2"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
+                        <TextBlock Text="min" Foreground="{DynamicResource TextDimmed}"
+                                   VerticalAlignment="Center" Margin="2,0,16,0"/>
+
+                        <TextBlock Text="Sessions:" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock x:Name="SessionCount" Text="0" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource HeaderColor}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ══════ Break Reminder ══════ -->
+            <TextBlock Text="BREAK REMINDER" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+
+            <Border Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}"
+                    BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,12">
+                        <Button x:Name="BtnToggleReminder" Content="Enable" Click="OnToggleReminderClick"
+                                DockPanel.Dock="Right" Padding="14,6"
+                                Background="{DynamicResource AccentBrush}"
+                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Remind every" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox x:Name="ReminderInterval" Text="20" Width="40" Padding="4,2"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     HorizontalContentAlignment="Center"/>
+                            <TextBlock Text="minutes to take a break" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="Break duration:" Foreground="{DynamicResource TextPrimary}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="BreakDuration" Text="20" Width="40" Padding="4,2"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}"
+                                 HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="seconds (screen will be blocked)"
+                                   Foreground="{DynamicResource TextDimmed}"
+                                   VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="20-20-20 Rule: Every 20 min, look at something 20 feet away for 20 seconds."
+                               Foreground="{DynamicResource TextDimmed}" FontSize="12" TextWrapping="Wrap"
+                               Margin="0,0,0,8"/>
+                    <TextBlock x:Name="ReminderStatus" Text="Disabled"
+                               Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

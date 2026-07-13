@@ -148,6 +148,9 @@
                                         <MenuItem Header="{Binding PinMenuText}" Click="OnPinTab" Tag="{Binding Id}"/>
                                         <MenuItem Header="Duplicate" Click="OnDuplicateTab" Tag="{Binding Id}"/>
                                         <Separator/>
+                                        <MenuItem Header="Split Right" Click="OnSplitRight" Tag="{Binding Id}"/>
+                                        <MenuItem Header="Split Down" Click="OnSplitDown" Tag="{Binding Id}"/>
+                                        <Separator/>
                                         <MenuItem Header="Archive" Click="OnArchiveTab" Tag="{Binding Id}"/>
                                         <Separator/>
                                         <MenuItem Header="Close" Click="OnCloseTabClick" Tag="{Binding Id}"/>

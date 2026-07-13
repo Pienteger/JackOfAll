@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -17,5 +16,4 @@
     <ProjectReference Include="..\JackOfAll.Lib\JackOfAll.Lib.csproj" />
     <ProjectReference Include="..\JackOfAll.UserControls\JackOfAll.UserControls.csproj" />
   </ItemGroup>
-
 </Project>

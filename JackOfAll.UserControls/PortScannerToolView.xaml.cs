@@ -13,12 +13,26 @@ public partial class PortScannerToolView : UserControl
         InitializeComponent();
     }
 
-    private void OnListActiveClick(object sender, RoutedEventArgs e)
+    private async void OnListActiveClick(object sender, RoutedEventArgs e)
     {
+        SetScanning(true);
         StatusText.Text = "Querying active listeners...";
-        var results = PortScannerService.GetActiveTcpListeners();
-        PortGrid.ItemsSource = results;
-        StatusText.Text = $"{results.Count} listening ports found";
+
+        try
+        {
+            _cts = new CancellationTokenSource();
+            var results = await PortScannerService.GetActiveTcpListenersAsync(_cts.Token);
+            PortGrid.ItemsSource = results;
+            StatusText.Text = $"{results.Count} listening ports found";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = "Cancelled.";
+        }
+        finally
+        {
+            SetScanning(false);
+        }
     }
 
     private async void OnScanCommonClick(object sender, RoutedEventArgs e)
@@ -84,7 +98,7 @@ public partial class PortScannerToolView : UserControl
         _cts?.Cancel();
     }
 
-    private void OnKillClick(object sender, RoutedEventArgs e)
+    private async void OnKillClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Button btn || btn.Tag is not int pid || pid == 0) return;
 
@@ -96,7 +110,7 @@ public partial class PortScannerToolView : UserControl
 
         if (confirm != MessageBoxResult.Yes) return;
 
-        var (success, message) = PortScannerService.KillProcess(pid);
+        var (success, message) = await Task.Run(() => PortScannerService.KillProcess(pid));
         StatusText.Text = message;
 
         if (success)

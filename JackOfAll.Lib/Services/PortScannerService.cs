@@ -20,7 +20,7 @@ public static partial class PortScannerService
 
     public static async Task<List<PortResult>> ScanCommonPortsAsync(CancellationToken ct = default)
     {
-        var portMap = await GetPortPidMapAsync();
+        var portMap = await Task.Run(() => GetPortPidMap(), ct);
         var tasks = CommonPorts.Select(port => ScanPortAsync(port, portMap, ct));
         var scanned = await Task.WhenAll(tasks);
         var results = new List<PortResult>();
@@ -31,31 +31,35 @@ public static partial class PortScannerService
 
     public static async Task<List<PortResult>> ScanRangeAsync(int start, int end, CancellationToken ct = default)
     {
-        var portMap = await GetPortPidMapAsync();
+        var portMap = await Task.Run(() => GetPortPidMap(), ct);
         var ports = Enumerable.Range(start, end - start + 1);
         var tasks = ports.Select(port => ScanPortAsync(port, portMap, ct));
         var scanned = await Task.WhenAll(tasks);
         return scanned.Where(r => r.Status == "Open").ToList();
     }
 
-    public static List<PortResult> GetActiveTcpListeners()
+    public static async Task<List<PortResult>> GetActiveTcpListenersAsync(CancellationToken ct = default)
     {
-        var portMap = GetPortPidMapAsync().GetAwaiter().GetResult();
-        var properties = IPGlobalProperties.GetIPGlobalProperties();
-        var listeners = properties.GetActiveTcpListeners();
-        return listeners
-            .Where(ep => ep.Address.Equals(IPAddress.Any) ||
-                         ep.Address.Equals(IPAddress.Loopback) ||
-                         ep.Address.Equals(IPAddress.IPv6Any) ||
-                         ep.Address.Equals(IPAddress.IPv6Loopback))
-            .Select(ep =>
-            {
-                var (pid, procName) = LookupProcess(ep.Port, portMap);
-                return new PortResult(ep.Port, "Listening", GetServiceName(ep.Port), pid, procName);
-            })
-            .DistinctBy(r => r.Port)
-            .OrderBy(r => r.Port)
-            .ToList();
+        var portMap = await Task.Run(() => GetPortPidMap(), ct);
+
+        return await Task.Run(() =>
+        {
+            var properties = IPGlobalProperties.GetIPGlobalProperties();
+            var listeners = properties.GetActiveTcpListeners();
+            return listeners
+                .Where(ep => ep.Address.Equals(IPAddress.Any) ||
+                             ep.Address.Equals(IPAddress.Loopback) ||
+                             ep.Address.Equals(IPAddress.IPv6Any) ||
+                             ep.Address.Equals(IPAddress.IPv6Loopback))
+                .Select(ep =>
+                {
+                    portMap.TryGetValue(ep.Port, out var info);
+                    return new PortResult(ep.Port, "Listening", GetServiceName(ep.Port), info.Pid, info.Name);
+                })
+                .DistinctBy(r => r.Port)
+                .OrderBy(r => r.Port)
+                .ToList();
+        }, ct);
     }
 
     public static (bool Success, string Message) KillProcess(int pid)
@@ -87,8 +91,8 @@ public static partial class PortScannerService
             var completed = await Task.WhenAny(connectTask, Task.Delay(500, ct));
             if (completed == connectTask && connectTask.IsCompletedSuccessfully)
             {
-                var (pid, procName) = LookupProcess(port, portMap);
-                return new PortResult(port, "Open", GetServiceName(port), pid, procName);
+                portMap.TryGetValue(port, out var info);
+                return new PortResult(port, "Open", GetServiceName(port), info.Pid, info.Name);
             }
             return new PortResult(port, "Closed", "", 0, "");
         }
@@ -98,16 +102,20 @@ public static partial class PortScannerService
         }
     }
 
-    private static (int Pid, string Name) LookupProcess(int port, Dictionary<int, (int Pid, string Name)> portMap)
-    {
-        return portMap.TryGetValue(port, out var info) ? info : (0, "");
-    }
-
-    private static async Task<Dictionary<int, (int Pid, string Name)>> GetPortPidMapAsync()
+    private static Dictionary<int, (int Pid, string Name)> GetPortPidMap()
     {
         var map = new Dictionary<int, (int Pid, string Name)>();
         try
         {
+            // Build PID -> name lookup in one shot
+            var pidNames = new Dictionary<int, string>();
+            foreach (var p in Process.GetProcesses())
+            {
+                try { pidNames[p.Id] = p.ProcessName; }
+                catch { }
+                finally { p.Dispose(); }
+            }
+
             var psi = new ProcessStartInfo("netstat", "-ano -p TCP")
             {
                 RedirectStandardOutput = true,
@@ -117,8 +125,8 @@ public static partial class PortScannerService
             using var proc = Process.Start(psi);
             if (proc is null) return map;
 
-            var output = await proc.StandardOutput.ReadToEndAsync();
-            await proc.WaitForExitAsync();
+            var output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit(5000);
 
             foreach (Match match in NetstatRegex().Matches(output))
             {
@@ -126,20 +134,10 @@ public static partial class PortScannerService
                 if (!int.TryParse(match.Groups["pid"].Value, out var pid)) continue;
                 var state = match.Groups["state"].Value;
                 if (state is not "LISTENING" and not "ESTABLISHED") continue;
-
                 if (map.ContainsKey(port)) continue;
 
-                var procName = "";
-                try
-                {
-                    procName = Process.GetProcessById(pid).ProcessName;
-                }
-                catch
-                {
-                    // process may have exited
-                }
-
-                map[port] = (pid, procName);
+                pidNames.TryGetValue(pid, out var procName);
+                map[port] = (pid, procName ?? "");
             }
         }
         catch

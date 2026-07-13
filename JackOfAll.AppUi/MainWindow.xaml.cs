@@ -123,7 +123,9 @@ public partial class MainWindow : Window
     {
         if (tab.IsPinned) return;
 
-        if (tab.View is IDisposable disposable)
+        if (tab.View is SplitPaneHost splitHost)
+            splitHost.Dispose();
+        else if (tab.View is IDisposable disposable)
             disposable.Dispose();
 
         var idx = _tabs.IndexOf(tab);
@@ -293,6 +295,43 @@ public partial class MainWindow : Window
         var idx = _tabs.IndexOf(tab);
         _tabs.Insert(idx + 1, newTab);
         TabList.SelectedItem = newTab;
+    }
+
+    // ── Split ───────────────────────────────────────────────────────
+
+    private void OnSplitRight(object sender, RoutedEventArgs e)
+    {
+        var tab = FindTabFromSender(sender);
+        if (tab is not null && tab.ToolId != "newtab")
+            SplitTab(tab, Orientation.Horizontal);
+    }
+
+    private void OnSplitDown(object sender, RoutedEventArgs e)
+    {
+        var tab = FindTabFromSender(sender);
+        if (tab is not null && tab.ToolId != "newtab")
+            SplitTab(tab, Orientation.Vertical);
+    }
+
+    private void SplitTab(ToolTab tab, Orientation orientation)
+    {
+        if (tab.View is SplitPaneHost host)
+        {
+            host.Split(orientation);
+        }
+        else
+        {
+            if (TabList.SelectedItem == tab)
+                ContentArea.Content = null;
+
+            host = new SplitPaneHost(_registry, _bus);
+            host.SetLeafContent(tab.View, tab.Title, tab.ToolId);
+            host.Split(orientation);
+            tab.View = host;
+
+            if (TabList.SelectedItem == tab)
+                ContentArea.Content = tab.View;
+        }
     }
 
     // ── Rename ──────────────────────────────────────────────────────

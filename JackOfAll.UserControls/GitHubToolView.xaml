@@ -1,0 +1,206 @@
+<UserControl x:Class="JackOfAll.UserControls.GitHubToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="900">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Token setup bar -->
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource SurfaceBorder}"
+                BorderThickness="0,0,0,1" Padding="12,8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="BtnConnect" Content="Connect" Click="OnConnectClick"
+                            Padding="14,5" Margin="8,0,0,0"
+                            Background="{DynamicResource AccentBrush}"
+                            Foreground="White" BorderThickness="0" FontSize="12"/>
+                    <Button x:Name="BtnRefresh" Content="Refresh" Click="OnRefreshClick"
+                            Padding="14,5" Margin="8,0,0,0" Visibility="Collapsed"
+                            Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12"/>
+                    <Button x:Name="BtnDisconnect" Content="Disconnect" Click="OnDisconnectClick"
+                            Padding="14,5" Margin="8,0,0,0" Visibility="Collapsed"
+                            Background="#e06c75" Foreground="White" BorderThickness="0" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Token:" Foreground="{DynamicResource TextSecondary}"
+                               VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+                    <PasswordBox x:Name="TokenBox" Width="260" Padding="6,3"
+                                 Background="{DynamicResource AppBackground}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12"/>
+                    <TextBlock x:Name="StatusText" Foreground="{DynamicResource TextSecondary}"
+                               VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"/>
+                    <TextBlock x:Name="LoadingText" Text="Loading..." Visibility="Collapsed"
+                               Foreground="{DynamicResource TextDimmed}" Margin="12,0,0,0"
+                               VerticalAlignment="Center" FontSize="11"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Filter bar -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource SurfaceBorder}"
+                BorderThickness="0,0,0,1" Padding="12,6"
+                x:Name="FilterBar" Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Org:" Foreground="{DynamicResource TextSecondary}"
+                           VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12"/>
+                <ComboBox x:Name="OrgFilter" Width="180" FontSize="12"
+                          Background="{DynamicResource AppBackground}"
+                          Foreground="{DynamicResource TextPrimary}"
+                          BorderBrush="{DynamicResource SurfaceBorder}"
+                          SelectionChanged="OnFilterChanged"/>
+                <TextBlock Text="Repo:" Foreground="{DynamicResource TextSecondary}"
+                           VerticalAlignment="Center" Margin="16,0,6,0" FontSize="12"/>
+                <ComboBox x:Name="RepoFilter" Width="220" FontSize="12"
+                          Background="{DynamicResource AppBackground}"
+                          Foreground="{DynamicResource TextPrimary}"
+                          BorderBrush="{DynamicResource SurfaceBorder}"
+                          SelectionChanged="OnFilterChanged"/>
+                <Button Content="Clear Filters" Click="OnClearFilters"
+                        Padding="10,3" Margin="16,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextSecondary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Tab control with four tabs -->
+        <TabControl Grid.Row="2" x:Name="InnerTabs"
+                    Background="{DynamicResource AppBackground}"
+                    BorderThickness="0" Padding="0"
+                    SelectionChanged="OnInnerTabChanged">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Padding" Value="16,8"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="Bd" Padding="{TemplateBinding Padding}"
+                                        Background="Transparent"
+                                        BorderBrush="{DynamicResource AccentBrush}"
+                                        BorderThickness="0,0,0,0">
+                                    <ContentPresenter ContentSource="Header"
+                                                      HorizontalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderThickness" Value="0,0,0,2"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{DynamicResource TabHoverBackground}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- Notifications tab -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock x:Name="NotifTabHeader" Text="Notifications"/>
+                </TabItem.Header>
+                <DockPanel Margin="0">
+                    <DockPanel DockPanel.Dock="Top" Margin="12,8,12,4">
+                        <Button x:Name="BtnMarkAllRead" Content="Mark All Read"
+                                Click="OnMarkAllReadClick" DockPanel.Dock="Right"
+                                Padding="10,3" Visibility="Collapsed"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextSecondary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
+                        <TextBlock x:Name="NotificationsHeader" Text="UNREAD NOTIFICATIONS"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4">
+                        <StackPanel x:Name="NotificationsList" Margin="12,0">
+                            <TextBlock Text="Connect to GitHub to see notifications."
+                                       Foreground="{DynamicResource TextDimmed}" FontSize="12"
+                                       Margin="0,8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Pull Requests tab -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock x:Name="PrTabHeader" Text="Pull Requests"/>
+                </TabItem.Header>
+                <DockPanel Margin="0">
+                    <TextBlock x:Name="PrHeader" Text="ASSIGNED PULL REQUESTS"
+                               DockPanel.Dock="Top" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Margin="12,8,12,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4">
+                        <StackPanel x:Name="PrList" Margin="12,0">
+                            <TextBlock Text="Connect to GitHub to see pull requests."
+                                       Foreground="{DynamicResource TextDimmed}" FontSize="12"
+                                       Margin="0,8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Issues tab -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock x:Name="IssueTabHeader" Text="Issues"/>
+                </TabItem.Header>
+                <DockPanel Margin="0">
+                    <TextBlock x:Name="IssueHeader" Text="ASSIGNED ISSUES"
+                               DockPanel.Dock="Top" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Margin="12,8,12,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4">
+                        <StackPanel x:Name="IssueList" Margin="12,0">
+                            <TextBlock Text="Connect to GitHub to see issues."
+                                       Foreground="{DynamicResource TextDimmed}" FontSize="12"
+                                       Margin="0,8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Comments tab -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock x:Name="CommentTabHeader" Text="Comments"/>
+                </TabItem.Header>
+                <DockPanel Margin="0">
+                    <TextBlock x:Name="CommentHeader" Text="MENTIONED COMMENTS"
+                               DockPanel.Dock="Top" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondary}"
+                               Margin="12,8,12,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4">
+                        <StackPanel x:Name="CommentList" Margin="12,0">
+                            <TextBlock Text="Connect to GitHub to see comments."
+                                       Foreground="{DynamicResource TextDimmed}" FontSize="12"
+                                       Margin="0,8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

@@ -23,12 +23,15 @@ public partial class AppSettings : ObservableObject
     [ObservableProperty]
     private ThemeMode _themeMode = ThemeMode.Dark;
 
+    [ObservableProperty]
+    private string _gitHubToken = "";
+
     public void Save()
     {
         var dir = Path.GetDirectoryName(SettingsPath)!;
         Directory.CreateDirectory(dir);
 
-        var dto = new SettingsDto { FontSize = FontSize, ThemeMode = ThemeMode.ToString() };
+        var dto = new SettingsDto { FontSize = FontSize, ThemeMode = ThemeMode.ToString(), GitHubToken = GitHubToken };
         var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(SettingsPath, json);
     }
@@ -47,6 +50,7 @@ public partial class AppSettings : ObservableObject
             settings.FontSize = Math.Clamp(dto.FontSize, 10, 24);
             if (Enum.TryParse<ThemeMode>(dto.ThemeMode, out var mode))
                 settings.ThemeMode = mode;
+            settings.GitHubToken = dto.GitHubToken;
         }
         catch
         {
@@ -60,5 +64,6 @@ public partial class AppSettings : ObservableObject
     {
         public double FontSize { get; set; } = 13;
         public string ThemeMode { get; set; } = "Dark";
+        public string GitHubToken { get; set; } = "";
     }
 }
