@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class EnvVarToolView : UserControl
+public partial class EnvVarToolView : UserControl, IStatefulTool
 {
     private List<EnvVar> _allVars = [];
     private bool _loaded;
@@ -57,5 +58,22 @@ public partial class EnvVarToolView : UserControl
     {
         if (EnvGrid.SelectedItem is EnvVar v)
             Clipboard.SetText($"{v.Name}={v.Value}");
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["search"] = SearchBox.Text,
+            ["scope"] = ScopeFilter.SelectedIndex.ToString()
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("search", out var search))
+            SearchBox.Text = search;
+        if (state.TryGetValue("scope", out var scope) && int.TryParse(scope, out var idx))
+            ScopeFilter.SelectedIndex = idx;
     }
 }

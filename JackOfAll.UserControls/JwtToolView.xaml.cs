@@ -3,10 +3,11 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using JackOfAll.Lib.Messaging;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class JwtToolView : UserControl, IDisposable
+public partial class JwtToolView : UserControl, IDisposable, IStatefulTool
 {
     private readonly IDisposable _subscription;
     private bool _disposed;
@@ -104,6 +105,20 @@ public partial class JwtToolView : UserControl, IDisposable
 
     private Brush FindBrush(string key) =>
         (Brush)Application.Current.FindResource(key);
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string> { ["token"] = TokenInput.Text };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("token", out var token) && !string.IsNullOrEmpty(token))
+        {
+            TokenInput.Text = token;
+            Decode(token);
+        }
+    }
 
     public void Dispose()
     {

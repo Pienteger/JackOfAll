@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class GeneratorToolView : UserControl
+public partial class GeneratorToolView : UserControl, IStatefulTool
 {
     public GeneratorToolView()
     {
@@ -93,5 +94,37 @@ public partial class GeneratorToolView : UserControl
     private void GenerateGuid()
     {
         GuidOutput.Text = GeneratorService.GenerateGuid();
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["length"] = PasswordLength.Text,
+            ["upper"] = (ChkUpper.IsChecked == true).ToString(),
+            ["lower"] = (ChkLower.IsChecked == true).ToString(),
+            ["digits"] = (ChkDigits.IsChecked == true).ToString(),
+            ["symbols"] = (ChkSymbols.IsChecked == true).ToString(),
+            ["password"] = PasswordOutput.Text,
+            ["guid"] = GuidOutput.Text
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("length", out var len))
+            PasswordLength.Text = len;
+        if (state.TryGetValue("upper", out var u))
+            ChkUpper.IsChecked = u == "True";
+        if (state.TryGetValue("lower", out var l))
+            ChkLower.IsChecked = l == "True";
+        if (state.TryGetValue("digits", out var d))
+            ChkDigits.IsChecked = d == "True";
+        if (state.TryGetValue("symbols", out var s))
+            ChkSymbols.IsChecked = s == "True";
+        if (state.TryGetValue("password", out var pw))
+            PasswordOutput.Text = pw;
+        if (state.TryGetValue("guid", out var g))
+            GuidOutput.Text = g;
     }
 }

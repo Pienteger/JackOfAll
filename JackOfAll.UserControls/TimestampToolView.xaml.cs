@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class TimestampToolView : UserControl
+public partial class TimestampToolView : UserControl, IStatefulTool
 {
     public TimestampToolView()
     {
@@ -57,5 +58,22 @@ public partial class TimestampToolView : UserControl
             DateToTimestampOutput.Text = result;
             DateToTimestampOutput.Visibility = Visibility.Visible;
         }
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["timestamp"] = TimestampInput.Text,
+            ["date"] = DateInput.Text
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("timestamp", out var ts))
+            TimestampInput.Text = ts;
+        if (state.TryGetValue("date", out var date))
+            DateInput.Text = date;
     }
 }

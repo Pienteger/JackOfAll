@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class HashToolView : UserControl
+public partial class HashToolView : UserControl, IStatefulTool
 {
     public HashToolView()
     {
@@ -59,5 +60,25 @@ public partial class HashToolView : UserControl
     {
         if (!string.IsNullOrEmpty(text))
             Clipboard.SetText(text);
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["input"] = InputBox.Text,
+            ["uppercase"] = (ChkUppercase.IsChecked == true).ToString()
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("uppercase", out var upper))
+            ChkUppercase.IsChecked = upper == "True";
+        if (state.TryGetValue("input", out var input))
+        {
+            InputBox.Text = input;
+            ComputeHashes();
+        }
     }
 }

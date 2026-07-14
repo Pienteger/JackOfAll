@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class PortScannerToolView : UserControl
+public partial class PortScannerToolView : UserControl, IStatefulTool
 {
     private CancellationTokenSource? _cts;
 
@@ -123,5 +124,22 @@ public partial class PortScannerToolView : UserControl
         BtnScanCommon.IsEnabled = !scanning;
         BtnScanRange.IsEnabled = !scanning;
         BtnCancel.Visibility = scanning ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["rangeStart"] = RangeStart.Text,
+            ["rangeEnd"] = RangeEnd.Text
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("rangeStart", out var start))
+            RangeStart.Text = start;
+        if (state.TryGetValue("rangeEnd", out var end))
+            RangeEnd.Text = end;
     }
 }

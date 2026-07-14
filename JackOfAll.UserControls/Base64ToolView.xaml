@@ -15,24 +15,26 @@
         <!-- Toolbar -->
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="Encode" Click="OnEncodeClick" Padding="10,4" Margin="4,0,0,0"
+                <Button Content="B64 Encode" Click="OnEncodeClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="Decode" Click="OnDecodeClick" Padding="10,4" Margin="4,0,0,0"
+                <Button Content="B64 Decode" Click="OnDecodeClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="URL Encode" Click="OnUrlEncodeClick" Padding="10,4" Margin="4,0,0,0"
+                <Button Content="B64 URL-Safe" Click="OnUrlEncodeClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
                         BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <Button Content="URL Decode" Click="OnUrlDecodeClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource SurfaceBackground}"
-                        Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+                <Border Width="1" Background="{DynamicResource SurfaceBorder}" Margin="8,2"/>
+                <Button Content="URL Escape" Click="OnUrlEscapeClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
+                <Button Content="URL Unescape" Click="OnUrlUnescapeClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
+                <Border Width="1" Background="{DynamicResource SurfaceBorder}" Margin="8,2"/>
                 <Button Content="Clear" Click="OnClearClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
                         BorderBrush="{DynamicResource SurfaceBorder}"/>
             </StackPanel>
-            <TextBlock Text="Base64 Encoder / Decoder" Foreground="{DynamicResource TextPrimary}"
+            <TextBlock Text="Encode / Decode" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
         </DockPanel>
 

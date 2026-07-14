@@ -6,10 +6,11 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using JackOfAll.Lib.Services;
 using JackOfAll.Lib.Settings;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class GitHubToolView : UserControl
+public partial class GitHubToolView : UserControl, IStatefulTool
 {
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _autoRefresh = new() { Interval = TimeSpan.FromMinutes(2) };
@@ -569,4 +570,27 @@ public partial class GitHubToolView : UserControl
 
     private Brush FindBrush(string key)
         => TryFindResource(key) as Brush ?? Brushes.White;
+
+    public Dictionary<string, string> SaveState()
+    {
+        var state = new Dictionary<string, string>
+        {
+            ["tab"] = InnerTabs.SelectedIndex.ToString()
+        };
+        if (!string.IsNullOrEmpty(_selectedOrg))
+            state["org"] = _selectedOrg;
+        if (!string.IsNullOrEmpty(_selectedRepo))
+            state["repo"] = _selectedRepo;
+        return state;
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("org", out var org))
+            _selectedOrg = org;
+        if (state.TryGetValue("repo", out var repo))
+            _selectedRepo = repo;
+        if (state.TryGetValue("tab", out var tab) && int.TryParse(tab, out var idx))
+            InnerTabs.SelectedIndex = idx;
+    }
 }

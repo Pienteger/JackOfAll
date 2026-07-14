@@ -2,11 +2,12 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 using Microsoft.Win32;
 
 namespace JackOfAll.UserControls;
 
-public partial class NotepadToolView : UserControl
+public partial class NotepadToolView : UserControl, IStatefulTool
 {
     private string? _currentPath;
     private bool _isDirty;
@@ -66,11 +67,15 @@ public partial class NotepadToolView : UserControl
 
     private void OnSaveAsClick(object sender, RoutedEventArgs e)
     {
+        var defaultDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "JackOfAll");
+        Directory.CreateDirectory(defaultDir);
+
         var dlg = new SaveFileDialog
         {
             Filter = "Markdown files|*.md|Text files|*.txt|All files|*.*",
             DefaultExt = ".md",
-            FileName = _currentPath is not null ? Path.GetFileName(_currentPath) : "Untitled.md"
+            FileName = _currentPath is not null ? Path.GetFileName(_currentPath) : "Untitled.md",
+            InitialDirectory = _currentPath is not null ? Path.GetDirectoryName(_currentPath)! : defaultDir
         };
 
         if (dlg.ShowDialog() == true)
@@ -161,5 +166,32 @@ public partial class NotepadToolView : UserControl
         var chars = EditorBox.Text.Length;
         var dirty = _isDirty ? " (modified)" : "";
         StatusText.Text = $"Lines: {lines}  Chars: {chars}{dirty}";
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        var state = new Dictionary<string, string>
+        {
+            ["text"] = EditorBox.Text,
+            ["title"] = FileTitle.Text,
+            ["preview"] = (PreviewToggle.IsChecked == true).ToString()
+        };
+        if (_currentPath is not null)
+            state["path"] = _currentPath;
+        return state;
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("text", out var text))
+            EditorBox.Text = text;
+        if (state.TryGetValue("path", out var path))
+            _currentPath = path;
+        if (state.TryGetValue("title", out var title))
+            FileTitle.Text = title;
+        if (state.TryGetValue("preview", out var preview) && preview == "True")
+            PreviewToggle.IsChecked = true;
+        _isDirty = false;
+        UpdateStatus();
     }
 }

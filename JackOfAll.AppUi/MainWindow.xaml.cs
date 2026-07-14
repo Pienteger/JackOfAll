@@ -46,6 +46,9 @@ public partial class MainWindow : Window
 
         _openToolSub = _bus.Subscribe<OpenToolMessage>(OnOpenTool);
 
+        _archivedTabs.AddRange(ArchiveStore.Load());
+        UpdateArchivedButton();
+
         AddNewTab();
     }
 
@@ -172,8 +175,27 @@ public partial class MainWindow : Window
         var tab = FindTabFromSender(sender);
         if (tab is null || !tab.CanClose || tab.ToolId == "newtab") return;
 
-        _archivedTabs.Add(new ArchivedTab(tab.ToolId, tab.Title, DateTime.Now));
-        CloseTab(tab);
+        var state = new Dictionary<string, string>();
+        if (tab.View is IStatefulTool stateful)
+            state = stateful.SaveState();
+
+        ContentArea.Content = null;
+        _archivedTabs.Add(new ArchivedTab
+        {
+            ToolId = tab.ToolId,
+            Title = tab.Title,
+            ArchivedAt = DateTime.Now,
+            State = state
+        });
+
+        if (tab.View is SplitPaneHost splitHost)
+            splitHost.Dispose();
+        _tabs.Remove(tab);
+
+        ArchiveStore.Save(_archivedTabs);
+
+        if (_tabs.Count == 0) AddNewTab();
+        else if (TabList.SelectedItem == null) TabList.SelectedItem = _tabs[^1];
         UpdateArchivedButton();
     }
 
@@ -184,6 +206,7 @@ public partial class MainWindow : Window
         var last = _archivedTabs[^1];
         _archivedTabs.RemoveAt(_archivedTabs.Count - 1);
         RestoreArchivedTab(last);
+        ArchiveStore.Save(_archivedTabs);
         UpdateArchivedButton();
     }
 
@@ -193,6 +216,9 @@ public partial class MainWindow : Window
         if (factory is null) return;
 
         var view = factory.CreateView(_bus, m => _bus.Publish(m));
+        if (view is IStatefulTool stateful && archived.State.Count > 0)
+            stateful.LoadState(archived.State);
+
         var tab = new ToolTab
         {
             Title = archived.Title,
@@ -224,12 +250,15 @@ public partial class MainWindow : Window
                 var idx = i;
                 var item = new MenuItem
                 {
-                    Header = $"{archived.Title}  —  {archived.ArchivedAt:HH:mm}"
+                    Header = archived.ArchivedAt.Date == DateTime.Today
+                        ? $"{archived.Title}  —  {archived.ArchivedAt:HH:mm}"
+                        : $"{archived.Title}  —  {archived.ArchivedAt:MMM dd, HH:mm}"
                 };
                 item.Click += (_, _) =>
                 {
                     _archivedTabs.RemoveAt(idx);
                     RestoreArchivedTab(archived);
+                    ArchiveStore.Save(_archivedTabs);
                     UpdateArchivedButton();
                 };
                 ArchivedMenu.Items.Add(item);
@@ -240,6 +269,7 @@ public partial class MainWindow : Window
             clearAll.Click += (_, _) =>
             {
                 _archivedTabs.Clear();
+                ArchiveStore.Save(_archivedTabs);
                 UpdateArchivedButton();
             };
             ArchivedMenu.Items.Add(clearAll);

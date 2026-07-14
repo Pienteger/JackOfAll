@@ -3,10 +3,11 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using JackOfAll.Lib.Messaging;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class JsonToolView : UserControl, IDisposable
+public partial class JsonToolView : UserControl, IDisposable, IStatefulTool
 {
     private readonly IDisposable _subscription;
     private bool _disposed;
@@ -134,6 +135,23 @@ public partial class JsonToolView : UserControl, IDisposable
 
     private Brush FindBrush(string key) =>
         (Brush)Application.Current.FindResource(key);
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["input"] = InputBox.Text,
+            ["output"] = OutputBox.Text
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("input", out var input))
+            InputBox.Text = input;
+        if (state.TryGetValue("output", out var output))
+            OutputBox.Text = output;
+    }
 
     public void Dispose()
     {

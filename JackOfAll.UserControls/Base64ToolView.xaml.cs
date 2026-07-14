@@ -1,10 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class Base64ToolView : UserControl
+public partial class Base64ToolView : UserControl, IStatefulTool
 {
     public Base64ToolView()
     {
@@ -35,6 +36,30 @@ public partial class Base64ToolView : UserControl
         SetOutput(result, error, "URL-safe decoded");
     }
 
+    private void OnUrlEscapeClick(object sender, RoutedEventArgs e)
+    {
+        var input = InputBox.Text;
+        if (string.IsNullOrEmpty(input)) return;
+        OutputBox.Text = Uri.EscapeDataString(input);
+        StatusText.Text = $"URL escaped ({OutputBox.Text.Length} chars)";
+    }
+
+    private void OnUrlUnescapeClick(object sender, RoutedEventArgs e)
+    {
+        var input = InputBox.Text;
+        if (string.IsNullOrEmpty(input)) return;
+        try
+        {
+            OutputBox.Text = Uri.UnescapeDataString(input);
+            StatusText.Text = $"URL unescaped ({OutputBox.Text.Length} chars)";
+        }
+        catch (Exception ex)
+        {
+            OutputBox.Text = string.Empty;
+            StatusText.Text = $"Invalid: {ex.Message}";
+        }
+    }
+
     private void OnClearClick(object sender, RoutedEventArgs e)
     {
         InputBox.Text = string.Empty;
@@ -60,5 +85,22 @@ public partial class Base64ToolView : UserControl
             OutputBox.Text = result;
             StatusText.Text = $"{successMessage} ({result?.Length ?? 0} chars)";
         }
+    }
+
+    public Dictionary<string, string> SaveState()
+    {
+        return new Dictionary<string, string>
+        {
+            ["input"] = InputBox.Text,
+            ["output"] = OutputBox.Text
+        };
+    }
+
+    public void LoadState(Dictionary<string, string> state)
+    {
+        if (state.TryGetValue("input", out var input))
+            InputBox.Text = input;
+        if (state.TryGetValue("output", out var output))
+            OutputBox.Text = output;
     }
 }
