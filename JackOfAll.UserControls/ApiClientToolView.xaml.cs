@@ -16,7 +16,11 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     public ApiClientToolView()
     {
         InitializeComponent();
-        Loaded += (_, _) => LoadSidebar();
+        Loaded += (_, _) =>
+        {
+            LoadSidebar();
+            LoadEnvironments();
+        };
     }
 
     private void LoadSidebar()
@@ -49,6 +53,14 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         {
             _lastResponse = await ApiClientService.SendAsync(request, _cts.Token);
             ShowResponse(_lastResponse);
+
+            if (request.ExtractionRules.Count > 0 && !string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
+            {
+                var results = ApiClientService.ApplyExtractionRules(_lastResponse, request.ExtractionRules);
+                RenderVars();
+                UpdateEnvVarCount();
+            }
+
             ApiClientService.AddToHistory(request);
             _history = ApiClientService.LoadHistory();
             RenderHistory();
@@ -164,7 +176,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             FormData = bodyType is "form-data" or "x-www-form-urlencoded"
                 ? CollectKeyValues(FormDataList) : [],
             AuthType = authType,
-            AuthValue = AuthValueBox.Text.Trim()
+            AuthValue = AuthValueBox.Text.Trim(),
+            ExtractionRules = CollectExtractionRules()
         };
 
         if (bodyType == "raw")
@@ -216,6 +229,10 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         ParamsList.Children.Clear();
         foreach (var p in req.Params)
             AddKeyValueRow(ParamsList, p.Key, p.Value, p.Enabled);
+
+        ExtractionRulesList.Children.Clear();
+        foreach (var rule in req.ExtractionRules)
+            AddExtractionRuleRow(rule.Variable, rule.Source, rule.Expression);
     }
 
     // ── Key-value rows ──────────────────────────────────────────────
@@ -350,6 +367,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         ParamsList.Children.Clear();
         ResponseBody.Text = "Send a request to see the response.";
         ResponseHeadersList.Children.Clear();
+        ExtractionRulesList.Children.Clear();
         StatusBadge.Visibility = Visibility.Collapsed;
         TimingText.Text = "";
     }
@@ -454,6 +472,287 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             Clipboard.SetText(ResponseBody.Text);
     }
 
+    // ── Environment ─────────────────────────────────────────────────
+
+    private void LoadEnvironments()
+    {
+        EnvPicker.Items.Clear();
+        EnvPicker.Items.Add(new ComboBoxItem { Content = "No Environment", Tag = "" });
+
+        foreach (var env in ApiEnvironmentService.ListEnvironments())
+            EnvPicker.Items.Add(new ComboBoxItem { Content = env, Tag = env });
+
+        var active = ApiEnvironmentService.ActiveEnvironment;
+        for (int i = 0; i < EnvPicker.Items.Count; i++)
+        {
+            if ((EnvPicker.Items[i] as ComboBoxItem)?.Tag?.ToString() == active)
+            {
+                EnvPicker.SelectedIndex = i;
+                break;
+            }
+        }
+        if (EnvPicker.SelectedIndex < 0) EnvPicker.SelectedIndex = 0;
+
+        UpdateEnvVarCount();
+        RenderVars();
+    }
+
+    private void OnEnvChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (EnvPicker.SelectedItem is not ComboBoxItem item) return;
+        var name = item.Tag?.ToString() ?? "";
+        if (string.IsNullOrEmpty(name))
+            ApiEnvironmentService.ClearActive();
+        else
+            ApiEnvironmentService.SetActive(name);
+
+        UpdateEnvVarCount();
+        RenderVars();
+    }
+
+    private void UpdateEnvVarCount()
+    {
+        var active = ApiEnvironmentService.ActiveEnvironment;
+        if (string.IsNullOrEmpty(active))
+            EnvVarCount.Text = "";
+        else
+            EnvVarCount.Text = $"{ApiEnvironmentService.Variables.Count} var(s)";
+    }
+
+    private void OnManageEnvClick(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu();
+
+        var newItem = new MenuItem { Header = "New Environment..." };
+        newItem.Click += (_, _) =>
+        {
+            var dlg = new InputDialog("New Environment", "Environment name (e.g. dev, uat, prod):");
+            dlg.Owner = Window.GetWindow(this);
+            if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
+            {
+                var name = dlg.ResultText.Trim().ToLowerInvariant().Replace(" ", "-");
+                ApiEnvironmentService.CreateEnvironment(name);
+                LoadEnvironments();
+                for (int i = 0; i < EnvPicker.Items.Count; i++)
+                {
+                    if ((EnvPicker.Items[i] as ComboBoxItem)?.Tag?.ToString() == name)
+                    {
+                        EnvPicker.SelectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        };
+        menu.Items.Add(newItem);
+
+        var envs = ApiEnvironmentService.ListEnvironments();
+        if (envs.Count > 0)
+        {
+            menu.Items.Add(new Separator());
+            foreach (var env in envs)
+            {
+                var delItem = new MenuItem { Header = $"Delete '{env}'" };
+                var captured = env;
+                delItem.Click += (_, _) =>
+                {
+                    ApiEnvironmentService.DeleteEnvironment(captured);
+                    LoadEnvironments();
+                };
+                menu.Items.Add(delItem);
+            }
+        }
+
+        menu.IsOpen = true;
+    }
+
+    // ── Vars tab ────────────────────────────────────────────────────
+
+    private void RenderVars()
+    {
+        VarsList.Children.Clear();
+        var active = ApiEnvironmentService.ActiveEnvironment;
+        VarsTabLabel.Text = string.IsNullOrEmpty(active)
+            ? "ENVIRONMENT VARIABLES"
+            : $"VARIABLES — {active.ToUpperInvariant()}";
+
+        if (string.IsNullOrEmpty(active))
+        {
+            VarsList.Children.Add(new TextBlock
+            {
+                Text = "Select an environment to view variables.",
+                Foreground = (Brush)FindResource("TextDimmed"),
+                FontSize = 12,
+                Margin = new Thickness(0, 8, 0, 0)
+            });
+            return;
+        }
+
+        foreach (var kv in ApiEnvironmentService.Variables.OrderBy(x => x.Key))
+        {
+            var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
+
+            var removeBtn = new Button
+            {
+                Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+                Background = Brushes.Transparent,
+                Foreground = (Brush)FindResource("TextDimmed"),
+                BorderThickness = new Thickness(0), FontSize = 14
+            };
+            var capturedKey = kv.Key;
+            removeBtn.Click += (_, _) =>
+            {
+                ApiEnvironmentService.RemoveVariable(capturedKey);
+                RenderVars();
+                UpdateEnvVarCount();
+            };
+            DockPanel.SetDock(removeBtn, Dock.Right);
+            row.Children.Add(removeBtn);
+
+            var keyBlock = new TextBlock
+            {
+                Text = kv.Key,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimary"),
+                FontSize = 12, Width = 160,
+                FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(keyBlock, Dock.Left);
+            row.Children.Add(keyBlock);
+
+            var valBox = new TextBox
+            {
+                Text = kv.Value,
+                FontSize = 12, Padding = new Thickness(4, 3, 4, 3),
+                FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+                Background = (Brush)FindResource("SurfaceBackground"),
+                Foreground = (Brush)FindResource("TextPrimary"),
+                BorderBrush = (Brush)FindResource("SurfaceBorder")
+            };
+            var valKey = kv.Key;
+            valBox.LostFocus += (_, _) =>
+            {
+                ApiEnvironmentService.SetVariable(valKey, valBox.Text);
+            };
+            row.Children.Add(valBox);
+
+            VarsList.Children.Add(row);
+        }
+    }
+
+    private void OnAddManualVar(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment)) return;
+
+        var dlg = new InputDialog("Add Variable", "Variable name:");
+        dlg.Owner = Window.GetWindow(this);
+        if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
+        {
+            ApiEnvironmentService.SetVariable(dlg.ResultText.Trim(), "");
+            RenderVars();
+            UpdateEnvVarCount();
+        }
+    }
+
+    // ── Extraction rules ────────────────────────────────────────────
+
+    private void OnAddExtractionRule(object sender, RoutedEventArgs e)
+    {
+        AddExtractionRuleRow();
+    }
+
+    private void AddExtractionRuleRow(string variable = "", string source = "jsonpath", string expression = "")
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
+
+        var removeBtn = new Button
+        {
+            Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = (Brush)FindResource("TextDimmed"),
+            BorderThickness = new Thickness(0), FontSize = 14
+        };
+        DockPanel.SetDock(removeBtn, Dock.Right);
+        removeBtn.Click += (_, _) => ExtractionRulesList.Children.Remove(row);
+        row.Children.Add(removeBtn);
+
+        var varBox = new TextBox
+        {
+            Text = variable, Width = 100,
+            Padding = new Thickness(4, 3, 4, 3), Margin = new Thickness(0, 0, 6, 0),
+            FontSize = 11,
+            FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder"),
+            ToolTip = "Variable name"
+        };
+        DockPanel.SetDock(varBox, Dock.Left);
+        row.Children.Add(varBox);
+
+        var sourceBox = new ComboBox
+        {
+            Width = 100, FontSize = 11, Margin = new Thickness(0, 0, 6, 0),
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder")
+        };
+        sourceBox.Items.Add(new ComboBoxItem { Content = "jsonpath" });
+        sourceBox.Items.Add(new ComboBoxItem { Content = "regex" });
+        sourceBox.Items.Add(new ComboBoxItem { Content = "header" });
+        sourceBox.SelectedIndex = source switch { "regex" => 1, "header" => 2, _ => 0 };
+        DockPanel.SetDock(sourceBox, Dock.Left);
+        row.Children.Add(sourceBox);
+
+        var exprBox = new TextBox
+        {
+            Text = expression,
+            Padding = new Thickness(4, 3, 4, 3),
+            FontSize = 11,
+            FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder"),
+            ToolTip = "jsonpath: $.data.token | regex: \"token\":\"(.+?)\" | header: Authorization"
+        };
+        row.Children.Add(exprBox);
+
+        ExtractionRulesList.Children.Add(row);
+    }
+
+    private List<ExtractionRule> CollectExtractionRules()
+    {
+        var rules = new List<ExtractionRule>();
+        foreach (var child in ExtractionRulesList.Children)
+        {
+            if (child is not DockPanel row) continue;
+            var textBoxes = row.Children.OfType<TextBox>().ToList();
+            var comboBox = row.Children.OfType<ComboBox>().FirstOrDefault();
+            if (textBoxes.Count < 2) continue;
+
+            rules.Add(new ExtractionRule
+            {
+                Variable = textBoxes[0].Text,
+                Source = (comboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "jsonpath",
+                Expression = textBoxes[1].Text
+            });
+        }
+        return rules;
+    }
+
+    private void OnRunExtraction(object sender, RoutedEventArgs e)
+    {
+        if (_lastResponse is null || string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
+            return;
+
+        var rules = CollectExtractionRules();
+        if (rules.Count == 0) return;
+
+        var results = ApiClientService.ApplyExtractionRules(_lastResponse, rules);
+        RenderVars();
+        UpdateEnvVarCount();
+    }
+
     // ── IStatefulTool ───────────────────────────────────────────────
 
     public Dictionary<string, string> SaveState()
@@ -467,8 +766,18 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             ["rawContentType"] = (RawContentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "application/json",
             ["authType"] = (AuthType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "None",
             ["authValue"] = AuthValueBox.Text,
-            ["requestTab"] = RequestTabs.SelectedIndex.ToString()
+            ["requestTab"] = RequestTabs.SelectedIndex.ToString(),
+            ["activeEnv"] = ApiEnvironmentService.ActiveEnvironment
         };
+
+        var extractionRules = CollectExtractionRules();
+        state["extractionCount"] = extractionRules.Count.ToString();
+        for (int i = 0; i < extractionRules.Count; i++)
+        {
+            state[$"ex_{i}_var"] = extractionRules[i].Variable;
+            state[$"ex_{i}_src"] = extractionRules[i].Source;
+            state[$"ex_{i}_expr"] = extractionRules[i].Expression;
+        }
 
         var formData = CollectKeyValues(FormDataList);
         state["formDataCount"] = formData.Count.ToString();
@@ -585,6 +894,24 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 state.TryGetValue($"p_{i}_e", out var pe);
                 AddKeyValueRow(ParamsList, pk ?? "", pv ?? "", pe != "False");
             }
+        }
+
+        ExtractionRulesList.Children.Clear();
+        if (state.TryGetValue("extractionCount", out var exc) && int.TryParse(exc, out var exCount))
+        {
+            for (int i = 0; i < exCount; i++)
+            {
+                state.TryGetValue($"ex_{i}_var", out var exVar);
+                state.TryGetValue($"ex_{i}_src", out var exSrc);
+                state.TryGetValue($"ex_{i}_expr", out var exExpr);
+                AddExtractionRuleRow(exVar ?? "", exSrc ?? "jsonpath", exExpr ?? "");
+            }
+        }
+
+        if (state.TryGetValue("activeEnv", out var envName) && !string.IsNullOrEmpty(envName))
+        {
+            ApiEnvironmentService.SetActive(envName);
+            LoadEnvironments();
         }
 
         if (state.TryGetValue("lastResponseBody", out var lrb))

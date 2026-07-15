@@ -19,6 +19,7 @@ public record ApiRequest
     public string AuthType { get; set; } = "None";
     public string AuthValue { get; set; } = "";
     public string Name { get; set; } = "";
+    public List<ExtractionRule> ExtractionRules { get; set; } = [];
 }
 
 public record KeyValueItem
@@ -52,33 +53,56 @@ public static class ApiClientService
 
     public static async Task<ApiResponse> SendAsync(ApiRequest request, CancellationToken ct = default)
     {
-        var url = BuildUrl(request.Url, request.Params);
+        var resolvedUrl = ApiEnvironmentService.Resolve(request.Url);
+        var resolvedParams = request.Params.Select(p => new KeyValueItem
+        {
+            Enabled = p.Enabled,
+            Key = ApiEnvironmentService.Resolve(p.Key),
+            Value = ApiEnvironmentService.Resolve(p.Value)
+        }).ToList();
+
+        var url = BuildUrl(resolvedUrl, resolvedParams);
         var method = new HttpMethod(request.Method);
         using var msg = new HttpRequestMessage(method, url);
 
         foreach (var h in request.Headers.Where(h => h.Enabled && !string.IsNullOrWhiteSpace(h.Key)))
-            msg.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            msg.Headers.TryAddWithoutValidation(
+                ApiEnvironmentService.Resolve(h.Key),
+                ApiEnvironmentService.Resolve(h.Value));
 
         msg.Headers.UserAgent.TryParseAdd("JackOfAll/1.0");
 
+        var resolvedAuthValue = ApiEnvironmentService.Resolve(request.AuthValue);
         switch (request.AuthType)
         {
             case "Bearer":
-                msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", request.AuthValue);
+                msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resolvedAuthValue);
                 break;
             case "Basic":
-                var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(request.AuthValue));
+                var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(resolvedAuthValue));
                 msg.Headers.Authorization = new AuthenticationHeaderValue("Basic", encoded);
                 break;
         }
 
         if (method != HttpMethod.Get && method != HttpMethod.Head)
         {
+            var resolvedFormData = request.FormData.Select(f => new KeyValueItem
+            {
+                Enabled = f.Enabled,
+                Key = ApiEnvironmentService.Resolve(f.Key),
+                Value = ApiEnvironmentService.Resolve(f.Value)
+            }).ToList();
+            var resolvedRequest = request with
+            {
+                Body = ApiEnvironmentService.Resolve(request.Body),
+                FormData = resolvedFormData
+            };
+
             msg.Content = request.BodyType switch
             {
-                "form-data" => BuildMultipartContent(request.FormData),
-                "x-www-form-urlencoded" => BuildFormUrlEncodedContent(request.FormData),
-                "raw" when !string.IsNullOrEmpty(request.Body) => BuildRawContent(request),
+                "form-data" => BuildMultipartContent(resolvedFormData),
+                "x-www-form-urlencoded" => BuildFormUrlEncodedContent(resolvedFormData),
+                "raw" when !string.IsNullOrEmpty(resolvedRequest.Body) => BuildRawContent(resolvedRequest),
                 _ => null
             };
         }
@@ -100,6 +124,30 @@ public static class ApiClientService
             body,
             headers,
             sw.ElapsedMilliseconds);
+    }
+
+    public static Dictionary<string, string?> ApplyExtractionRules(
+        ApiResponse response, List<ExtractionRule> rules)
+    {
+        var results = new Dictionary<string, string?>();
+        foreach (var rule in rules)
+        {
+            if (string.IsNullOrWhiteSpace(rule.Variable) || string.IsNullOrWhiteSpace(rule.Expression))
+                continue;
+
+            string? value = rule.Source switch
+            {
+                "jsonpath" => ApiEnvironmentService.ExtractJsonPath(response.Body, rule.Expression),
+                "regex" => ApiEnvironmentService.ExtractRegex(response.Body, rule.Expression),
+                "header" => response.Headers.TryGetValue(rule.Expression, out var hv) ? hv : null,
+                _ => null
+            };
+
+            results[rule.Variable] = value;
+            if (value is not null)
+                ApiEnvironmentService.SetVariable(rule.Variable, value);
+        }
+        return results;
     }
 
     public static string FormatJson(string json)
