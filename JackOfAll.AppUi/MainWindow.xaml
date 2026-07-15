@@ -16,15 +16,47 @@
     </Window.InputBindings>
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="3"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Accent gradient strip (animated) -->
+        <Border x:Name="AccentStrip" Grid.Row="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" SpreadMethod="Repeat">
+                    <LinearGradientBrush.RelativeTransform>
+                        <TranslateTransform x:Name="GradientShift" X="0"/>
+                    </LinearGradientBrush.RelativeTransform>
+                    <GradientStop Color="#6366f1" Offset="0"/>
+                    <GradientStop Color="#a855f7" Offset="0.2"/>
+                    <GradientStop Color="#ec4899" Offset="0.4"/>
+                    <GradientStop Color="#f97316" Offset="0.6"/>
+                    <GradientStop Color="#eab308" Offset="0.8"/>
+                    <GradientStop Color="#6366f1" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="GradientShift"
+                                             Storyboard.TargetProperty="X"
+                                             From="0" To="1"
+                                             Duration="0:0:10"
+                                             RepeatBehavior="Forever"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Border.Triggers>
+        </Border>
+
         <!-- Tab bar -->
-        <Border Grid.Row="0" Background="{DynamicResource TabBarBackground}" BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="1" Background="{DynamicResource TabBarBackground}"
+                BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="0,0,0,1">
             <DockPanel>
                 <!-- Settings button -->
-                <Button DockPanel.Dock="Right" Content="⚙" FontSize="16"
+                <Button DockPanel.Dock="Right" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                         Width="36" Height="32" Margin="4,2"
                         Click="OnSettingsClick"
                         Background="Transparent" Foreground="{DynamicResource TextSecondary}"
@@ -33,7 +65,7 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                    CornerRadius="4" Padding="4">
+                                    CornerRadius="6" Padding="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
@@ -46,7 +78,7 @@
                 </Button>
 
                 <!-- Archived tabs button -->
-                <Button x:Name="ArchivedBtn" DockPanel.Dock="Right" Content="📋" FontSize="14"
+                <Button x:Name="ArchivedBtn" DockPanel.Dock="Right" Content="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                         Width="36" Height="32" Margin="4,2" Visibility="Collapsed"
                         Click="OnArchivedClick"
                         Background="Transparent" Foreground="{DynamicResource TextSecondary}"
@@ -55,7 +87,7 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                    CornerRadius="4" Padding="4">
+                                    CornerRadius="6" Padding="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
@@ -71,7 +103,7 @@
                 </Button>
 
                 <!-- New tab button -->
-                <Button DockPanel.Dock="Right" Content="＋" FontSize="18"
+                <Button DockPanel.Dock="Right" Content="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                         Width="36" Height="32" Margin="4,2"
                         Click="OnNewTabClick"
                         Background="Transparent" Foreground="{DynamicResource TextSecondary}"
@@ -80,7 +112,7 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                    CornerRadius="4" Padding="4">
+                                    CornerRadius="6" Padding="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
@@ -116,15 +148,16 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="Bd" Background="{DynamicResource TabBarBackground}" BorderBrush="{DynamicResource SurfaceBorder}"
-                                                BorderThickness="0,0,1,0" Padding="0" MinWidth="100">
+                                        <Border x:Name="Bd" Background="{DynamicResource TabBarBackground}"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="0,2,0,0" Padding="0" MinWidth="100"
+                                                Margin="1,0">
                                             <ContentPresenter/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsSelected" Value="True">
                                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TabActiveBackground}"/>
                                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                                                <Setter TargetName="Bd" Property="BorderThickness" Value="0,2,1,0"/>
                                             </Trigger>
                                             <MultiTrigger>
                                                 <MultiTrigger.Conditions>
@@ -160,12 +193,14 @@
                                 </DockPanel.ContextMenu>
 
                                 <!-- Pin indicator -->
-                                <TextBlock Text="📌" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"
+                                <TextBlock Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           VerticalAlignment="Center" Margin="0,0,4,0"
+                                           Foreground="{DynamicResource AccentBrush}"
                                            Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}"
                                            DockPanel.Dock="Left"/>
 
                                 <!-- Close button -->
-                                <Button DockPanel.Dock="Right" Content="✕" FontSize="10"
+                                <Button DockPanel.Dock="Right" Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="9"
                                         Click="OnCloseTabClick" Tag="{Binding Id}"
                                         Visibility="{Binding CanClose, Converter={StaticResource BoolToVis}}"
                                         Background="Transparent" Foreground="{DynamicResource TextDimmed}" BorderThickness="0"
@@ -174,12 +209,12 @@
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                                    CornerRadius="3" Padding="3,1">
+                                                    CornerRadius="4" Padding="3,1">
                                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#d32f2f"/>
+                                                    <Setter TargetName="Bd" Property="Background" Value="#ef4444"/>
                                                     <Setter Property="Foreground" Value="White"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
@@ -211,6 +246,6 @@
         </Border>
 
         <!-- Content area -->
-        <ContentControl Grid.Row="1" x:Name="ContentArea"/>
+        <ContentControl Grid.Row="2" x:Name="ContentArea"/>
     </Grid>
 </Window>

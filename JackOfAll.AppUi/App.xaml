@@ -4,29 +4,38 @@
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:local="clr-namespace:JackOfAll.AppUi">
     <Application.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/ModernStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- Theme resources (defaults — overridden by ThemeManager at startup) -->
-        <SolidColorBrush x:Key="AppBackground" Color="#1e1e1e"/>
-        <SolidColorBrush x:Key="SurfaceBackground" Color="#2d2d30"/>
-        <SolidColorBrush x:Key="SurfaceBorder" Color="#3e3e42"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#cccccc"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#999999"/>
-        <SolidColorBrush x:Key="TextDimmed" Color="#666666"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#007acc"/>
-        <SolidColorBrush x:Key="TabBarBackground" Color="#2d2d30"/>
-        <SolidColorBrush x:Key="TabActiveBackground" Color="#1e1e1e"/>
-        <SolidColorBrush x:Key="TabHoverBackground" Color="#383838"/>
-        <SolidColorBrush x:Key="GridAltRow" Color="#252526"/>
-        <SolidColorBrush x:Key="ErrorBackground" Color="#3a1d1d"/>
-        <SolidColorBrush x:Key="ErrorBorder" Color="#d32f2f"/>
-        <SolidColorBrush x:Key="ErrorText" Color="#ef9a9a"/>
-        <SolidColorBrush x:Key="SuccessBackground" Color="#1d3a1d"/>
-        <SolidColorBrush x:Key="SuccessText" Color="#81c784"/>
-        <SolidColorBrush x:Key="HeaderColor" Color="#4ec9b0"/>
-        <SolidColorBrush x:Key="PayloadColor" Color="#dcdcaa"/>
-        <sys:Double x:Key="AppFontSize">13</sys:Double>
-        <sys:Double x:Key="MonoFontSize">12</sys:Double>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
+
+            <!-- Theme resources (defaults for dark — overridden by ThemeManager at startup) -->
+            <SolidColorBrush x:Key="AppBackground" Color="#181926"/>
+            <SolidColorBrush x:Key="SurfaceBackground" Color="#1f2037"/>
+            <SolidColorBrush x:Key="SurfaceBorder" Color="#2d2e4a"/>
+            <SolidColorBrush x:Key="TextPrimary" Color="#e2e2f0"/>
+            <SolidColorBrush x:Key="TextSecondary" Color="#8f8fad"/>
+            <SolidColorBrush x:Key="TextDimmed" Color="#585878"/>
+            <SolidColorBrush x:Key="AccentBrush" Color="#6366f1"/>
+            <SolidColorBrush x:Key="TabBarBackground" Color="#141525"/>
+            <SolidColorBrush x:Key="TabActiveBackground" Color="#181926"/>
+            <SolidColorBrush x:Key="TabHoverBackground" Color="#252640"/>
+            <SolidColorBrush x:Key="GridAltRow" Color="#1c1d30"/>
+            <SolidColorBrush x:Key="ErrorBackground" Color="#2d1520"/>
+            <SolidColorBrush x:Key="ErrorBorder" Color="#ef4444"/>
+            <SolidColorBrush x:Key="ErrorText" Color="#fca5a5"/>
+            <SolidColorBrush x:Key="SuccessBackground" Color="#152d1d"/>
+            <SolidColorBrush x:Key="SuccessText" Color="#86efac"/>
+            <SolidColorBrush x:Key="HeaderColor" Color="#34d399"/>
+            <SolidColorBrush x:Key="PayloadColor" Color="#fbbf24"/>
+            <SolidColorBrush x:Key="ScrollbarThumb" Color="#3d3e5c"/>
+            <SolidColorBrush x:Key="ScrollbarThumbHover" Color="#525380"/>
+            <SolidColorBrush x:Key="ScrollbarTrack" Color="#252640"/>
+            <sys:Double x:Key="AppFontSize">13</sys:Double>
+            <sys:Double x:Key="MonoFontSize">12</sys:Double>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

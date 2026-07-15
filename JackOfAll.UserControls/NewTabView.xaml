@@ -7,45 +7,66 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
         <StackPanel>
-            <TextBlock Text="Select a tool" FontSize="24" FontWeight="Light"
-                       Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+            <TextBlock Text="Pick a tool" FontSize="26" FontWeight="Light"
+                       Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+            <TextBlock Text="Your dev Swiss Army knife" FontSize="13"
+                       Foreground="{DynamicResource TextDimmed}" HorizontalAlignment="Center" Margin="0,0,0,32"/>
             <ItemsControl x:Name="ToolGrid">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel HorizontalAlignment="Center" MaxWidth="600"/>
+                        <WrapPanel HorizontalAlignment="Center" MaxWidth="700"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Width="140" Height="120" Margin="8"
+                        <Button Width="140" Height="130" Margin="8"
                                 Click="OnToolClick" Tag="{Binding ToolId}"
-                                Background="{DynamicResource SurfaceBackground}"
-                                BorderBrush="{DynamicResource SurfaceBorder}"
-                                BorderThickness="1" Cursor="Hand">
+                                Cursor="Hand">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="8" Padding="12">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border x:Name="Bd" Background="{DynamicResource SurfaceBackground}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}"
+                                            BorderThickness="1" CornerRadius="10"
+                                            SnapsToDevicePixels="True" ClipToBounds="True">
+                                        <Border.RenderTransform>
+                                            <TranslateTransform Y="0"/>
+                                        </Border.RenderTransform>
+                                        <Border.Effect>
+                                            <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.12" Color="Black"/>
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="75"/>
+                                                <RowDefinition Height="*"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" CornerRadius="9,9,0,0"
+                                                    Background="{Binding AccentColor}">
+                                                <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="28"
+                                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Grid.Row="1" Text="{Binding DisplayName}"
+                                                       Foreground="{DynamicResource TextPrimary}"
+                                                       FontSize="12" FontWeight="Medium"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap" TextAlignment="Center" Margin="8,0"/>
+                                        </Grid>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TabHoverBackground}"/>
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="Bd" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <TranslateTransform Y="-4"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter TargetName="Bd" Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect ShadowDepth="6" BlurRadius="18" Opacity="0.22" Color="Black"/>
+                                                </Setter.Value>
+                                            </Setter>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Button.Template>
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding IconGlyph}" FontFamily="Segoe MDL2 Assets" FontSize="32"
-                                           Foreground="{DynamicResource TextPrimary}"
-                                           HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                                <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}"
-                                           FontSize="{DynamicResource AppFontSize}" HorizontalAlignment="Center"
-                                           TextWrapping="Wrap" TextAlignment="Center"/>
-                            </StackPanel>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

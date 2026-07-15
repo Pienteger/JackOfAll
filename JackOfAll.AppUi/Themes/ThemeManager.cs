@@ -21,45 +21,51 @@ public static class ThemeManager
 
         if (isDark)
         {
-            res["AppBackground"] = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e));
-            res["SurfaceBackground"] = new SolidColorBrush(Color.FromRgb(0x2d, 0x2d, 0x30));
-            res["SurfaceBorder"] = new SolidColorBrush(Color.FromRgb(0x3e, 0x3e, 0x42));
-            res["TextPrimary"] = new SolidColorBrush(Color.FromRgb(0xcc, 0xcc, 0xcc));
-            res["TextSecondary"] = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
-            res["TextDimmed"] = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66));
-            res["AccentBrush"] = new SolidColorBrush(Color.FromRgb(0x00, 0x7a, 0xcc));
-            res["TabBarBackground"] = new SolidColorBrush(Color.FromRgb(0x2d, 0x2d, 0x30));
-            res["TabActiveBackground"] = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e));
-            res["TabHoverBackground"] = new SolidColorBrush(Color.FromRgb(0x38, 0x38, 0x38));
-            res["GridAltRow"] = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x26));
-            res["ErrorBackground"] = new SolidColorBrush(Color.FromRgb(0x3a, 0x1d, 0x1d));
-            res["ErrorBorder"] = new SolidColorBrush(Color.FromRgb(0xd3, 0x2f, 0x2f));
-            res["ErrorText"] = new SolidColorBrush(Color.FromRgb(0xef, 0x9a, 0x9a));
-            res["SuccessBackground"] = new SolidColorBrush(Color.FromRgb(0x1d, 0x3a, 0x1d));
-            res["SuccessText"] = new SolidColorBrush(Color.FromRgb(0x81, 0xc7, 0x84));
-            res["HeaderColor"] = new SolidColorBrush(Color.FromRgb(0x4e, 0xc9, 0xb0));
-            res["PayloadColor"] = new SolidColorBrush(Color.FromRgb(0xdc, 0xdc, 0xaa));
+            res["AppBackground"] = new SolidColorBrush(Color.FromRgb(0x18, 0x19, 0x26));
+            res["SurfaceBackground"] = new SolidColorBrush(Color.FromRgb(0x1f, 0x20, 0x37));
+            res["SurfaceBorder"] = new SolidColorBrush(Color.FromRgb(0x2d, 0x2e, 0x4a));
+            res["TextPrimary"] = new SolidColorBrush(Color.FromRgb(0xe2, 0xe2, 0xf0));
+            res["TextSecondary"] = new SolidColorBrush(Color.FromRgb(0x8f, 0x8f, 0xad));
+            res["TextDimmed"] = new SolidColorBrush(Color.FromRgb(0x58, 0x58, 0x78));
+            res["AccentBrush"] = new SolidColorBrush(Color.FromRgb(0x63, 0x66, 0xf1));
+            res["TabBarBackground"] = new SolidColorBrush(Color.FromRgb(0x14, 0x15, 0x25));
+            res["TabActiveBackground"] = new SolidColorBrush(Color.FromRgb(0x18, 0x19, 0x26));
+            res["TabHoverBackground"] = new SolidColorBrush(Color.FromRgb(0x25, 0x26, 0x40));
+            res["GridAltRow"] = new SolidColorBrush(Color.FromRgb(0x1c, 0x1d, 0x30));
+            res["ErrorBackground"] = new SolidColorBrush(Color.FromRgb(0x2d, 0x15, 0x20));
+            res["ErrorBorder"] = new SolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44));
+            res["ErrorText"] = new SolidColorBrush(Color.FromRgb(0xfc, 0xa5, 0xa5));
+            res["SuccessBackground"] = new SolidColorBrush(Color.FromRgb(0x15, 0x2d, 0x1d));
+            res["SuccessText"] = new SolidColorBrush(Color.FromRgb(0x86, 0xef, 0xac));
+            res["HeaderColor"] = new SolidColorBrush(Color.FromRgb(0x34, 0xd3, 0x99));
+            res["PayloadColor"] = new SolidColorBrush(Color.FromRgb(0xfb, 0xbf, 0x24));
+            res["ScrollbarThumb"] = new SolidColorBrush(Color.FromRgb(0x3d, 0x3e, 0x5c));
+            res["ScrollbarThumbHover"] = new SolidColorBrush(Color.FromRgb(0x52, 0x53, 0x80));
+            res["ScrollbarTrack"] = new SolidColorBrush(Color.FromRgb(0x25, 0x26, 0x40));
         }
         else
         {
-            res["AppBackground"] = new SolidColorBrush(Color.FromRgb(0xf5, 0xf5, 0xf5));
+            res["AppBackground"] = new SolidColorBrush(Color.FromRgb(0xf8, 0xf9, 0xfc));
             res["SurfaceBackground"] = new SolidColorBrush(Colors.White);
-            res["SurfaceBorder"] = new SolidColorBrush(Color.FromRgb(0xd0, 0xd0, 0xd0));
-            res["TextPrimary"] = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e));
-            res["TextSecondary"] = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66));
-            res["TextDimmed"] = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
-            res["AccentBrush"] = new SolidColorBrush(Color.FromRgb(0x00, 0x5a, 0x9e));
-            res["TabBarBackground"] = new SolidColorBrush(Color.FromRgb(0xe8, 0xe8, 0xe8));
-            res["TabActiveBackground"] = new SolidColorBrush(Color.FromRgb(0xf5, 0xf5, 0xf5));
-            res["TabHoverBackground"] = new SolidColorBrush(Color.FromRgb(0xdd, 0xdd, 0xdd));
-            res["GridAltRow"] = new SolidColorBrush(Color.FromRgb(0xf0, 0xf0, 0xf0));
-            res["ErrorBackground"] = new SolidColorBrush(Color.FromRgb(0xfd, 0xed, 0xed));
-            res["ErrorBorder"] = new SolidColorBrush(Color.FromRgb(0xd3, 0x2f, 0x2f));
-            res["ErrorText"] = new SolidColorBrush(Color.FromRgb(0xb7, 0x1c, 0x1c));
-            res["SuccessBackground"] = new SolidColorBrush(Color.FromRgb(0xed, 0xf7, 0xed));
-            res["SuccessText"] = new SolidColorBrush(Color.FromRgb(0x2e, 0x7d, 0x32));
-            res["HeaderColor"] = new SolidColorBrush(Color.FromRgb(0x00, 0x77, 0x55));
-            res["PayloadColor"] = new SolidColorBrush(Color.FromRgb(0x79, 0x55, 0x00));
+            res["SurfaceBorder"] = new SolidColorBrush(Color.FromRgb(0xe2, 0xe4, 0xed));
+            res["TextPrimary"] = new SolidColorBrush(Color.FromRgb(0x1a, 0x1b, 0x2e));
+            res["TextSecondary"] = new SolidColorBrush(Color.FromRgb(0x64, 0x65, 0x8a));
+            res["TextDimmed"] = new SolidColorBrush(Color.FromRgb(0x9b, 0x9c, 0xb8));
+            res["AccentBrush"] = new SolidColorBrush(Color.FromRgb(0x4f, 0x46, 0xe5));
+            res["TabBarBackground"] = new SolidColorBrush(Color.FromRgb(0xee, 0xf0, 0xf7));
+            res["TabActiveBackground"] = new SolidColorBrush(Color.FromRgb(0xf8, 0xf9, 0xfc));
+            res["TabHoverBackground"] = new SolidColorBrush(Color.FromRgb(0xe5, 0xe7, 0xf0));
+            res["GridAltRow"] = new SolidColorBrush(Color.FromRgb(0xf3, 0xf4, 0xf9));
+            res["ErrorBackground"] = new SolidColorBrush(Color.FromRgb(0xfe, 0xf2, 0xf2));
+            res["ErrorBorder"] = new SolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44));
+            res["ErrorText"] = new SolidColorBrush(Color.FromRgb(0xb9, 0x1c, 0x1c));
+            res["SuccessBackground"] = new SolidColorBrush(Color.FromRgb(0xf0, 0xfd, 0xf4));
+            res["SuccessText"] = new SolidColorBrush(Color.FromRgb(0x15, 0x80, 0x3d));
+            res["HeaderColor"] = new SolidColorBrush(Color.FromRgb(0x05, 0x96, 0x69));
+            res["PayloadColor"] = new SolidColorBrush(Color.FromRgb(0xd9, 0x77, 0x06));
+            res["ScrollbarThumb"] = new SolidColorBrush(Color.FromRgb(0xc8, 0xca, 0xd5));
+            res["ScrollbarThumbHover"] = new SolidColorBrush(Color.FromRgb(0xa0, 0xa2, 0xb0));
+            res["ScrollbarTrack"] = new SolidColorBrush(Color.FromRgb(0xe8, 0xe9, 0xf0));
         }
 
         res["AppFontSize"] = settings.FontSize;
