@@ -8,6 +8,7 @@
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -64,16 +65,103 @@
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
         </DockPanel>
 
-        <!-- Editor / Preview -->
-        <Grid Grid.Row="1">
+        <!-- Workspace bar -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Click="OnAddWorkspace" Padding="8,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}" ToolTip="Add workspace">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Add" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnRemoveWorkspace" Click="OnRemoveWorkspace" Padding="8,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource DangerBrush}"
+                        BorderBrush="{DynamicResource SurfaceBorder}" ToolTip="Remove selected workspace"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Remove" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="WorkspaceCombo" Width="220"
+                          SelectionChanged="OnWorkspaceChanged"
+                          Background="{DynamicResource SurfaceBackground}"
+                          Foreground="{DynamicResource TextPrimary}"
+                          BorderBrush="{DynamicResource SurfaceBorder}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Content area: file panel + editor + preview -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="FilePanelColumn" Width="0"/>
+                <ColumnDefinition x:Name="FilePanelSplitterColumn" Width="0"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition x:Name="SplitterColumn" Width="0"/>
                 <ColumnDefinition x:Name="PreviewColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
+            <!-- File panel (visible when workspace active) -->
+            <Border x:Name="FilePanel" Grid.Column="0" Visibility="Collapsed"
+                    Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                    CornerRadius="6">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="8,8,8,4">
+                        <Button DockPanel.Dock="Right" Click="OnRefreshFiles" Padding="4,2" ToolTip="Refresh"
+                                Background="Transparent" BorderThickness="0"
+                                Foreground="{DynamicResource TextSecondary}">
+                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </Button>
+                        <TextBlock Text="Files" FontWeight="SemiBold" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <ListBox x:Name="FileList" Grid.Row="1" Margin="4,0,4,4"
+                             Background="Transparent" BorderThickness="0"
+                             SelectionChanged="OnFileSelected"
+                             ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="4,3">
+                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                               Foreground="{DynamicResource TextDimmed}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}"
+                                               FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock Grid.Row="1" Text="No files yet" FontStyle="Italic"
+                               Foreground="{DynamicResource TextDimmed}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               x:Name="FilePanelEmpty"/>
+                </Grid>
+            </Border>
+
+            <!-- Splitter between file panel and editor -->
+            <GridSplitter x:Name="FilePanelSplitter" Grid.Column="1" Width="6"
+                          HorizontalAlignment="Center"
+                          Background="{DynamicResource SurfaceBorder}"
+                          Margin="4,0,4,0" Visibility="Collapsed"/>
+
             <!-- Editor -->
-            <TextBox x:Name="EditorBox" Grid.Column="0" AcceptsReturn="True" AcceptsTab="True"
+            <TextBox x:Name="EditorBox" Grid.Column="2" AcceptsReturn="True" AcceptsTab="True"
                      TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"
                      Background="{DynamicResource SurfaceBackground}"
@@ -84,20 +172,20 @@
                      Padding="12" TextChanged="OnTextChanged"/>
 
             <!-- Splitter (shown when preview is on) -->
-            <GridSplitter x:Name="Splitter" Grid.Column="1" Width="6"
+            <GridSplitter x:Name="Splitter" Grid.Column="3" Width="6"
                           HorizontalAlignment="Center"
                           Background="{DynamicResource SurfaceBorder}"
                           Margin="4,0,4,0" Visibility="Collapsed"/>
 
             <!-- Preview -->
-            <Border Grid.Column="2" Background="{DynamicResource SurfaceBackground}"
+            <Border Grid.Column="4" Background="{DynamicResource SurfaceBackground}"
                     BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1">
                 <WebBrowser x:Name="PreviewBrowser" Visibility="Collapsed"/>
             </Border>
         </Grid>
 
         <!-- Status bar -->
-        <DockPanel Grid.Row="2" Margin="0,8,0,0">
+        <DockPanel Grid.Row="3" Margin="0,8,0,0">
             <Border CornerRadius="4" Padding="8,4" Background="{DynamicResource SurfaceBackground}">
                 <TextBlock x:Name="StatusText" Text="Ready" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
             </Border>

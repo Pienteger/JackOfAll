@@ -6,9 +6,7 @@ namespace JackOfAll.Lib.Services;
 
 public static class ApiEnvironmentService
 {
-    private static readonly string EnvDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "JackOfAll", "environments");
+    private static readonly string EnvDir = Path.Combine(AppPaths.Root, "environments");
 
     private static string _activeEnv = "";
     private static Dictionary<string, string> _variables = new();

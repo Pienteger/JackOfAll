@@ -43,13 +43,9 @@ public static class ApiClientService
         Timeout = TimeSpan.FromSeconds(30)
     };
 
-    private static readonly string CollectionPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "JackOfAll", "requests.json");
+    private static readonly string CollectionPath = Path.Combine(AppPaths.Root, "requests.json");
 
-    private static readonly string HistoryPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "JackOfAll", "request-history.json");
+    private static readonly string HistoryPath = Path.Combine(AppPaths.Root, "request-history.json");
 
     public static async Task<ApiResponse> SendAsync(ApiRequest request, CancellationToken ct = default)
     {

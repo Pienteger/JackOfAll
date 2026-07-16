@@ -414,8 +414,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     {
         _history.Clear();
         var historyPath = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "JackOfAll", "request-history.json");
+            JackOfAll.Lib.AppPaths.Root, "request-history.json");
         if (System.IO.File.Exists(historyPath))
             System.IO.File.Delete(historyPath);
         RenderHistory();

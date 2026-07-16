@@ -15,9 +15,7 @@ public sealed class ReminderItem
 
 public static class ReminderService
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "JackOfAll", "reminders.json");
+    private static readonly string FilePath = Path.Combine(AppPaths.Root, "reminders.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

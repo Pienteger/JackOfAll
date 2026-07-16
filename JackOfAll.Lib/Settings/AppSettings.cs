@@ -13,9 +13,7 @@ public enum ThemeMode
 
 public partial class AppSettings : ObservableObject
 {
-    private static readonly string SettingsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "JackOfAll", "settings.json");
+    private static readonly string SettingsPath = Path.Combine(AppPaths.Root, "settings.json");
 
     [ObservableProperty]
     private double _fontSize = 13;

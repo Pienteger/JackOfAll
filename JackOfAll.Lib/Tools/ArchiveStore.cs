@@ -5,9 +5,7 @@ namespace JackOfAll.Lib.Tools;
 
 public static class ArchiveStore
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "JackOfAll", "archives.json");
+    private static readonly string FilePath = Path.Combine(AppPaths.Root, "archives.json");
 
     public static List<ArchivedTab> Load()
     {
