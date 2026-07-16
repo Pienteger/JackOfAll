@@ -8,27 +8,349 @@ namespace JackOfAll.UserControls;
 
 public partial class ApiClientToolView : UserControl, IStatefulTool
 {
-    private List<ApiRequest> _collection = [];
+    private List<RequestTab> _openTabs = [];
+    private int _activeTabIndex = -1;
+    private string? _activeWorkspace;
+    private List<ApiRequest> _workspaceRequests = [];
     private List<ApiRequest> _history = [];
     private ApiResponse? _lastResponse;
     private CancellationTokenSource? _cts;
+    private bool _suppressWorkspaceChange;
 
     public ApiClientToolView()
     {
         InitializeComponent();
+        DataObject.AddPastingHandler(UrlBox, OnUrlBoxPaste);
         Loaded += (_, _) =>
         {
-            LoadSidebar();
+            LoadWorkspaceCombo();
             LoadEnvironments();
+            LoadHistory();
+            if (_openTabs.Count == 0)
+                AddNewTab();
+            else
+            {
+                ApplyTabState(_openTabs[_activeTabIndex]);
+                RenderTabBar();
+            }
         };
     }
 
-    private void LoadSidebar()
+    private void OnUrlBoxPaste(object sender, DataObjectPastingEventArgs e)
     {
-        _collection = ApiClientService.LoadCollection();
-        _history = ApiClientService.LoadHistory();
+        if (!e.DataObject.GetDataPresent(typeof(string))) return;
+        var text = (string)e.DataObject.GetData(typeof(string));
+        if (!CurlParser.IsCurl(text)) return;
+
+        e.CancelCommand();
+        var req = CurlParser.Parse(text);
+        LoadRequestToUi(req);
+    }
+
+    // ── Request tab state ──────────────────────────────────────────
+
+    private class RequestTab
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
+        public string Title { get; set; } = "New Request";
+        public string Method { get; set; } = "GET";
+        public string Url { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string BodyType { get; set; } = "none";
+        public string RawContentType { get; set; } = "application/json";
+        public string AuthType { get; set; } = "None";
+        public string AuthValue { get; set; } = "";
+        public List<KeyValueItem> Headers { get; set; } = [];
+        public List<KeyValueItem> Params { get; set; } = [];
+        public List<KeyValueItem> FormData { get; set; } = [];
+        public List<ExtractionRule> ExtractionRules { get; set; } = [];
+        public string? SavedName { get; set; }
+        public string? ResponseBody { get; set; }
+        public string? ResponseHeaders { get; set; }
+        public int? StatusCode { get; set; }
+        public string? StatusLine { get; set; }
+        public string? Timing { get; set; }
+        public int RequestTabIndex { get; set; }
+    }
+
+    // ── Tab management ─────────────────────────────────────────────
+
+    private void AddNewTab()
+    {
+        var tab = new RequestTab();
+        _openTabs.Add(tab);
+        SwitchToTab(_openTabs.Count - 1);
+    }
+
+    private void SwitchToTab(int index)
+    {
+        if (index < 0 || index >= _openTabs.Count) return;
+
+        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count && IsLoaded)
+            CaptureCurrentState(_openTabs[_activeTabIndex]);
+
+        _activeTabIndex = index;
+
+        if (IsLoaded)
+        {
+            ApplyTabState(_openTabs[index]);
+            RenderTabBar();
+        }
+    }
+
+    private void CloseTab(int index)
+    {
+        if (_openTabs.Count <= 1) return;
+
+        if (index == _activeTabIndex)
+            CaptureCurrentState(_openTabs[index]);
+
+        _openTabs.RemoveAt(index);
+
+        if (_activeTabIndex >= _openTabs.Count)
+            _activeTabIndex = _openTabs.Count - 1;
+        else if (_activeTabIndex > index)
+            _activeTabIndex--;
+
+        ApplyTabState(_openTabs[_activeTabIndex]);
+        RenderTabBar();
+    }
+
+    private void CaptureCurrentState(RequestTab tab)
+    {
+        tab.Method = (MethodPicker.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "GET";
+        tab.Url = UrlBox.Text;
+        tab.Body = BodyBox.Text;
+        tab.BodyType = GetBodyType();
+        tab.RawContentType = (RawContentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "application/json";
+        tab.AuthType = (AuthType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "None";
+        tab.AuthValue = AuthValueBox.Text;
+        tab.Headers = CollectKeyValues(HeadersList);
+        tab.Params = CollectKeyValues(ParamsList);
+        tab.FormData = CollectKeyValues(FormDataList);
+        tab.ExtractionRules = CollectExtractionRules();
+        tab.ResponseBody = ResponseBody.Text;
+        tab.RequestTabIndex = RequestTabs.SelectedIndex;
+
+        if (StatusBadge.Visibility == Visibility.Visible)
+        {
+            tab.StatusLine = StatusText.Text;
+            tab.Timing = TimingText.Text;
+        }
+        else
+        {
+            tab.StatusLine = null;
+            tab.Timing = null;
+        }
+
+        tab.Title = ComputeTabTitle(tab);
+    }
+
+    private void ApplyTabState(RequestTab tab)
+    {
+        SelectComboByContent(MethodPicker, tab.Method);
+        UrlBox.Text = tab.Url;
+        BodyBox.Text = tab.Body;
+        AuthValueBox.Text = tab.AuthValue;
+        SetBodyType(tab.BodyType);
+        SelectComboByContent(RawContentType, tab.RawContentType);
+        SelectComboByContent(AuthType, tab.AuthType);
+
+        HeadersList.Children.Clear();
+        foreach (var h in tab.Headers)
+            AddKeyValueRow(HeadersList, h.Key, h.Value, h.Enabled);
+
+        ParamsList.Children.Clear();
+        foreach (var p in tab.Params)
+            AddKeyValueRow(ParamsList, p.Key, p.Value, p.Enabled);
+
+        FormDataList.Children.Clear();
+        foreach (var f in tab.FormData)
+            AddKeyValueRow(FormDataList, f.Key, f.Value, f.Enabled);
+
+        ExtractionRulesList.Children.Clear();
+        foreach (var r in tab.ExtractionRules)
+            AddExtractionRuleRow(r.Variable, r.Source, r.Expression);
+
+        ResponseBody.Text = tab.ResponseBody ?? "Send a request to see the response.";
+        ResponseHeadersList.Children.Clear();
+
+        if (tab.StatusLine is not null)
+        {
+            StatusBadge.Visibility = Visibility.Visible;
+            StatusText.Text = tab.StatusLine;
+            TimingText.Text = tab.Timing ?? "";
+            ColorizeStatusBadge(tab.StatusLine);
+        }
+        else
+        {
+            StatusBadge.Visibility = Visibility.Collapsed;
+            TimingText.Text = "";
+        }
+
+        if (tab.RequestTabIndex >= 0 && tab.RequestTabIndex < RequestTabs.Items.Count)
+            RequestTabs.SelectedIndex = tab.RequestTabIndex;
+    }
+
+    private void RenderTabBar()
+    {
+        RequestTabBar.Children.Clear();
+        for (int i = 0; i < _openTabs.Count; i++)
+        {
+            var tab = _openTabs[i];
+            var idx = i;
+
+            var sp = new StackPanel { Orientation = Orientation.Horizontal };
+
+            var methodColor = GetMethodColor(tab.Method);
+            sp.Children.Add(new TextBlock
+            {
+                Text = tab.Method,
+                FontSize = 9,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(methodColor),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 0)
+            });
+
+            sp.Children.Add(new TextBlock
+            {
+                Text = tab.Title.Length > 22 ? tab.Title[..22] + "..." : tab.Title,
+                FontSize = 11,
+                Foreground = (Brush)FindResource(i == _activeTabIndex ? "TextPrimary" : "TextSecondary"),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+
+            if (_openTabs.Count > 1)
+            {
+                var closeBtn = new Button
+                {
+                    Content = "×",
+                    FontSize = 12,
+                    Padding = new Thickness(0),
+                    Margin = new Thickness(6, 0, 0, 0),
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Foreground = (Brush)FindResource("TextDimmed"),
+                    Width = 16, Height = 16,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                closeBtn.Click += (_, _) => CloseTab(idx);
+                sp.Children.Add(closeBtn);
+            }
+
+            var tabBtn = new Border
+            {
+                Child = sp,
+                Padding = new Thickness(10, 5, 10, 5),
+                Margin = new Thickness(0, 0, 2, 0),
+                CornerRadius = new CornerRadius(6, 6, 0, 0),
+                Background = (Brush)FindResource(i == _activeTabIndex ? "SurfaceBackground" : "Transparent"),
+                BorderBrush = i == _activeTabIndex ? (Brush)FindResource("AccentBrush") : Brushes.Transparent,
+                BorderThickness = new Thickness(0, 2, 0, 0),
+                Cursor = System.Windows.Input.Cursors.Hand
+            };
+            tabBtn.MouseLeftButtonDown += (_, _) => SwitchToTab(idx);
+            RequestTabBar.Children.Add(tabBtn);
+        }
+    }
+
+    private static string ComputeTabTitle(RequestTab tab)
+    {
+        if (!string.IsNullOrWhiteSpace(tab.SavedName))
+            return tab.SavedName;
+        if (!string.IsNullOrWhiteSpace(tab.Url))
+        {
+            var url = tab.Url;
+            if (url.Length > 30) url = url[..30] + "...";
+            return url;
+        }
+        return "New Request";
+    }
+
+    private void OnNewTabClick(object sender, RoutedEventArgs e) => AddNewTab();
+
+    // ── Workspace management ───────────────────────────────────────
+
+    private void LoadWorkspaceCombo()
+    {
+        _suppressWorkspaceChange = true;
+        WorkspaceCombo.Items.Clear();
+        WorkspaceCombo.Items.Add("(No workspace)");
+        foreach (var ws in ApiWorkspaceService.List())
+            WorkspaceCombo.Items.Add(ws);
+
+        if (_activeWorkspace is not null)
+        {
+            var idx = ApiWorkspaceService.List().IndexOf(_activeWorkspace);
+            WorkspaceCombo.SelectedIndex = idx >= 0 ? idx + 1 : 0;
+        }
+        else
+        {
+            WorkspaceCombo.SelectedIndex = 0;
+        }
+        _suppressWorkspaceChange = false;
+    }
+
+    private void OnWorkspaceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressWorkspaceChange) return;
+        var idx = WorkspaceCombo.SelectedIndex;
+        if (idx <= 0)
+        {
+            _activeWorkspace = null;
+            BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
+            _workspaceRequests = [];
+        }
+        else
+        {
+            _activeWorkspace = WorkspaceCombo.Items[idx]?.ToString();
+            BtnRemoveWorkspace.Visibility = Visibility.Visible;
+            _workspaceRequests = ApiWorkspaceService.LoadRequests(_activeWorkspace!);
+        }
         RenderSaved();
-        RenderHistory();
+        SidebarTitle.Text = _activeWorkspace is not null ? _activeWorkspace.ToUpperInvariant() : "REQUESTS";
+    }
+
+    private void OnAddWorkspace(object sender, RoutedEventArgs e)
+    {
+        var dlg = new InputDialog("New API Workspace", "Workspace name:");
+        dlg.Owner = Window.GetWindow(this);
+        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
+            return;
+
+        var name = dlg.ResultText.Trim();
+        if (ApiWorkspaceService.List().Any(w => w.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show("Workspace already exists.", "Duplicate", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        ApiWorkspaceService.Create(name);
+        _activeWorkspace = name;
+        _workspaceRequests = [];
+        LoadWorkspaceCombo();
+        RenderSaved();
+        BtnRemoveWorkspace.Visibility = Visibility.Visible;
+        SidebarTitle.Text = name.ToUpperInvariant();
+    }
+
+    private void OnRemoveWorkspace(object sender, RoutedEventArgs e)
+    {
+        if (_activeWorkspace is null) return;
+        var result = MessageBox.Show(
+            $"Delete workspace \"{_activeWorkspace}\" and all saved requests?",
+            "Delete Workspace", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        ApiWorkspaceService.Delete(_activeWorkspace);
+        _activeWorkspace = null;
+        _workspaceRequests = [];
+        LoadWorkspaceCombo();
+        RenderSaved();
+        BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
+        SidebarTitle.Text = "REQUESTS";
     }
 
     // ── Send ────────────────────────────────────────────────────────
@@ -40,7 +362,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
         var request = BuildRequest();
         BtnSend.IsEnabled = false;
-        BtnSend.Content = "...";
+        SendButtonText.Text = "...";
         StatusBadge.Visibility = Visibility.Collapsed;
         TimingText.Text = "";
         ResponseBody.Text = "Sending...";
@@ -56,7 +378,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
             if (request.ExtractionRules.Count > 0 && !string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
             {
-                var results = ApiClientService.ApplyExtractionRules(_lastResponse, request.ExtractionRules);
+                ApiClientService.ApplyExtractionRules(_lastResponse, request.ExtractionRules);
                 RenderVars();
                 UpdateEnvVarCount();
             }
@@ -64,6 +386,13 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             ApiClientService.AddToHistory(request);
             _history = ApiClientService.LoadHistory();
             RenderHistory();
+
+            if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
+            {
+                var tab = _openTabs[_activeTabIndex];
+                tab.Title = ComputeTabTitle(tab);
+                RenderTabBar();
+            }
         }
         catch (TaskCanceledException)
         {
@@ -76,7 +405,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         finally
         {
             BtnSend.IsEnabled = true;
-            BtnSend.Content = "Send";
+            SendButtonText.Text = "Send";
         }
     }
 
@@ -84,14 +413,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     {
         StatusBadge.Visibility = Visibility.Visible;
         StatusText.Text = $"{resp.StatusCode} {resp.StatusText}";
-
-        if (resp.StatusCode >= 200 && resp.StatusCode < 300)
-            StatusBadge.Background = new SolidColorBrush(Color.FromRgb(34, 139, 34));
-        else if (resp.StatusCode >= 400)
-            StatusBadge.Background = new SolidColorBrush(Color.FromRgb(200, 50, 50));
-        else
-            StatusBadge.Background = new SolidColorBrush(Color.FromRgb(200, 150, 0));
-
+        ColorizeStatusBadge($"{resp.StatusCode}");
         StatusText.Foreground = Brushes.White;
         TimingText.Text = $"{resp.ElapsedMs} ms";
 
@@ -120,6 +442,19 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 TextWrapping = TextWrapping.Wrap
             });
             ResponseHeadersList.Children.Add(row);
+        }
+    }
+
+    private void ColorizeStatusBadge(string statusLine)
+    {
+        if (int.TryParse(statusLine.Split(' ')[0], out var code))
+        {
+            if (code >= 200 && code < 300)
+                StatusBadge.Background = new SolidColorBrush(Color.FromRgb(34, 139, 34));
+            else if (code >= 400)
+                StatusBadge.Background = new SolidColorBrush(Color.FromRgb(200, 50, 50));
+            else
+                StatusBadge.Background = new SolidColorBrush(Color.FromRgb(200, 150, 0));
         }
     }
 
@@ -194,33 +529,23 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     private void LoadRequestToUi(ApiRequest req)
     {
-        for (int i = 0; i < MethodPicker.Items.Count; i++)
+        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
         {
-            if ((MethodPicker.Items[i] as ComboBoxItem)?.Content?.ToString() == req.Method)
-            {
-                MethodPicker.SelectedIndex = i;
-                break;
-            }
+            var tab = _openTabs[_activeTabIndex];
+            tab.SavedName = req.Name;
         }
 
+        SelectComboByContent(MethodPicker, req.Method);
         UrlBox.Text = req.Url;
         BodyBox.Text = req.Body;
         AuthValueBox.Text = req.AuthValue;
-
         SetBodyType(req.BodyType);
 
         FormDataList.Children.Clear();
         foreach (var f in req.FormData)
             AddKeyValueRow(FormDataList, f.Key, f.Value, f.Enabled);
 
-        for (int i = 0; i < AuthType.Items.Count; i++)
-        {
-            if ((AuthType.Items[i] as ComboBoxItem)?.Content?.ToString() == req.AuthType)
-            {
-                AuthType.SelectedIndex = i;
-                break;
-            }
-        }
+        SelectComboByContent(AuthType, req.AuthType);
 
         HeadersList.Children.Clear();
         foreach (var h in req.Headers)
@@ -233,6 +558,33 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         ExtractionRulesList.Children.Clear();
         foreach (var rule in req.ExtractionRules)
             AddExtractionRuleRow(rule.Variable, rule.Source, rule.Expression);
+
+        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
+        {
+            CaptureCurrentState(_openTabs[_activeTabIndex]);
+            RenderTabBar();
+        }
+    }
+
+    private void OpenRequestInNewTab(ApiRequest req)
+    {
+        var tab = new RequestTab
+        {
+            Method = req.Method,
+            Url = req.Url,
+            Body = req.Body,
+            BodyType = req.BodyType,
+            AuthType = req.AuthType,
+            AuthValue = req.AuthValue,
+            Headers = [.. req.Headers],
+            Params = [.. req.Params],
+            FormData = [.. req.FormData],
+            ExtractionRules = [.. req.ExtractionRules],
+            SavedName = req.Name,
+            Title = req.Name
+        };
+        _openTabs.Add(tab);
+        SwitchToTab(_openTabs.Count - 1);
     }
 
     // ── Key-value rows ──────────────────────────────────────────────
@@ -306,11 +658,9 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         foreach (var child in panel.Children)
         {
             if (child is not DockPanel row) continue;
-
             var cb = row.Children.OfType<CheckBox>().FirstOrDefault();
             var textBoxes = row.Children.OfType<TextBox>().ToList();
             if (textBoxes.Count < 2) continue;
-
             items.Add(new KeyValueItem
             {
                 Enabled = cb?.IsChecked ?? true,
@@ -339,63 +689,114 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         var url = request.Url;
         if (string.IsNullOrWhiteSpace(url)) return;
 
-        request.Name = string.IsNullOrWhiteSpace(request.Name)
-            ? $"{request.Method} {(url.Length > 40 ? url[..40] + "..." : url)}"
-            : request.Name;
+        var currentTab = _activeTabIndex >= 0 ? _openTabs[_activeTabIndex] : null;
+        request.Name = currentTab?.SavedName ?? "";
 
-        var existing = _collection.FindIndex(r => r.Name == request.Name);
-        if (existing >= 0)
-            _collection[existing] = request;
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            var dlg = new InputDialog("Save Request", "Request name:");
+            dlg.Owner = Window.GetWindow(this);
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
+                return;
+            request.Name = dlg.ResultText.Trim();
+        }
+
+        if (currentTab is not null)
+            currentTab.SavedName = request.Name;
+
+        if (_activeWorkspace is not null)
+        {
+            var existing = _workspaceRequests.FindIndex(r => r.Name == request.Name);
+            if (existing >= 0)
+                _workspaceRequests[existing] = request;
+            else
+                _workspaceRequests.Add(request);
+            ApiWorkspaceService.SaveRequests(_activeWorkspace, _workspaceRequests);
+        }
         else
-            _collection.Add(request);
+        {
+            var collection = ApiClientService.LoadCollection();
+            var existing = collection.FindIndex(r => r.Name == request.Name);
+            if (existing >= 0)
+                collection[existing] = request;
+            else
+                collection.Add(request);
+            ApiClientService.SaveCollection(collection);
+        }
 
-        ApiClientService.SaveCollection(_collection);
         RenderSaved();
+        if (currentTab is not null)
+        {
+            CaptureCurrentState(currentTab);
+            RenderTabBar();
+        }
     }
 
-    private void OnNewRequestClick(object sender, RoutedEventArgs e)
-    {
-        MethodPicker.SelectedIndex = 0;
-        UrlBox.Text = "";
-        BodyBox.Text = "";
-        SetBodyType("none");
-        FormDataList.Children.Clear();
-        RawContentType.SelectedIndex = 0;
-        AuthType.SelectedIndex = 0;
-        AuthValueBox.Text = "";
-        HeadersList.Children.Clear();
-        ParamsList.Children.Clear();
-        ResponseBody.Text = "Send a request to see the response.";
-        ResponseHeadersList.Children.Clear();
-        ExtractionRulesList.Children.Clear();
-        StatusBadge.Visibility = Visibility.Collapsed;
-        TimingText.Text = "";
-    }
+    private void OnNewRequestClick(object sender, RoutedEventArgs e) => AddNewTab();
 
     // ── Sidebar rendering ───────────────────────────────────────────
 
     private void RenderSaved()
     {
         SavedList.Children.Clear();
-        foreach (var req in _collection)
+        var requests = _activeWorkspace is not null
+            ? _workspaceRequests
+            : ApiClientService.LoadCollection();
+
+        foreach (var req in requests)
         {
             var btn = MakeSidebarButton(req.Name, req.Method);
             var captured = req;
+
             btn.Click += (_, _) => LoadRequestToUi(captured);
 
             var ctx = new ContextMenu();
+
+            var openInTab = new MenuItem { Header = "Open in New Tab" };
+            openInTab.Click += (_, _) => OpenRequestInNewTab(captured);
+            ctx.Items.Add(openInTab);
+
+            ctx.Items.Add(new Separator());
+
             var del = new MenuItem { Header = "Delete" };
             del.Click += (_, _) =>
             {
-                _collection.Remove(captured);
-                ApiClientService.SaveCollection(_collection);
+                if (_activeWorkspace is not null)
+                {
+                    _workspaceRequests.Remove(captured);
+                    ApiWorkspaceService.SaveRequests(_activeWorkspace, _workspaceRequests);
+                }
+                else
+                {
+                    var coll = ApiClientService.LoadCollection();
+                    coll.RemoveAll(r => r.Name == captured.Name);
+                    ApiClientService.SaveCollection(coll);
+                }
                 RenderSaved();
             };
             ctx.Items.Add(del);
-            btn.ContextMenu = ctx;
 
+            btn.ContextMenu = ctx;
             SavedList.Children.Add(btn);
         }
+
+        if (requests.Count == 0)
+        {
+            SavedList.Children.Add(new TextBlock
+            {
+                Text = "No saved requests",
+                FontStyle = FontStyles.Italic,
+                Foreground = (Brush)FindResource("TextDimmed"),
+                FontSize = 11,
+                Margin = new Thickness(8, 4, 8, 4)
+            });
+        }
+    }
+
+    private void LoadHistory()
+    {
+        _history = ApiClientService.LoadHistory();
+        RenderHistory();
     }
 
     private void RenderHistory()
@@ -406,6 +807,13 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             var btn = MakeSidebarButton(req.Name, req.Method);
             var captured = req;
             btn.Click += (_, _) => LoadRequestToUi(captured);
+
+            var ctx = new ContextMenu();
+            var openInTab = new MenuItem { Header = "Open in New Tab" };
+            openInTab.Click += (_, _) => OpenRequestInNewTab(captured);
+            ctx.Items.Add(openInTab);
+            btn.ContextMenu = ctx;
+
             HistoryList.Children.Add(btn);
         }
     }
@@ -420,25 +828,25 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         RenderHistory();
     }
 
+    private static Color GetMethodColor(string method) => method switch
+    {
+        "GET" => Color.FromRgb(97, 175, 239),
+        "POST" => Color.FromRgb(152, 195, 121),
+        "PUT" => Color.FromRgb(229, 192, 123),
+        "PATCH" => Color.FromRgb(209, 154, 102),
+        "DELETE" => Color.FromRgb(224, 108, 117),
+        _ => Color.FromRgb(150, 150, 150)
+    };
+
     private Button MakeSidebarButton(string name, string method)
     {
-        var methodColor = method switch
-        {
-            "GET" => Color.FromRgb(97, 175, 239),
-            "POST" => Color.FromRgb(152, 195, 121),
-            "PUT" => Color.FromRgb(229, 192, 123),
-            "PATCH" => Color.FromRgb(209, 154, 102),
-            "DELETE" => Color.FromRgb(224, 108, 117),
-            _ => Color.FromRgb(150, 150, 150)
-        };
-
         var sp = new StackPanel { Orientation = Orientation.Horizontal };
         sp.Children.Add(new TextBlock
         {
             Text = method,
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = new SolidColorBrush(methodColor),
+            Foreground = new SolidColorBrush(GetMethodColor(method)),
             VerticalAlignment = VerticalAlignment.Center,
             Width = 40
         });
@@ -512,10 +920,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     private void UpdateEnvVarCount()
     {
         var active = ApiEnvironmentService.ActiveEnvironment;
-        if (string.IsNullOrEmpty(active))
-            EnvVarCount.Text = "";
-        else
-            EnvVarCount.Text = $"{ApiEnvironmentService.Variables.Count} var(s)";
+        EnvVarCount.Text = string.IsNullOrEmpty(active) ? "" : $"{ApiEnvironmentService.Variables.Count} var(s)";
     }
 
     private void OnManageEnvClick(object sender, RoutedEventArgs e)
@@ -532,14 +937,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 var name = dlg.ResultText.Trim().ToLowerInvariant().Replace(" ", "-");
                 ApiEnvironmentService.CreateEnvironment(name);
                 LoadEnvironments();
-                for (int i = 0; i < EnvPicker.Items.Count; i++)
-                {
-                    if ((EnvPicker.Items[i] as ComboBoxItem)?.Tag?.ToString() == name)
-                    {
-                        EnvPicker.SelectedIndex = i;
-                        break;
-                    }
-                }
+                SelectComboByTag(EnvPicker, name);
             }
         };
         menu.Items.Add(newItem);
@@ -629,10 +1027,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 BorderBrush = (Brush)FindResource("SurfaceBorder")
             };
             var valKey = kv.Key;
-            valBox.LostFocus += (_, _) =>
-            {
-                ApiEnvironmentService.SetVariable(valKey, valBox.Text);
-            };
+            valBox.LostFocus += (_, _) => ApiEnvironmentService.SetVariable(valKey, valBox.Text);
             row.Children.Add(valBox);
 
             VarsList.Children.Add(row);
@@ -642,7 +1037,6 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     private void OnAddManualVar(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment)) return;
-
         var dlg = new InputDialog("Add Variable", "Variable name:");
         dlg.Owner = Window.GetWindow(this);
         if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
@@ -655,10 +1049,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     // ── Extraction rules ────────────────────────────────────────────
 
-    private void OnAddExtractionRule(object sender, RoutedEventArgs e)
-    {
-        AddExtractionRuleRow();
-    }
+    private void OnAddExtractionRule(object sender, RoutedEventArgs e) => AddExtractionRuleRow();
 
     private void AddExtractionRuleRow(string variable = "", string source = "jsonpath", string expression = "")
     {
@@ -728,7 +1119,6 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             var textBoxes = row.Children.OfType<TextBox>().ToList();
             var comboBox = row.Children.OfType<ComboBox>().FirstOrDefault();
             if (textBoxes.Count < 2) continue;
-
             rules.Add(new ExtractionRule
             {
                 Variable = textBoxes[0].Text,
@@ -743,169 +1133,99 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     {
         if (_lastResponse is null || string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
             return;
-
         var rules = CollectExtractionRules();
         if (rules.Count == 0) return;
-
-        var results = ApiClientService.ApplyExtractionRules(_lastResponse, rules);
+        ApiClientService.ApplyExtractionRules(_lastResponse, rules);
         RenderVars();
         UpdateEnvVarCount();
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────
+
+    private static void SelectComboByContent(ComboBox combo, string value)
+    {
+        for (int i = 0; i < combo.Items.Count; i++)
+        {
+            if ((combo.Items[i] as ComboBoxItem)?.Content?.ToString() == value)
+            {
+                combo.SelectedIndex = i;
+                return;
+            }
+        }
+    }
+
+    private static void SelectComboByTag(ComboBox combo, string tag)
+    {
+        for (int i = 0; i < combo.Items.Count; i++)
+        {
+            if ((combo.Items[i] as ComboBoxItem)?.Tag?.ToString() == tag)
+            {
+                combo.SelectedIndex = i;
+                return;
+            }
+        }
     }
 
     // ── IStatefulTool ───────────────────────────────────────────────
 
     public Dictionary<string, string> SaveState()
     {
+        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
+            CaptureCurrentState(_openTabs[_activeTabIndex]);
+
         var state = new Dictionary<string, string>
         {
-            ["method"] = (MethodPicker.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "GET",
-            ["url"] = UrlBox.Text,
-            ["body"] = BodyBox.Text,
-            ["bodyType"] = GetBodyType(),
-            ["rawContentType"] = (RawContentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "application/json",
-            ["authType"] = (AuthType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "None",
-            ["authValue"] = AuthValueBox.Text,
-            ["requestTab"] = RequestTabs.SelectedIndex.ToString(),
-            ["activeEnv"] = ApiEnvironmentService.ActiveEnvironment
+            ["tabCount"] = _openTabs.Count.ToString(),
+            ["activeTab"] = _activeTabIndex.ToString(),
+            ["activeEnv"] = ApiEnvironmentService.ActiveEnvironment,
+            ["workspace"] = _activeWorkspace ?? ""
         };
 
-        var extractionRules = CollectExtractionRules();
-        state["extractionCount"] = extractionRules.Count.ToString();
-        for (int i = 0; i < extractionRules.Count; i++)
+        for (int t = 0; t < _openTabs.Count; t++)
         {
-            state[$"ex_{i}_var"] = extractionRules[i].Variable;
-            state[$"ex_{i}_src"] = extractionRules[i].Source;
-            state[$"ex_{i}_expr"] = extractionRules[i].Expression;
-        }
+            var tab = _openTabs[t];
+            var p = $"t{t}_";
+            state[$"{p}method"] = tab.Method;
+            state[$"{p}url"] = tab.Url;
+            state[$"{p}body"] = tab.Body;
+            state[$"{p}bodyType"] = tab.BodyType;
+            state[$"{p}rawCt"] = tab.RawContentType;
+            state[$"{p}authType"] = tab.AuthType;
+            state[$"{p}authValue"] = tab.AuthValue;
+            state[$"{p}savedName"] = tab.SavedName ?? "";
+            state[$"{p}respBody"] = tab.ResponseBody ?? "";
+            state[$"{p}statusLine"] = tab.StatusLine ?? "";
+            state[$"{p}timing"] = tab.Timing ?? "";
+            state[$"{p}reqTab"] = tab.RequestTabIndex.ToString();
 
-        var formData = CollectKeyValues(FormDataList);
-        state["formDataCount"] = formData.Count.ToString();
-        for (int i = 0; i < formData.Count; i++)
-        {
-            state[$"fd_{i}_k"] = formData[i].Key;
-            state[$"fd_{i}_v"] = formData[i].Value;
-            state[$"fd_{i}_e"] = formData[i].Enabled.ToString();
-        }
+            SerializeKvList(state, $"{p}h", tab.Headers);
+            SerializeKvList(state, $"{p}p", tab.Params);
+            SerializeKvList(state, $"{p}fd", tab.FormData);
 
-        var headers = CollectKeyValues(HeadersList);
-        state["headerCount"] = headers.Count.ToString();
-        for (int i = 0; i < headers.Count; i++)
-        {
-            state[$"h_{i}_k"] = headers[i].Key;
-            state[$"h_{i}_v"] = headers[i].Value;
-            state[$"h_{i}_e"] = headers[i].Enabled.ToString();
+            state[$"{p}exCount"] = tab.ExtractionRules.Count.ToString();
+            for (int i = 0; i < tab.ExtractionRules.Count; i++)
+            {
+                state[$"{p}ex{i}_var"] = tab.ExtractionRules[i].Variable;
+                state[$"{p}ex{i}_src"] = tab.ExtractionRules[i].Source;
+                state[$"{p}ex{i}_expr"] = tab.ExtractionRules[i].Expression;
+            }
         }
-
-        var parms = CollectKeyValues(ParamsList);
-        state["paramCount"] = parms.Count.ToString();
-        for (int i = 0; i < parms.Count; i++)
-        {
-            state[$"p_{i}_k"] = parms[i].Key;
-            state[$"p_{i}_v"] = parms[i].Value;
-            state[$"p_{i}_e"] = parms[i].Enabled.ToString();
-        }
-
-        if (_lastResponse is not null)
-            state["lastResponseBody"] = ResponseBody.Text;
 
         return state;
     }
 
     public void LoadState(Dictionary<string, string> state)
     {
-        if (state.TryGetValue("method", out var method))
+        if (state.TryGetValue("workspace", out var ws) && !string.IsNullOrEmpty(ws))
         {
-            for (int i = 0; i < MethodPicker.Items.Count; i++)
-            {
-                if ((MethodPicker.Items[i] as ComboBoxItem)?.Content?.ToString() == method)
-                {
-                    MethodPicker.SelectedIndex = i;
-                    break;
-                }
-            }
+            _activeWorkspace = ws;
+            _workspaceRequests = ApiWorkspaceService.LoadRequests(ws);
+            LoadWorkspaceCombo();
+            BtnRemoveWorkspace.Visibility = Visibility.Visible;
+            SidebarTitle.Text = ws.ToUpperInvariant();
         }
 
-        if (state.TryGetValue("url", out var url)) UrlBox.Text = url;
-        if (state.TryGetValue("body", out var body)) BodyBox.Text = body;
-        if (state.TryGetValue("authValue", out var av)) AuthValueBox.Text = av;
-
-        if (state.TryGetValue("bodyType", out var bt))
-            SetBodyType(bt);
-
-        if (state.TryGetValue("rawContentType", out var rct))
-        {
-            for (int i = 0; i < RawContentType.Items.Count; i++)
-            {
-                if ((RawContentType.Items[i] as ComboBoxItem)?.Content?.ToString() == rct)
-                {
-                    RawContentType.SelectedIndex = i;
-                    break;
-                }
-            }
-        }
-
-        FormDataList.Children.Clear();
-        if (state.TryGetValue("formDataCount", out var fdc) && int.TryParse(fdc, out var fdCount))
-        {
-            for (int i = 0; i < fdCount; i++)
-            {
-                state.TryGetValue($"fd_{i}_k", out var fk);
-                state.TryGetValue($"fd_{i}_v", out var fv);
-                state.TryGetValue($"fd_{i}_e", out var fe);
-                AddKeyValueRow(FormDataList, fk ?? "", fv ?? "", fe != "False");
-            }
-        }
-
-        if (state.TryGetValue("authType", out var at))
-        {
-            for (int i = 0; i < AuthType.Items.Count; i++)
-            {
-                if ((AuthType.Items[i] as ComboBoxItem)?.Content?.ToString() == at)
-                {
-                    AuthType.SelectedIndex = i;
-                    break;
-                }
-            }
-        }
-
-        if (state.TryGetValue("requestTab", out var rt) && int.TryParse(rt, out var rti))
-            RequestTabs.SelectedIndex = rti;
-
-        HeadersList.Children.Clear();
-        if (state.TryGetValue("headerCount", out var hc) && int.TryParse(hc, out var hCount))
-        {
-            for (int i = 0; i < hCount; i++)
-            {
-                state.TryGetValue($"h_{i}_k", out var hk);
-                state.TryGetValue($"h_{i}_v", out var hv);
-                state.TryGetValue($"h_{i}_e", out var he);
-                AddKeyValueRow(HeadersList, hk ?? "", hv ?? "", he != "False");
-            }
-        }
-
-        ParamsList.Children.Clear();
-        if (state.TryGetValue("paramCount", out var pc) && int.TryParse(pc, out var pCount))
-        {
-            for (int i = 0; i < pCount; i++)
-            {
-                state.TryGetValue($"p_{i}_k", out var pk);
-                state.TryGetValue($"p_{i}_v", out var pv);
-                state.TryGetValue($"p_{i}_e", out var pe);
-                AddKeyValueRow(ParamsList, pk ?? "", pv ?? "", pe != "False");
-            }
-        }
-
-        ExtractionRulesList.Children.Clear();
-        if (state.TryGetValue("extractionCount", out var exc) && int.TryParse(exc, out var exCount))
-        {
-            for (int i = 0; i < exCount; i++)
-            {
-                state.TryGetValue($"ex_{i}_var", out var exVar);
-                state.TryGetValue($"ex_{i}_src", out var exSrc);
-                state.TryGetValue($"ex_{i}_expr", out var exExpr);
-                AddExtractionRuleRow(exVar ?? "", exSrc ?? "jsonpath", exExpr ?? "");
-            }
-        }
+        RenderSaved();
 
         if (state.TryGetValue("activeEnv", out var envName) && !string.IsNullOrEmpty(envName))
         {
@@ -913,7 +1233,87 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             LoadEnvironments();
         }
 
-        if (state.TryGetValue("lastResponseBody", out var lrb))
-            ResponseBody.Text = lrb;
+        if (!state.TryGetValue("tabCount", out var tc) || !int.TryParse(tc, out var tabCount) || tabCount == 0)
+        {
+            AddNewTab();
+            return;
+        }
+
+        _openTabs.Clear();
+        for (int t = 0; t < tabCount; t++)
+        {
+            var p = $"t{t}_";
+            var tab = new RequestTab
+            {
+                Method = state.GetValueOrDefault($"{p}method", "GET"),
+                Url = state.GetValueOrDefault($"{p}url", ""),
+                Body = state.GetValueOrDefault($"{p}body", ""),
+                BodyType = state.GetValueOrDefault($"{p}bodyType", "none"),
+                RawContentType = state.GetValueOrDefault($"{p}rawCt", "application/json"),
+                AuthType = state.GetValueOrDefault($"{p}authType", "None"),
+                AuthValue = state.GetValueOrDefault($"{p}authValue", ""),
+                SavedName = state.GetValueOrDefault($"{p}savedName", "") is var sn && sn != "" ? sn : null,
+                ResponseBody = state.GetValueOrDefault($"{p}respBody", "") is var rb && rb != "" ? rb : null,
+                StatusLine = state.GetValueOrDefault($"{p}statusLine", "") is var sl && sl != "" ? sl : null,
+                Timing = state.GetValueOrDefault($"{p}timing", "") is var tm && tm != "" ? tm : null,
+            };
+
+            if (state.TryGetValue($"{p}reqTab", out var rt) && int.TryParse(rt, out var rti))
+                tab.RequestTabIndex = rti;
+
+            tab.Headers = DeserializeKvList(state, $"{p}h");
+            tab.Params = DeserializeKvList(state, $"{p}p");
+            tab.FormData = DeserializeKvList(state, $"{p}fd");
+
+            if (state.TryGetValue($"{p}exCount", out var exc) && int.TryParse(exc, out var exCount))
+            {
+                for (int i = 0; i < exCount; i++)
+                {
+                    tab.ExtractionRules.Add(new ExtractionRule
+                    {
+                        Variable = state.GetValueOrDefault($"{p}ex{i}_var", ""),
+                        Source = state.GetValueOrDefault($"{p}ex{i}_src", "jsonpath"),
+                        Expression = state.GetValueOrDefault($"{p}ex{i}_expr", "")
+                    });
+                }
+            }
+
+            tab.Title = ComputeTabTitle(tab);
+            _openTabs.Add(tab);
+        }
+
+        var activeIdx = 0;
+        if (state.TryGetValue("activeTab", out var at) && int.TryParse(at, out var ati))
+            activeIdx = Math.Clamp(ati, 0, _openTabs.Count - 1);
+
+        _activeTabIndex = -1;
+        SwitchToTab(activeIdx);
+    }
+
+    private static void SerializeKvList(Dictionary<string, string> state, string prefix, List<KeyValueItem> items)
+    {
+        state[$"{prefix}Count"] = items.Count.ToString();
+        for (int i = 0; i < items.Count; i++)
+        {
+            state[$"{prefix}{i}_k"] = items[i].Key;
+            state[$"{prefix}{i}_v"] = items[i].Value;
+            state[$"{prefix}{i}_e"] = items[i].Enabled.ToString();
+        }
+    }
+
+    private static List<KeyValueItem> DeserializeKvList(Dictionary<string, string> state, string prefix)
+    {
+        var items = new List<KeyValueItem>();
+        if (!state.TryGetValue($"{prefix}Count", out var c) || !int.TryParse(c, out var count)) return items;
+        for (int i = 0; i < count; i++)
+        {
+            items.Add(new KeyValueItem
+            {
+                Key = state.GetValueOrDefault($"{prefix}{i}_k", ""),
+                Value = state.GetValueOrDefault($"{prefix}{i}_v", ""),
+                Enabled = state.GetValueOrDefault($"{prefix}{i}_e", "True") != "False"
+            });
+        }
+        return items;
     }
 }

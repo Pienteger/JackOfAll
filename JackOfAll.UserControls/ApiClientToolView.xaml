@@ -6,100 +6,145 @@
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
     <Grid Margin="16">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" MinWidth="120"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- Left sidebar: saved + history -->
-        <DockPanel Grid.Column="0" Background="{DynamicResource SurfaceBackground}">
-            <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
-                <Button Click="OnNewRequestClick" DockPanel.Dock="Right"
-                        Style="{StaticResource IconButton}" Content="&#xE710;"
-                        ToolTip="New request"/>
-                <TextBlock Text="REQUESTS" FontSize="11" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-            </DockPanel>
+        <!-- Workspace + Environment bar -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,6">
+            <!-- Environment selector (right side) -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <TextBlock Text="ENV" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextDimmed}"
+                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="EnvPicker" Width="130" FontSize="11"
+                          Background="{DynamicResource SurfaceBackground}"
+                          Foreground="{DynamicResource TextPrimary}"
+                          BorderBrush="{DynamicResource SurfaceBorder}"
+                          SelectionChanged="OnEnvChanged"/>
+                <Button Click="OnManageEnvClick" Padding="4,2" Margin="4,0,0,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="{DynamicResource TextSecondary}" ToolTip="Manage environments">
+                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                </Button>
+                <TextBlock x:Name="EnvVarCount" FontSize="10"
+                           Foreground="{DynamicResource TextDimmed}"
+                           VerticalAlignment="Center" Margin="4,0,0,0"/>
+            </StackPanel>
 
-            <Border DockPanel.Dock="Top" Height="1"
-                    Background="{DynamicResource SurfaceBorder}" Margin="8,4"/>
+            <!-- Workspace selector (left side) -->
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE821;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="WorkspaceCombo" Width="180" FontSize="11"
+                          SelectionChanged="OnWorkspaceChanged"
+                          Background="{DynamicResource SurfaceBackground}"
+                          Foreground="{DynamicResource TextPrimary}"
+                          BorderBrush="{DynamicResource SurfaceBorder}"/>
+                <Button Click="OnAddWorkspace" Padding="4,2" Margin="4,0,0,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="{DynamicResource TextSecondary}" ToolTip="New workspace">
+                    <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                </Button>
+                <Button x:Name="BtnRemoveWorkspace" Click="OnRemoveWorkspace" Padding="4,2" Margin="2,0,0,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="{DynamicResource DangerBrush}" ToolTip="Delete workspace"
+                        Visibility="Collapsed">
+                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                </Button>
+            </StackPanel>
+        </DockPanel>
 
-            <!-- Saved collection -->
-            <DockPanel DockPanel.Dock="Top">
-                <TextBlock Text="SAVED" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextDimmed}" Margin="8,6,8,2"/>
-            </DockPanel>
-            <StackPanel x:Name="SavedList" DockPanel.Dock="Top"/>
-
-            <Border DockPanel.Dock="Top" Height="1"
-                    Background="{DynamicResource SurfaceBorder}" Margin="8,4"/>
-
-            <!-- History -->
-            <DockPanel DockPanel.Dock="Top">
-                <Button Content="Clear" Click="OnClearHistoryClick" DockPanel.Dock="Right"
-                        Padding="4,1" Margin="0,4,8,2" FontSize="10"
-                        Background="Transparent" Foreground="{DynamicResource TextDimmed}"
-                        BorderThickness="0"/>
-                <TextBlock Text="HISTORY" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextDimmed}" Margin="8,6,8,2"/>
-            </DockPanel>
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="HistoryList"/>
+        <!-- Request tab bar -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,4">
+            <Button Click="OnNewTabClick" DockPanel.Dock="Right"
+                    Padding="6,2" Margin="4,0,0,0"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="{DynamicResource TextSecondary}" ToolTip="New request tab"
+                    FontFamily="Segoe MDL2 Assets" FontSize="12" Content="&#xE710;"/>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="RequestTabBar" Orientation="Horizontal"/>
             </ScrollViewer>
         </DockPanel>
 
-        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center"
-                      Background="{DynamicResource SurfaceBorder}"/>
+        <!-- Main content: sidebar + editor -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" MinWidth="120"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- Right: request + response -->
-        <Grid Grid.Column="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Environment bar + URL bar -->
-            <Border Grid.Row="0" Padding="8,6,8,6"
-                    Background="{DynamicResource SurfaceBackground}"
-                    BorderBrush="{DynamicResource SurfaceBorder}"
-                    BorderThickness="0,0,0,1">
-                <StackPanel>
-                    <!-- Environment selector -->
-                    <DockPanel Margin="0,0,0,6">
-                        <Button Click="OnManageEnvClick" DockPanel.Dock="Right"
-                                Padding="6,2" Margin="4,0,0,0" FontSize="10"
-                                Background="{DynamicResource SurfaceBackground}"
-                                Foreground="{DynamicResource TextSecondary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="Manage" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                        <TextBlock Text="ENV" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextDimmed}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <ComboBox x:Name="EnvPicker" Width="140" FontSize="11"
-                                  Background="{DynamicResource SurfaceBackground}"
-                                  Foreground="{DynamicResource TextPrimary}"
-                                  BorderBrush="{DynamicResource SurfaceBorder}"
-                                  SelectionChanged="OnEnvChanged"/>
-                        <TextBlock x:Name="EnvVarCount" FontSize="10"
-                                   Foreground="{DynamicResource TextDimmed}"
-                                   VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <!-- Left sidebar -->
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                    CornerRadius="6">
+                <DockPanel>
+                    <!-- Sidebar header -->
+                    <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
+                        <Button Click="OnNewRequestClick" DockPanel.Dock="Right"
+                                Style="{StaticResource IconButton}" Content="&#xE710;"
+                                ToolTip="New request"/>
+                        <TextBlock x:Name="SidebarTitle" Text="REQUESTS" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                     </DockPanel>
 
-                    <!-- URL row -->
+                    <Border DockPanel.Dock="Top" Height="1"
+                            Background="{DynamicResource SurfaceBorder}" Margin="8,4"/>
+
+                    <!-- Saved requests -->
+                    <DockPanel DockPanel.Dock="Top">
+                        <TextBlock Text="SAVED" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextDimmed}" Margin="8,6,8,2"/>
+                    </DockPanel>
+                    <ScrollViewer DockPanel.Dock="Top" MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="SavedList"/>
+                    </ScrollViewer>
+
+                    <Border DockPanel.Dock="Top" Height="1"
+                            Background="{DynamicResource SurfaceBorder}" Margin="8,4"/>
+
+                    <!-- History -->
+                    <DockPanel DockPanel.Dock="Top">
+                        <Button Content="Clear" Click="OnClearHistoryClick" DockPanel.Dock="Right"
+                                Padding="4,1" Margin="0,4,8,2" FontSize="10"
+                                Background="Transparent" Foreground="{DynamicResource TextDimmed}"
+                                BorderThickness="0"/>
+                        <TextBlock Text="HISTORY" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextDimmed}" Margin="8,6,8,2"/>
+                    </DockPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="HistoryList"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center"
+                          Background="{DynamicResource SurfaceBorder}"/>
+
+            <!-- Right: request editor + response -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- URL bar -->
+                <Border Grid.Row="0" Padding="8,6,8,6"
+                        Background="{DynamicResource SurfaceBackground}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"
+                        BorderThickness="0,0,0,1">
                     <DockPanel>
                         <Button x:Name="BtnSend" Click="OnSendClick"
                                 DockPanel.Dock="Right" Padding="16,6" Margin="8,0,0,0"
                                 Style="{StaticResource PrimaryButton}" FontSize="13" FontWeight="SemiBold">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE724;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="Send" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SendButtonText" Text="Send" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Click="OnSaveClick"
@@ -133,285 +178,262 @@
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  VerticalContentAlignment="Center"/>
                     </DockPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Request tabs: Headers, Body, Params, Auth -->
-            <TabControl Grid.Row="1" x:Name="RequestTabs"
-                        Background="{DynamicResource AppBackground}"
-                        BorderThickness="0" Padding="0">
-                <TabControl.Resources>
-                    <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
-                </TabControl.Resources>
-
-                <!-- Params tab -->
-                <TabItem Header="Params">
-                    <DockPanel Margin="8">
-                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                            <Button Content="+ Add" Click="OnAddParamClick" DockPanel.Dock="Right"
-                                    Padding="8,3" Background="{DynamicResource SurfaceBackground}"
-                                    Foreground="{DynamicResource TextPrimary}"
-                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
-                            <TextBlock Text="QUERY PARAMETERS" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel x:Name="ParamsList"/>
-                        </ScrollViewer>
-                    </DockPanel>
-                </TabItem>
-
-                <!-- Headers tab -->
-                <TabItem Header="Headers">
-                    <DockPanel Margin="8">
-                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                            <Button Content="+ Add" Click="OnAddHeaderClick" DockPanel.Dock="Right"
-                                    Padding="8,3" Background="{DynamicResource SurfaceBackground}"
-                                    Foreground="{DynamicResource TextPrimary}"
-                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
-                            <TextBlock Text="REQUEST HEADERS" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel x:Name="HeadersList"/>
-                        </ScrollViewer>
-                    </DockPanel>
-                </TabItem>
-
-                <!-- Body tab -->
-                <TabItem Header="Body">
-                    <DockPanel Margin="8">
-                        <!-- Body type selector -->
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                            <RadioButton x:Name="BodyNone" Content="none" GroupName="BodyType"
-                                         IsChecked="True" Margin="0,0,16,0" FontSize="12"
-                                         Foreground="{DynamicResource TextPrimary}"
-                                         Click="OnBodyTypeChanged"/>
-                            <RadioButton x:Name="BodyFormData" Content="form-data" GroupName="BodyType"
-                                         Margin="0,0,16,0" FontSize="12"
-                                         Foreground="{DynamicResource TextPrimary}"
-                                         Click="OnBodyTypeChanged"/>
-                            <RadioButton x:Name="BodyUrlEncoded" Content="x-www-form-urlencoded" GroupName="BodyType"
-                                         Margin="0,0,16,0" FontSize="12"
-                                         Foreground="{DynamicResource TextPrimary}"
-                                         Click="OnBodyTypeChanged"/>
-                            <RadioButton x:Name="BodyRaw" Content="raw" GroupName="BodyType"
-                                         Margin="0,0,16,0" FontSize="12"
-                                         Foreground="{DynamicResource TextPrimary}"
-                                         Click="OnBodyTypeChanged"/>
-                        </StackPanel>
-
-                        <!-- None message -->
-                        <TextBlock x:Name="BodyNonePanel"
-                                   Text="This request does not have a body."
-                                   Foreground="{DynamicResource TextDimmed}" FontSize="12"
-                                   Margin="0,12,0,0"/>
-
-                        <!-- Form data (form-data + x-www-form-urlencoded) -->
-                        <DockPanel x:Name="BodyFormPanel" Visibility="Collapsed">
-                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                                <Button Content="+ Add" Click="OnAddFormDataClick" DockPanel.Dock="Right"
-                                        Padding="8,3" Background="{DynamicResource SurfaceBackground}"
-                                        Foreground="{DynamicResource TextPrimary}"
-                                        BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
-                                <TextBlock x:Name="FormDataLabel" Text="FORM DATA" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                            </DockPanel>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel x:Name="FormDataList"/>
-                            </ScrollViewer>
-                        </DockPanel>
-
-                        <!-- Raw body -->
-                        <DockPanel x:Name="BodyRawPanel" Visibility="Collapsed">
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Content-Type:" Foreground="{DynamicResource TextSecondary}"
-                                           FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <ComboBox x:Name="RawContentType" Width="180" FontSize="11"
-                                          Background="{DynamicResource SurfaceBackground}"
-                                          Foreground="{DynamicResource TextPrimary}"
-                                          BorderBrush="{DynamicResource SurfaceBorder}">
-                                    <ComboBoxItem Content="application/json" IsSelected="True"/>
-                                    <ComboBoxItem Content="text/plain"/>
-                                    <ComboBoxItem Content="application/xml"/>
-                                    <ComboBoxItem Content="text/html"/>
-                                    <ComboBoxItem Content="application/javascript"/>
-                                </ComboBox>
-                            </StackPanel>
-                            <TextBox x:Name="BodyBox" AcceptsReturn="True" AcceptsTab="True"
-                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                     Background="{DynamicResource SurfaceBackground}"
-                                     Foreground="{DynamicResource TextPrimary}"
-                                     BorderBrush="{DynamicResource SurfaceBorder}"
-                                     FontFamily="Cascadia Code,Consolas,Courier New"
-                                     FontSize="{DynamicResource MonoFontSize}"
-                                     Padding="8"/>
-                        </DockPanel>
-                    </DockPanel>
-                </TabItem>
-
-                <!-- Auth tab -->
-                <TabItem Header="Auth">
-                    <StackPanel Margin="8">
-                        <TextBlock Text="AUTHORIZATION" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,8"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="Type:" Foreground="{DynamicResource TextSecondary}"
-                                       VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
-                            <ComboBox x:Name="AuthType" Width="150" FontSize="12"
-                                      Background="{DynamicResource SurfaceBackground}"
-                                      Foreground="{DynamicResource TextPrimary}"
-                                      BorderBrush="{DynamicResource SurfaceBorder}"
-                                      SelectionChanged="OnAuthTypeChanged">
-                                <ComboBoxItem Content="None" IsSelected="True"/>
-                                <ComboBoxItem Content="Bearer"/>
-                                <ComboBoxItem Content="Basic"/>
-                            </ComboBox>
-                        </StackPanel>
-                        <StackPanel x:Name="AuthValuePanel" Visibility="Collapsed">
-                            <TextBlock x:Name="AuthHint" Text="Token:"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="12" Margin="0,0,0,4"/>
-                            <TextBox x:Name="AuthValueBox" Padding="6,4"
-                                     Background="{DynamicResource SurfaceBackground}"
-                                     Foreground="{DynamicResource TextPrimary}"
-                                     BorderBrush="{DynamicResource SurfaceBorder}"
-                                     FontFamily="Cascadia Code,Consolas,Courier New"
-                                     FontSize="12"/>
-                        </StackPanel>
-                    </StackPanel>
-                </TabItem>
-            </TabControl>
-
-            <!-- Splitter between request and response -->
-            <GridSplitter Grid.Row="2" Height="4" HorizontalAlignment="Stretch"
-                          Background="{DynamicResource SurfaceBorder}"
-                          ResizeDirection="Rows"/>
-
-            <!-- Response section -->
-            <DockPanel Grid.Row="3">
-                <Border DockPanel.Dock="Top" Padding="8,6"
-                        Background="{DynamicResource SurfaceBackground}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"
-                        BorderThickness="0,0,0,1">
-                    <DockPanel>
-                        <Button Content="Copy Body" Click="OnCopyResponseClick" DockPanel.Dock="Right"
-                                Padding="8,3"
-                                Background="{DynamicResource SurfaceBackground}"
-                                Foreground="{DynamicResource TextPrimary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="RESPONSE" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
-                            <Border x:Name="StatusBadge" CornerRadius="3" Padding="8,2"
-                                    Visibility="Collapsed">
-                                <TextBlock x:Name="StatusText" FontSize="12" FontWeight="SemiBold"/>
-                            </Border>
-                            <TextBlock x:Name="TimingText" FontSize="11"
-                                       Foreground="{DynamicResource TextDimmed}"
-                                       VerticalAlignment="Center" Margin="12,0,0,0"/>
-                        </StackPanel>
-                    </DockPanel>
                 </Border>
 
-                <TabControl x:Name="ResponseTabs"
+                <!-- Request tabs: Params, Headers, Body, Auth -->
+                <TabControl Grid.Row="1" x:Name="RequestTabs"
                             Background="{DynamicResource AppBackground}"
                             BorderThickness="0" Padding="0">
                     <TabControl.Resources>
-                        <Style TargetType="TabItem">
-                            <Setter Property="Padding" Value="12,6"/>
-                            <Setter Property="FontSize" Value="11"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="TabItem">
-                                        <Border x:Name="Bd" Padding="{TemplateBinding Padding}"
-                                                Background="Transparent"
-                                                BorderBrush="{DynamicResource AccentBrush}"
-                                                BorderThickness="0,0,0,0">
-                                            <ContentPresenter ContentSource="Header"
-                                                              HorizontalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="BorderThickness" Value="0,0,0,2"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
+                        <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
                     </TabControl.Resources>
 
-                    <TabItem Header="Body">
-                        <TextBox x:Name="ResponseBody" IsReadOnly="True" AcceptsReturn="True"
-                                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 Background="{DynamicResource AppBackground}"
-                                 Foreground="{DynamicResource TextPrimary}"
-                                 BorderThickness="0"
-                                 FontFamily="Cascadia Code,Consolas,Courier New"
-                                 FontSize="{DynamicResource MonoFontSize}"
-                                 Padding="8"
-                                 Text="Send a request to see the response."/>
-                    </TabItem>
-                    <TabItem Header="Headers">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
-                            <StackPanel x:Name="ResponseHeadersList" Margin="8"/>
-                        </ScrollViewer>
-                    </TabItem>
-
-                    <!-- Extract variables from response -->
-                    <TabItem Header="Extract">
+                    <TabItem Header="Params">
                         <DockPanel Margin="8">
                             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                                <Button Content="+ Add Rule" Click="OnAddExtractionRule" DockPanel.Dock="Right"
+                                <Button Content="+ Add" Click="OnAddParamClick" DockPanel.Dock="Right"
                                         Padding="8,3" Background="{DynamicResource SurfaceBackground}"
                                         Foreground="{DynamicResource TextPrimary}"
                                         BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
-                                <Button Content="Re-run" Click="OnRunExtraction" DockPanel.Dock="Right"
-                                        Padding="8,3" Margin="0,0,6,0"
-                                        Background="{DynamicResource SurfaceBackground}"
-                                        Foreground="{DynamicResource TextPrimary}"
-                                        BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
-                                        ToolTip="Manually re-run extraction on the last response"/>
-                                <TextBlock Text="EXTRACTION RULES" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="QUERY PARAMETERS" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock DockPanel.Dock="Top"
-                                       Text="Runs automatically after each response. Use {{varName}} anywhere: URL, headers, body, auth. Source: jsonpath ($.data.token), regex (capture group), or header name."
-                                       Foreground="{DynamicResource TextDimmed}" FontSize="10"
-                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel x:Name="ExtractionRulesList"/>
+                                <StackPanel x:Name="ParamsList"/>
                             </ScrollViewer>
                         </DockPanel>
                     </TabItem>
 
-                    <!-- Current environment variables -->
-                    <TabItem Header="Vars">
+                    <TabItem Header="Headers">
                         <DockPanel Margin="8">
                             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                                <Button Content="+ Add" Click="OnAddManualVar" DockPanel.Dock="Right"
+                                <Button Content="+ Add" Click="OnAddHeaderClick" DockPanel.Dock="Right"
                                         Padding="8,3" Background="{DynamicResource SurfaceBackground}"
                                         Foreground="{DynamicResource TextPrimary}"
                                         BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
-                                <TextBlock x:Name="VarsTabLabel" Text="ENVIRONMENT VARIABLES" FontSize="11"
-                                           FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="REQUEST HEADERS" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                             </DockPanel>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel x:Name="VarsList"/>
+                                <StackPanel x:Name="HeadersList"/>
                             </ScrollViewer>
                         </DockPanel>
                     </TabItem>
+
+                    <TabItem Header="Body">
+                        <DockPanel Margin="8">
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                <RadioButton x:Name="BodyNone" Content="none" GroupName="BodyType"
+                                             IsChecked="True" Margin="0,0,16,0" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimary}"
+                                             Click="OnBodyTypeChanged"/>
+                                <RadioButton x:Name="BodyFormData" Content="form-data" GroupName="BodyType"
+                                             Margin="0,0,16,0" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimary}"
+                                             Click="OnBodyTypeChanged"/>
+                                <RadioButton x:Name="BodyUrlEncoded" Content="x-www-form-urlencoded" GroupName="BodyType"
+                                             Margin="0,0,16,0" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimary}"
+                                             Click="OnBodyTypeChanged"/>
+                                <RadioButton x:Name="BodyRaw" Content="raw" GroupName="BodyType"
+                                             Margin="0,0,16,0" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimary}"
+                                             Click="OnBodyTypeChanged"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="BodyNonePanel"
+                                       Text="This request does not have a body."
+                                       Foreground="{DynamicResource TextDimmed}" FontSize="12"
+                                       Margin="0,12,0,0"/>
+
+                            <DockPanel x:Name="BodyFormPanel" Visibility="Collapsed">
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <Button Content="+ Add" Click="OnAddFormDataClick" DockPanel.Dock="Right"
+                                            Padding="8,3" Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
+                                    <TextBlock x:Name="FormDataLabel" Text="FORM DATA" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="FormDataList"/>
+                                </ScrollViewer>
+                            </DockPanel>
+
+                            <DockPanel x:Name="BodyRawPanel" Visibility="Collapsed">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="Content-Type:" Foreground="{DynamicResource TextSecondary}"
+                                               FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox x:Name="RawContentType" Width="180" FontSize="11"
+                                              Background="{DynamicResource SurfaceBackground}"
+                                              Foreground="{DynamicResource TextPrimary}"
+                                              BorderBrush="{DynamicResource SurfaceBorder}">
+                                        <ComboBoxItem Content="application/json" IsSelected="True"/>
+                                        <ComboBoxItem Content="text/plain"/>
+                                        <ComboBoxItem Content="application/xml"/>
+                                        <ComboBoxItem Content="text/html"/>
+                                        <ComboBoxItem Content="application/javascript"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <TextBox x:Name="BodyBox" AcceptsReturn="True" AcceptsTab="True"
+                                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         Background="{DynamicResource SurfaceBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource SurfaceBorder}"
+                                         FontFamily="Cascadia Code,Consolas,Courier New"
+                                         FontSize="{DynamicResource MonoFontSize}"
+                                         Padding="8"/>
+                            </DockPanel>
+                        </DockPanel>
+                    </TabItem>
+
+                    <TabItem Header="Auth">
+                        <StackPanel Margin="8">
+                            <TextBlock Text="AUTHORIZATION" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Type:" Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+                                <ComboBox x:Name="AuthType" Width="150" FontSize="12"
+                                          Background="{DynamicResource SurfaceBackground}"
+                                          Foreground="{DynamicResource TextPrimary}"
+                                          BorderBrush="{DynamicResource SurfaceBorder}"
+                                          SelectionChanged="OnAuthTypeChanged">
+                                    <ComboBoxItem Content="None" IsSelected="True"/>
+                                    <ComboBoxItem Content="Bearer"/>
+                                    <ComboBoxItem Content="Basic"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel x:Name="AuthValuePanel" Visibility="Collapsed">
+                                <TextBlock x:Name="AuthHint" Text="Token:"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           FontSize="12" Margin="0,0,0,4"/>
+                                <TextBox x:Name="AuthValueBox" Padding="6,4"
+                                         Background="{DynamicResource SurfaceBackground}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource SurfaceBorder}"
+                                         FontFamily="Cascadia Code,Consolas,Courier New"
+                                         FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </TabItem>
                 </TabControl>
-            </DockPanel>
+
+                <!-- Splitter -->
+                <GridSplitter Grid.Row="2" Height="4" HorizontalAlignment="Stretch"
+                              Background="{DynamicResource SurfaceBorder}"
+                              ResizeDirection="Rows"/>
+
+                <!-- Response section -->
+                <DockPanel Grid.Row="3">
+                    <Border DockPanel.Dock="Top" Padding="8,6"
+                            Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            BorderThickness="0,0,0,1">
+                        <DockPanel>
+                            <Button Click="OnCopyResponseClick" DockPanel.Dock="Right"
+                                    Padding="8,3"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="RESPONSE" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                <Border x:Name="StatusBadge" CornerRadius="3" Padding="8,2"
+                                        Visibility="Collapsed">
+                                    <TextBlock x:Name="StatusText" FontSize="12" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock x:Name="TimingText" FontSize="11"
+                                           Foreground="{DynamicResource TextDimmed}"
+                                           VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <TabControl x:Name="ResponseTabs"
+                                Background="{DynamicResource AppBackground}"
+                                BorderThickness="0" Padding="0">
+                        <TabControl.Resources>
+                            <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
+                        </TabControl.Resources>
+
+                        <TabItem Header="Body">
+                            <TextBox x:Name="ResponseBody" IsReadOnly="True" AcceptsReturn="True"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderThickness="0"
+                                     FontFamily="Cascadia Code,Consolas,Courier New"
+                                     FontSize="{DynamicResource MonoFontSize}"
+                                     Padding="8"
+                                     Text="Send a request to see the response."/>
+                        </TabItem>
+                        <TabItem Header="Headers">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                                <StackPanel x:Name="ResponseHeadersList" Margin="8"/>
+                            </ScrollViewer>
+                        </TabItem>
+                        <TabItem Header="Extract">
+                            <DockPanel Margin="8">
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <Button Content="+ Add Rule" Click="OnAddExtractionRule" DockPanel.Dock="Right"
+                                            Padding="8,3" Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
+                                    <Button Click="OnRunExtraction" DockPanel.Dock="Right"
+                                            Padding="8,3" Margin="0,0,6,0"
+                                            Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                            ToolTip="Re-run extraction on last response">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Re-run" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="EXTRACTION RULES" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock DockPanel.Dock="Top"
+                                           Text="Auto-runs after each response. Use {{varName}} in URL, headers, body, auth."
+                                           Foreground="{DynamicResource TextDimmed}" FontSize="10"
+                                           TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="ExtractionRulesList"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="Vars">
+                            <DockPanel Margin="8">
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <Button Click="OnAddManualVar" DockPanel.Dock="Right"
+                                            Padding="8,3" Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Add" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="VarsTabLabel" Text="ENVIRONMENT VARIABLES" FontSize="11"
+                                               FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="VarsList"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </TabItem>
+                    </TabControl>
+                </DockPanel>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>
