@@ -26,7 +26,7 @@
                        Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,16"/>
 
             <ProgressBar x:Name="BreakProgress" Width="400" Height="6"
-                         Background="#33FFFFFF" Foreground="#007acc"
+                         Background="#33FFFFFF" Foreground="{DynamicResource AccentBrush}"
                          BorderThickness="0" Maximum="100" Value="0"/>
 
             <TextBlock x:Name="SkipHint" Text="" FontSize="13"

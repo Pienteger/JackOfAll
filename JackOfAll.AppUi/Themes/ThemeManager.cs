@@ -42,6 +42,9 @@ public static class ThemeManager
             res["ScrollbarThumb"] = new SolidColorBrush(Color.FromRgb(0x3d, 0x3e, 0x5c));
             res["ScrollbarThumbHover"] = new SolidColorBrush(Color.FromRgb(0x52, 0x53, 0x80));
             res["ScrollbarTrack"] = new SolidColorBrush(Color.FromRgb(0x25, 0x26, 0x40));
+            res["DangerBrush"] = new SolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44));
+            res["DangerHoverBrush"] = new SolidColorBrush(Color.FromRgb(0xdc, 0x26, 0x26));
+            res["WarningBrush"] = new SolidColorBrush(Color.FromRgb(0xf5, 0x9e, 0x0b));
         }
         else
         {
@@ -66,6 +69,9 @@ public static class ThemeManager
             res["ScrollbarThumb"] = new SolidColorBrush(Color.FromRgb(0xc8, 0xca, 0xd5));
             res["ScrollbarThumbHover"] = new SolidColorBrush(Color.FromRgb(0xa0, 0xa2, 0xb0));
             res["ScrollbarTrack"] = new SolidColorBrush(Color.FromRgb(0xe8, 0xe9, 0xf0));
+            res["DangerBrush"] = new SolidColorBrush(Color.FromRgb(0xdc, 0x26, 0x26));
+            res["DangerHoverBrush"] = new SolidColorBrush(Color.FromRgb(0xb9, 0x1c, 0x1c));
+            res["WarningBrush"] = new SolidColorBrush(Color.FromRgb(0xd9, 0x77, 0x06));
         }
 
         res["AppFontSize"] = settings.FontSize;

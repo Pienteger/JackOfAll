@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
-    <Grid Margin="12">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -14,9 +14,14 @@
 
         <!-- Input -->
         <DockPanel Grid.Row="0">
-            <Button Content="Decode" Click="OnDecodeClick" DockPanel.Dock="Right"
-                    Padding="12,4" Background="{DynamicResource AccentBrush}" Foreground="White"
-                    BorderThickness="0" Margin="8,0,0,0"/>
+            <Button Click="OnDecodeClick" DockPanel.Dock="Right"
+                    Style="{StaticResource PrimaryButton}"
+                    Padding="12,4" Margin="8,0,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE785;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="Decode" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Content="Clear" Click="OnClearClick" DockPanel.Dock="Right"
                     Padding="12,4" Background="{DynamicResource SurfaceBackground}"
                     Foreground="{DynamicResource TextPrimary}"
@@ -33,6 +38,12 @@
                  FontFamily="Cascadia Code,Consolas,Courier New"
                  FontSize="{DynamicResource MonoFontSize}"
                  Padding="8" VerticalScrollBarVisibility="Auto"/>
+
+        <!-- Placeholder -->
+        <TextBlock x:Name="PlaceholderText" Grid.Row="2"
+                   Text="Paste a JWT token above and click Decode"
+                   Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                   HorizontalAlignment="Center" Margin="0,40,0,0"/>
 
         <!-- Decoded output -->
         <ScrollViewer Grid.Row="2" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">

@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
-    <Grid Margin="12">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -15,25 +15,50 @@
         <!-- Toolbar -->
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="New" Click="OnNewClick" Padding="10,4" Margin="4,0,0,0"
+                <Button Click="OnNewClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <Button Content="Open" Click="OnOpenClick" Padding="10,4" Margin="4,0,0,0"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="New" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnOpenClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <Button Content="Save" Click="OnSaveClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="Save As" Click="OnSaveAsClick" Padding="10,4" Margin="4,0,0,0"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Open" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnSaveClick" Padding="10,4" Margin="4,0,0,0"
+                        Style="{StaticResource PrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Save" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnSaveAsClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <ToggleButton x:Name="PreviewToggle" Content="Preview" Click="OnPreviewToggle"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xEA35;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Save As" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <ToggleButton x:Name="PreviewToggle" Click="OnPreviewToggle"
                               Padding="10,4" Margin="4,0,0,0"
                               Background="{DynamicResource SurfaceBackground}"
                               Foreground="{DynamicResource TextPrimary}"
-                              BorderBrush="{DynamicResource SurfaceBorder}"/>
+                              BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8A1;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Preview" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ToggleButton>
             </StackPanel>
             <TextBlock x:Name="FileTitle" Text="Untitled.md" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>

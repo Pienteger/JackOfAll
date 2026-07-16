@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
-    <Grid Margin="12">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -15,24 +15,60 @@
         <!-- Toolbar -->
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="B64 Encode" Click="OnEncodeClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="B64 Decode" Click="OnDecodeClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="B64 URL-Safe" Click="OnUrlEncodeClick" Padding="10,4" Margin="4,0,0,0"
+                <Button Click="OnEncodeClick" Padding="10,4" Margin="4,0,0,0"
+                        Style="{StaticResource PrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="B64 Encode" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnDecodeClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <Border Width="1" Background="{DynamicResource SurfaceBorder}" Margin="8,2"/>
-                <Button Content="URL Escape" Click="OnUrlEscapeClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="URL Unescape" Click="OnUrlUnescapeClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Border Width="1" Background="{DynamicResource SurfaceBorder}" Margin="8,2"/>
-                <Button Content="Clear" Click="OnClearClick" Padding="10,4" Margin="4,0,0,0"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE785;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="B64 Decode" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnUrlEncodeClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="B64 URL-Safe" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Border Width="1" Background="{DynamicResource SurfaceBorder}" Margin="8,2"/>
+                <Button Click="OnUrlEscapeClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="URL Escape" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnUrlUnescapeClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE785;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="URL Unescape" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Border Width="1" Background="{DynamicResource SurfaceBorder}" Margin="8,2"/>
+                <Button Click="OnClearClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE894;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Clear" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
             <TextBlock Text="Encode / Decode" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
@@ -67,10 +103,15 @@
             <!-- Output -->
             <DockPanel Grid.Column="2">
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-                    <Button Content="Copy" Click="OnCopyOutputClick" DockPanel.Dock="Right"
+                    <Button Click="OnCopyOutputClick" DockPanel.Dock="Right"
                             Padding="8,2" Background="{DynamicResource SurfaceBackground}"
                             Foreground="{DynamicResource TextPrimary}"
-                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
+                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock Text="OUTPUT" FontSize="11" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                 </DockPanel>

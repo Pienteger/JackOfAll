@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
-    <Grid Margin="12">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -18,9 +18,13 @@
                 BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
             <StackPanel>
                 <DockPanel Margin="0,0,0,8">
-                    <Button Content="Add" Click="OnAddClick" DockPanel.Dock="Right"
-                            Padding="16,6" Background="{DynamicResource AccentBrush}"
-                            Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                    <Button Click="OnAddClick" DockPanel.Dock="Right"
+                            Padding="16,6" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add Reminder" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBox x:Name="NewReminderText" AcceptsReturn="False"
                              KeyDown="OnNewReminderKeyDown"
                              Background="{DynamicResource AppBackground}"
@@ -64,6 +68,10 @@
         </DockPanel>
 
         <!-- Reminder List -->
+        <TextBlock Grid.Row="2" Text="No reminders yet"
+                   Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   IsHitTestVisible="False"/>
         <ListBox x:Name="ReminderList" Grid.Row="2"
                  Background="{DynamicResource AppBackground}"
                  BorderBrush="{DynamicResource SurfaceBorder}">
@@ -82,7 +90,7 @@
                                 <Button Content="Delete" Click="OnDeleteClick" Tag="{Binding Id}"
                                         Padding="8,2" Margin="4,0,0,0"
                                         Background="{DynamicResource SurfaceBackground}"
-                                        Foreground="#e06c75"
+                                        Foreground="{DynamicResource DangerBrush}"
                                         BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"/>
                             </StackPanel>
                             <CheckBox IsChecked="{Binding IsCompleted, Mode=OneWay}"

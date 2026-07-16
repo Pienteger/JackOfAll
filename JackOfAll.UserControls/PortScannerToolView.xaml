@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
-    <Grid Margin="12">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -15,16 +15,31 @@
         <!-- Toolbar -->
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button x:Name="BtnListActive" Content="List Active" Click="OnListActiveClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button x:Name="BtnScanCommon" Content="Scan Common" Click="OnScanCommonClick" Padding="10,4" Margin="4,0,0,0"
+                <Button x:Name="BtnListActive" Click="OnListActiveClick" Padding="10,4" Margin="4,0,0,0"
+                        Style="{StaticResource PrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="List Active" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnScanCommon" Click="OnScanCommonClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <Button x:Name="BtnScanRange" Content="Scan Range" Click="OnScanRangeClick" Padding="10,4" Margin="4,0,0,0"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Scan Common" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnScanRange" Click="OnScanRangeClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Scan Range" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <TextBox x:Name="RangeStart" Text="1" Width="60" Padding="4,4" Margin="8,0,0,0"
                          Background="{DynamicResource SurfaceBackground}"
                          Foreground="{DynamicResource TextPrimary}"
@@ -34,8 +49,13 @@
                          Background="{DynamicResource SurfaceBackground}"
                          Foreground="{DynamicResource TextPrimary}"
                          BorderBrush="{DynamicResource SurfaceBorder}" VerticalAlignment="Center"/>
-                <Button x:Name="BtnCancel" Content="Cancel" Click="OnCancelClick" Padding="10,4" Margin="8,0,0,0"
-                        Background="#e06c75" Foreground="White" BorderThickness="0" Visibility="Collapsed"/>
+                <Button x:Name="BtnCancel" Click="OnCancelClick" Padding="10,4" Margin="8,0,0,0"
+                        Style="{StaticResource DangerButton}" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Cancel" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
             <TextBlock Text="Port Scanner (localhost)" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
@@ -102,7 +122,7 @@
                         <DataTemplate>
                             <Button Content="Kill" Click="OnKillClick" Tag="{Binding Pid}"
                                     Padding="8,2" Background="{DynamicResource SurfaceBackground}"
-                                    Foreground="#e06c75" BorderBrush="{DynamicResource SurfaceBorder}"
+                                    Foreground="{DynamicResource DangerBrush}" BorderBrush="{DynamicResource SurfaceBorder}"
                                     BorderThickness="1" FontSize="11" Cursor="Hand"
                                     HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Button.Style>
@@ -120,6 +140,12 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+
+        <!-- Empty state -->
+        <TextBlock Grid.Row="1" Text="Run a scan to see results"
+                   Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   IsHitTestVisible="False"/>
 
         <!-- Status bar -->
         <DockPanel Grid.Row="2" Margin="0,8,0,0">

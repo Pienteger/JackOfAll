@@ -34,6 +34,9 @@
             <SolidColorBrush x:Key="ScrollbarThumb" Color="#3d3e5c"/>
             <SolidColorBrush x:Key="ScrollbarThumbHover" Color="#525380"/>
             <SolidColorBrush x:Key="ScrollbarTrack" Color="#252640"/>
+            <SolidColorBrush x:Key="DangerBrush" Color="#ef4444"/>
+            <SolidColorBrush x:Key="DangerHoverBrush" Color="#dc2626"/>
+            <SolidColorBrush x:Key="WarningBrush" Color="#f59e0b"/>
             <sys:Double x:Key="AppFontSize">13</sys:Double>
             <sys:Double x:Key="MonoFontSize">12</sys:Double>
         </ResourceDictionary>

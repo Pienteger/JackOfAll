@@ -5,8 +5,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
-        <StackPanel Margin="12">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel Margin="0">
 
             <TextBlock Text="HASH GENERATOR" FontSize="11" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
@@ -17,9 +17,14 @@
                     BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,16">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <Button Content="Hash" Click="OnHashClick" DockPanel.Dock="Right"
-                                Padding="12,6" Background="{DynamicResource AccentBrush}"
-                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <Button Click="OnHashClick" DockPanel.Dock="Right"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,6" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE928;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Hash" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <Button Content="Clear" Click="OnClearClick" DockPanel.Dock="Right"
                                 Padding="12,6" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
@@ -51,11 +56,16 @@
                     <DockPanel Margin="0,0,0,10">
                         <TextBlock Text="MD5" Width="60" Foreground="{DynamicResource TextSecondary}"
                                    VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                        <Button Content="Copy" Click="OnCopyMd5" DockPanel.Dock="Right"
+                        <Button Click="OnCopyMd5" DockPanel.Dock="Right"
                                 Padding="8,2" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
                                 BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
-                                Margin="8,0,0,0"/>
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="Md5Output" IsReadOnly="True"
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  FontSize="{DynamicResource MonoFontSize}"
@@ -69,11 +79,16 @@
                     <DockPanel Margin="0,0,0,10">
                         <TextBlock Text="SHA-1" Width="60" Foreground="{DynamicResource TextSecondary}"
                                    VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                        <Button Content="Copy" Click="OnCopySha1" DockPanel.Dock="Right"
+                        <Button Click="OnCopySha1" DockPanel.Dock="Right"
                                 Padding="8,2" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
                                 BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
-                                Margin="8,0,0,0"/>
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="Sha1Output" IsReadOnly="True"
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  FontSize="{DynamicResource MonoFontSize}"
@@ -87,11 +102,16 @@
                     <DockPanel Margin="0,0,0,10">
                         <TextBlock Text="SHA-256" Width="60" Foreground="{DynamicResource TextSecondary}"
                                    VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                        <Button Content="Copy" Click="OnCopySha256" DockPanel.Dock="Right"
+                        <Button Click="OnCopySha256" DockPanel.Dock="Right"
                                 Padding="8,2" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
                                 BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
-                                Margin="8,0,0,0"/>
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="Sha256Output" IsReadOnly="True"
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  FontSize="{DynamicResource MonoFontSize}"
@@ -105,11 +125,16 @@
                     <DockPanel Margin="0,0,0,0">
                         <TextBlock Text="SHA-512" Width="60" Foreground="{DynamicResource TextSecondary}"
                                    VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                        <Button Content="Copy" Click="OnCopySha512" DockPanel.Dock="Right"
+                        <Button Click="OnCopySha512" DockPanel.Dock="Right"
                                 Padding="8,2" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
                                 BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
-                                Margin="8,0,0,0"/>
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="Sha512Output" IsReadOnly="True"
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  FontSize="{DynamicResource MonoFontSize}"
@@ -121,8 +146,13 @@
                 </StackPanel>
             </Border>
 
+            <!-- Hint -->
+            <TextBlock Text="Enter text above to compute hashes"
+                       Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                       Margin="0,12,0,0"/>
+
             <!-- Uppercase toggle -->
-            <CheckBox x:Name="ChkUppercase" Content="Uppercase output" Margin="0,12,0,0"
+            <CheckBox x:Name="ChkUppercase" Content="Uppercase output" Margin="0,8,0,0"
                       Foreground="{DynamicResource TextPrimary}"
                       Checked="OnUppercaseChanged" Unchecked="OnUppercaseChanged"/>
         </StackPanel>

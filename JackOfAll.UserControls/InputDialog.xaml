@@ -7,7 +7,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Background="{DynamicResource AppBackground}">
-    <StackPanel Margin="16">
+    <StackPanel Margin="20">
         <TextBlock x:Name="PromptText" Foreground="{DynamicResource TextPrimary}"
                    FontSize="13" TextWrapping="Wrap" Margin="0,0,0,12"/>
         <TextBox x:Name="InputBox" Padding="6,5"
@@ -22,8 +22,7 @@
                     Foreground="{DynamicResource TextPrimary}"
                     BorderBrush="{DynamicResource SurfaceBorder}"/>
             <Button Content="OK" Click="OnOk" Padding="16,6" IsDefault="True"
-                    Background="{DynamicResource AccentBrush}" Foreground="White"
-                    BorderThickness="0"/>
+                    Style="{StaticResource PrimaryButton}"/>
         </StackPanel>
     </StackPanel>
 </Window>

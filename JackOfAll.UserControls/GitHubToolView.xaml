@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="900">
-    <Grid>
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -18,18 +18,32 @@
                 BorderThickness="0,0,0,1" Padding="12,8">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button x:Name="BtnConnect" Content="Connect" Click="OnConnectClick"
+                    <Button x:Name="BtnConnect" Click="OnConnectClick"
                             Padding="14,5" Margin="8,0,0,0"
-                            Background="{DynamicResource AccentBrush}"
-                            Foreground="White" BorderThickness="0" FontSize="12"/>
-                    <Button x:Name="BtnRefresh" Content="Refresh" Click="OnRefreshClick"
+                            Style="{StaticResource PrimaryButton}" FontSize="12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Connect" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnRefresh" Click="OnRefreshClick"
                             Padding="14,5" Margin="8,0,0,0" Visibility="Collapsed"
                             Background="{DynamicResource SurfaceBackground}"
                             Foreground="{DynamicResource TextPrimary}"
-                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12"/>
-                    <Button x:Name="BtnDisconnect" Content="Disconnect" Click="OnDisconnectClick"
+                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnDisconnect" Click="OnDisconnectClick"
                             Padding="14,5" Margin="8,0,0,0" Visibility="Collapsed"
-                            Background="#e06c75" Foreground="White" BorderThickness="0" FontSize="12"/>
+                            Style="{StaticResource DangerButton}" FontSize="12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Disconnect" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Token:" Foreground="{DynamicResource TextSecondary}"
@@ -81,37 +95,7 @@
                     BorderThickness="0" Padding="0"
                     SelectionChanged="OnInnerTabChanged">
             <TabControl.Resources>
-                <Style TargetType="TabItem">
-                    <Setter Property="Padding" Value="16,8"/>
-                    <Setter Property="FontSize" Value="12"/>
-                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="TabItem">
-                                <Border x:Name="Bd" Padding="{TemplateBinding Padding}"
-                                        Background="Transparent"
-                                        BorderBrush="{DynamicResource AccentBrush}"
-                                        BorderThickness="0,0,0,0">
-                                    <ContentPresenter ContentSource="Header"
-                                                      HorizontalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="BorderThickness" Value="0,0,0,2"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                    </Trigger>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background"
-                                                Value="{DynamicResource TabHoverBackground}"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
+                <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
             </TabControl.Resources>
 
             <!-- Notifications tab -->

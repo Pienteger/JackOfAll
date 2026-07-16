@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
-    <Grid Margin="12">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -16,12 +16,22 @@
         <!-- Toolbar -->
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="Refresh" Click="OnRefreshClick" Padding="10,4" Margin="4,0,0,0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
-                <Button Content="Copy Public Key" Click="OnCopyPublicKeyClick" Padding="10,4" Margin="4,0,0,0"
+                <Button Click="OnRefreshClick" Padding="10,4" Margin="4,0,0,0"
+                        Style="{StaticResource PrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnCopyPublicKeyClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Copy Public Key" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
             <TextBlock Text="SSH Keys" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
@@ -68,6 +78,12 @@
                 </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
+
+        <!-- Empty state -->
+        <TextBlock Grid.Row="1" Text="No SSH keys found"
+                   Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   IsHitTestVisible="False"/>
 
         <!-- Public Key Preview -->
         <TextBox x:Name="PublicKeyPreview" Grid.Row="2" IsReadOnly="True"
@@ -116,9 +132,14 @@
                                  Foreground="{DynamicResource TextPrimary}"
                                  BorderBrush="{DynamicResource SurfaceBorder}"/>
                     </StackPanel>
-                    <Button Content="Generate" Click="OnGenerateClick" Padding="12,4"
+                    <Button Click="OnGenerateClick" Padding="12,4"
                             Background="{DynamicResource AccentBrush}" Foreground="White"
-                            BorderThickness="0" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                            BorderThickness="0" VerticalAlignment="Center" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Generate" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </WrapPanel>
                 <TextBlock x:Name="GenerateStatus" Foreground="{DynamicResource TextSecondary}"
                            FontSize="12" Visibility="Collapsed"/>

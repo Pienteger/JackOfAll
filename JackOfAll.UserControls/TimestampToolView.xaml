@@ -5,8 +5,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
-        <StackPanel MaxWidth="700" HorizontalAlignment="Left" Margin="12">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel MaxWidth="700" HorizontalAlignment="Left" Margin="0">
 
             <!-- Current Time -->
             <TextBlock Text="CURRENT TIME" FontSize="11" FontWeight="SemiBold"
@@ -16,15 +16,25 @@
                     BorderBrush="{DynamicResource SurfaceBorder}"
                     BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
                 <DockPanel>
-                    <Button Content="Refresh" Click="OnRefreshNow" DockPanel.Dock="Right"
-                            Padding="12,6" Background="{DynamicResource AccentBrush}"
-                            Foreground="White" BorderThickness="0" Margin="8,0,0,0"
-                            VerticalAlignment="Top"/>
-                    <Button Content="Copy" Click="OnCopyNow" DockPanel.Dock="Right"
+                    <Button Click="OnRefreshNow" DockPanel.Dock="Right"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="OnCopyNow" DockPanel.Dock="Right"
                             Padding="12,6" Background="{DynamicResource SurfaceBackground}"
                             Foreground="{DynamicResource TextPrimary}"
                             BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"
-                            VerticalAlignment="Top"/>
+                            VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBox x:Name="NowOutput" IsReadOnly="True" AcceptsReturn="True"
                              FontFamily="Cascadia Code,Consolas,Courier New"
                              FontSize="{DynamicResource MonoFontSize}"
@@ -44,9 +54,14 @@
                     BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,8">
-                        <Button Content="Convert" Click="OnTimestampToDate" DockPanel.Dock="Right"
-                                Padding="12,6" Background="{DynamicResource AccentBrush}"
-                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <Button Click="OnTimestampToDate" DockPanel.Dock="Right"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,6" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Convert" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="TimestampInput"
                                  Background="{DynamicResource AppBackground}"
                                  Foreground="{DynamicResource TextPrimary}"
@@ -64,7 +79,7 @@
                              Foreground="{DynamicResource PayloadColor}"
                              BorderBrush="{DynamicResource SurfaceBorder}"
                              Padding="8,6" Visibility="Collapsed"/>
-                    <TextBlock x:Name="TimestampError" Foreground="#e06c75" FontSize="12"
+                    <TextBlock x:Name="TimestampError" Foreground="{DynamicResource DangerBrush}" FontSize="12"
                                Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
@@ -78,9 +93,14 @@
                     BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,24">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,8">
-                        <Button Content="Convert" Click="OnDateToTimestamp" DockPanel.Dock="Right"
-                                Padding="12,6" Background="{DynamicResource AccentBrush}"
-                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
+                        <Button Click="OnDateToTimestamp" DockPanel.Dock="Right"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,6" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Convert" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="DateInput"
                                  Background="{DynamicResource AppBackground}"
                                  Foreground="{DynamicResource TextPrimary}"
@@ -98,7 +118,7 @@
                              Foreground="{DynamicResource PayloadColor}"
                              BorderBrush="{DynamicResource SurfaceBorder}"
                              Padding="8,6" Visibility="Collapsed"/>
-                    <TextBlock x:Name="DateError" Foreground="#e06c75" FontSize="12"
+                    <TextBlock x:Name="DateError" Foreground="{DynamicResource DangerBrush}" FontSize="12"
                                Visibility="Collapsed"/>
                 </StackPanel>
             </Border>

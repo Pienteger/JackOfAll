@@ -5,8 +5,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
-        <StackPanel MaxWidth="600" HorizontalAlignment="Left" Margin="12">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+        <StackPanel MaxWidth="600" HorizontalAlignment="Left" Margin="0">
 
             <!-- Password Generator -->
             <TextBlock Text="PASSWORD GENERATOR" FontSize="11" FontWeight="SemiBold"
@@ -41,13 +41,23 @@
 
                     <!-- Output -->
                     <DockPanel>
-                        <Button Content="Generate" Click="OnGeneratePassword" DockPanel.Dock="Right"
-                                Padding="12,6" Background="{DynamicResource AccentBrush}"
-                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
-                        <Button Content="Copy" Click="OnCopyPassword" DockPanel.Dock="Right"
+                        <Button Click="OnGeneratePassword" DockPanel.Dock="Right"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,6" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8B1;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Generate" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnCopyPassword" DockPanel.Dock="Right"
                                 Padding="12,6" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="PasswordOutput" IsReadOnly="True"
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  FontSize="{DynamicResource MonoFontSize}"
@@ -92,13 +102,23 @@
                 <StackPanel>
                     <!-- Single GUID -->
                     <DockPanel Margin="0,0,0,12">
-                        <Button Content="Generate" Click="OnGenerateGuid" DockPanel.Dock="Right"
-                                Padding="12,6" Background="{DynamicResource AccentBrush}"
-                                Foreground="White" BorderThickness="0" Margin="8,0,0,0"/>
-                        <Button Content="Copy" Click="OnCopyGuid" DockPanel.Dock="Right"
+                        <Button Click="OnGenerateGuid" DockPanel.Dock="Right"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,6" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8B1;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Generate" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnCopyGuid" DockPanel.Dock="Right"
                                 Padding="12,6" Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0"/>
+                                BorderBrush="{DynamicResource SurfaceBorder}" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBox x:Name="GuidOutput" IsReadOnly="True"
                                  FontFamily="Cascadia Code,Consolas,Courier New"
                                  FontSize="{DynamicResource MonoFontSize}"

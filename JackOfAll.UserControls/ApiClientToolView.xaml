@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
-    <Grid>
+    <Grid Margin="16">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200" MinWidth="120"/>
             <ColumnDefinition Width="Auto"/>
@@ -15,10 +15,8 @@
         <!-- Left sidebar: saved + history -->
         <DockPanel Grid.Column="0" Background="{DynamicResource SurfaceBackground}">
             <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
-                <Button Content="+" Click="OnNewRequestClick" DockPanel.Dock="Right"
-                        Width="24" Height="24" Padding="0"
-                        Background="{DynamicResource AccentBrush}" Foreground="White"
-                        BorderThickness="0" FontSize="14" FontWeight="Bold"
+                <Button Click="OnNewRequestClick" DockPanel.Dock="Right"
+                        Style="{StaticResource IconButton}" Content="&#xE710;"
                         ToolTip="New request"/>
                 <TextBlock Text="REQUESTS" FontSize="11" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
@@ -71,11 +69,16 @@
                 <StackPanel>
                     <!-- Environment selector -->
                     <DockPanel Margin="0,0,0,6">
-                        <Button Content="Manage" Click="OnManageEnvClick" DockPanel.Dock="Right"
+                        <Button Click="OnManageEnvClick" DockPanel.Dock="Right"
                                 Padding="6,2" Margin="4,0,0,0" FontSize="10"
                                 Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextSecondary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}"/>
+                                BorderBrush="{DynamicResource SurfaceBorder}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Manage" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBlock Text="ENV" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextDimmed}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -91,15 +94,24 @@
 
                     <!-- URL row -->
                     <DockPanel>
-                        <Button x:Name="BtnSend" Content="Send" Click="OnSendClick"
+                        <Button x:Name="BtnSend" Click="OnSendClick"
                                 DockPanel.Dock="Right" Padding="16,6" Margin="8,0,0,0"
-                                Background="{DynamicResource AccentBrush}" Foreground="White"
-                                BorderThickness="0" FontSize="13" FontWeight="SemiBold"/>
-                        <Button Content="Save" Click="OnSaveClick"
+                                Style="{StaticResource PrimaryButton}" FontSize="13" FontWeight="SemiBold">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE724;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Send" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnSaveClick"
                                 DockPanel.Dock="Right" Padding="10,6" Margin="4,0,0,0"
                                 Background="{DynamicResource SurfaceBackground}"
                                 Foreground="{DynamicResource TextPrimary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12"/>
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Save" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <ComboBox x:Name="MethodPicker" Width="90" Margin="0,0,8,0"
                                   FontSize="13" FontWeight="SemiBold"
                                   Background="{DynamicResource SurfaceBackground}"
@@ -129,33 +141,7 @@
                         Background="{DynamicResource AppBackground}"
                         BorderThickness="0" Padding="0">
                 <TabControl.Resources>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Padding" Value="12,6"/>
-                        <Setter Property="FontSize" Value="12"/>
-                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="TabItem">
-                                    <Border x:Name="Bd" Padding="{TemplateBinding Padding}"
-                                            Background="Transparent"
-                                            BorderBrush="{DynamicResource AccentBrush}"
-                                            BorderThickness="0,0,0,0">
-                                        <ContentPresenter ContentSource="Header"
-                                                          HorizontalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="Bd" Property="BorderThickness" Value="0,0,0,2"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
+                    <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
                 </TabControl.Resources>
 
                 <!-- Params tab -->

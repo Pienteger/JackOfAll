@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
-    <Grid>
+    <Grid Margin="16">
         <!-- Not available alert -->
         <Border x:Name="AlertPanel" Visibility="Collapsed"
                 Background="{DynamicResource ErrorBackground}"
@@ -39,11 +39,14 @@
                           Background="{DynamicResource SurfaceBackground}"
                           Foreground="{DynamicResource TextPrimary}"
                           BorderBrush="{DynamicResource SurfaceBorder}"/>
-                <Button x:Name="RefreshBtn" Content="↻ Refresh" Margin="8,0,0,0"
+                <Button x:Name="RefreshBtn" Margin="8,0,0,0"
                         Click="OnRefreshClick" Padding="8,4"
-                        Background="{DynamicResource SurfaceBackground}"
-                        Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+                        Style="{StaticResource PrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <TextBlock x:Name="StatusText" Foreground="{DynamicResource TextDimmed}"
                            VerticalAlignment="Center" Margin="12,0,0,0" DockPanel.Dock="Right"/>
             </DockPanel>
@@ -65,15 +68,6 @@
                         <MenuItem Header="Copy Pod Name" Click="OnCopyPodName"/>
                     </ContextMenu>
                 </DataGrid.ContextMenu>
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-                        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
-                        <Setter Property="Padding" Value="8,4"/>
-                        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorder}"/>
-                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
                     <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
@@ -91,7 +85,7 @@
                 <DockPanel DockPanel.Dock="Top" Margin="8,4">
                     <TextBlock x:Name="LogTitle" Text="Logs"
                                Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-                    <Button x:Name="JumpToBottomBtn" Content="↓ Jump to bottom" Visibility="Collapsed"
+                    <Button x:Name="JumpToBottomBtn" Content="&#x2193; Jump to bottom" Visibility="Collapsed"
                             Click="OnJumpToBottom" Margin="12,0,0,0"
                             Padding="8,2" Background="{DynamicResource SurfaceBackground}"
                             Foreground="{DynamicResource TextPrimary}"
@@ -117,7 +111,10 @@
                             <Setter Property="BorderThickness" Value="0"/>
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#264f78"/>
+                                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource TabHoverBackground}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
