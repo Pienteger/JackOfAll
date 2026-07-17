@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="JackOfAll.AppUi/JackOfAll.AppUi.csproj" />
+  <Project Path="JackOfAll.AppUi/JackOfAll.AppUi.csproj" DefaultStartup="true" />
   <Project Path="JackOfAll.CustomControls/JackOfAll.CustomControls.csproj" />
   <Project Path="JackOfAll.Lib/JackOfAll.Lib.csproj" />
   <Project Path="JackOfAll.UserControls/JackOfAll.UserControls.csproj" />

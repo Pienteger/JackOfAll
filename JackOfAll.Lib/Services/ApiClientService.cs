@@ -29,12 +29,26 @@ public record KeyValueItem
     public string Value { get; set; } = "";
 }
 
-public record ApiResponse(
-    int StatusCode,
-    string StatusText,
-    string Body,
-    Dictionary<string, string> Headers,
-    long ElapsedMs);
+public record ApiResponse
+{
+    public int StatusCode { get; set; }
+    public string StatusText { get; set; } = "";
+    public string Body { get; set; } = "";
+    public Dictionary<string, string> Headers { get; set; } = new();
+    public long ElapsedMs { get; set; }
+}
+
+public record ApiHistoryEntry
+{
+    public long Id { get; set; }
+    public string Workspace { get; set; } = "";
+    public string RequestName { get; set; } = "";
+    public DateTime Timestamp { get; set; }
+    public string RequestJson { get; set; } = "";
+    public string ResponseJson { get; set; } = "";
+    public int StatusCode { get; set; }
+    public long ElapsedMs { get; set; }
+}
 
 public static class ApiClientService
 {
@@ -45,7 +59,6 @@ public static class ApiClientService
 
     private static readonly string CollectionPath = Path.Combine(AppPaths.Root, "requests.json");
 
-    private static readonly string HistoryPath = Path.Combine(AppPaths.Root, "request-history.json");
 
     public static async Task<ApiResponse> SendAsync(ApiRequest request, CancellationToken ct = default)
     {
@@ -114,12 +127,14 @@ public static class ApiClientService
         foreach (var h in response.Content.Headers)
             headers[h.Key] = string.Join(", ", h.Value);
 
-        return new ApiResponse(
-            (int)response.StatusCode,
-            response.ReasonPhrase ?? "",
-            body,
-            headers,
-            sw.ElapsedMilliseconds);
+        return new ApiResponse
+        {
+            StatusCode = (int)response.StatusCode,
+            StatusText = response.ReasonPhrase ?? "",
+            Body = body,
+            Headers = headers,
+            ElapsedMs = sw.ElapsedMilliseconds
+        };
     }
 
     public static Dictionary<string, string?> ApplyExtractionRules(
@@ -220,25 +235,4 @@ public static class ApiClientService
         File.WriteAllText(CollectionPath, json);
     }
 
-    public static List<ApiRequest> LoadHistory()
-    {
-        if (!File.Exists(HistoryPath)) return [];
-        try
-        {
-            var json = File.ReadAllText(HistoryPath);
-            return JsonSerializer.Deserialize<List<ApiRequest>>(json) ?? [];
-        }
-        catch { return []; }
-    }
-
-    public static void AddToHistory(ApiRequest request)
-    {
-        var history = LoadHistory();
-        history.Insert(0, request with { Name = $"{request.Method} {request.Url}" });
-        if (history.Count > 50) history.RemoveRange(50, history.Count - 50);
-        var dir = Path.GetDirectoryName(HistoryPath)!;
-        Directory.CreateDirectory(dir);
-        var json = JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(HistoryPath, json);
-    }
 }

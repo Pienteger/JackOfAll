@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -12,7 +13,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     private int _activeTabIndex = -1;
     private string? _activeWorkspace;
     private List<ApiRequest> _workspaceRequests = [];
-    private List<ApiRequest> _history = [];
+    private ApiHistoryEntry? _selectedHistoryEntry;
     private ApiResponse? _lastResponse;
     private CancellationTokenSource? _cts;
     private bool _suppressWorkspaceChange;
@@ -23,9 +24,9 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         DataObject.AddPastingHandler(UrlBox, OnUrlBoxPaste);
         Loaded += (_, _) =>
         {
+            ApiHistoryDbService.EnsureDatabase();
             LoadWorkspaceCombo();
             LoadEnvironments();
-            LoadHistory();
             if (_openTabs.Count == 0)
                 AddNewTab();
             else
@@ -102,7 +103,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     {
         if (_openTabs.Count <= 1) return;
 
-        if (index == _activeTabIndex)
+        if (index == _activeTabIndex && IsLoaded)
             CaptureCurrentState(_openTabs[index]);
 
         _openTabs.RemoveAt(index);
@@ -112,8 +113,11 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         else if (_activeTabIndex > index)
             _activeTabIndex--;
 
-        ApplyTabState(_openTabs[_activeTabIndex]);
-        RenderTabBar();
+        if (IsLoaded)
+        {
+            ApplyTabState(_openTabs[_activeTabIndex]);
+            RenderTabBar();
+        }
     }
 
     private void CaptureCurrentState(RequestTab tab)
@@ -190,6 +194,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
         if (tab.RequestTabIndex >= 0 && tab.RequestTabIndex < RequestTabs.Items.Count)
             RequestTabs.SelectedIndex = tab.RequestTabIndex;
+
+        RenderRequestHistory(_activeWorkspace ?? "", tab.SavedName ?? "");
     }
 
     private void RenderTabBar()
@@ -246,7 +252,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 Padding = new Thickness(10, 5, 10, 5),
                 Margin = new Thickness(0, 0, 2, 0),
                 CornerRadius = new CornerRadius(6, 6, 0, 0),
-                Background = (Brush)FindResource(i == _activeTabIndex ? "SurfaceBackground" : "Transparent"),
+                Background = i == _activeTabIndex ? (Brush)FindResource("SurfaceBackground") : Brushes.Transparent,
                 BorderBrush = i == _activeTabIndex ? (Brush)FindResource("AccentBrush") : Brushes.Transparent,
                 BorderThickness = new Thickness(0, 2, 0, 0),
                 Cursor = System.Windows.Input.Cursors.Hand
@@ -268,8 +274,6 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         }
         return "New Request";
     }
-
-    private void OnNewTabClick(object sender, RoutedEventArgs e) => AddNewTab();
 
     // ── Workspace management ───────────────────────────────────────
 
@@ -316,7 +320,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     private void OnAddWorkspace(object sender, RoutedEventArgs e)
     {
         var dlg = new InputDialog("New API Workspace", "Workspace name:");
-        dlg.Owner = Window.GetWindow(this);
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dlg.Owner = owner;
         if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
             return;
 
@@ -344,6 +349,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             "Delete Workspace", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (result != MessageBoxResult.Yes) return;
 
+        ApiHistoryDbService.DeleteForWorkspace(_activeWorkspace);
         ApiWorkspaceService.Delete(_activeWorkspace);
         _activeWorkspace = null;
         _workspaceRequests = [];
@@ -351,6 +357,80 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         RenderSaved();
         BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
         SidebarTitle.Text = "REQUESTS";
+    }
+
+    // ── OpenAPI Import ────────────────────────────────────────────────
+
+    private void OnImportClick(object sender, RoutedEventArgs e)
+    {
+        var ctx = new ContextMenu();
+
+        var fromFile = new MenuItem { Header = "From File..." };
+        fromFile.Click += async (_, _) =>
+        {
+            if (!EnsureWorkspaceForImport()) return;
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "OpenAPI files|*.json;*.yaml;*.yml|JSON files|*.json|All files|*.*",
+                DefaultExt = ".json",
+                Title = "Import OpenAPI Specification"
+            };
+            if (dlg.ShowDialog() != true) return;
+            await DoImportAsync(() => OpenApiImporter.FromFileAsync(dlg.FileName));
+        };
+        ctx.Items.Add(fromFile);
+
+        var fromUrl = new MenuItem { Header = "From URL..." };
+        fromUrl.Click += async (_, _) =>
+        {
+            if (!EnsureWorkspaceForImport()) return;
+            var dlg = new InputDialog("Import OpenAPI", "Enter OpenAPI spec URL:");
+            var owner = Window.GetWindow(this);
+            if (owner is not null) dlg.Owner = owner;
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
+                return;
+            await DoImportAsync(() => OpenApiImporter.FromUrlAsync(dlg.ResultText.Trim()));
+        };
+        ctx.Items.Add(fromUrl);
+
+        ctx.IsOpen = true;
+    }
+
+    private bool EnsureWorkspaceForImport()
+    {
+        if (_activeWorkspace is not null) return true;
+
+        MessageBox.Show(
+            "Select or create a workspace first to import requests into.",
+            "No Workspace", MessageBoxButton.OK, MessageBoxImage.Information);
+        return false;
+    }
+
+    private async Task DoImportAsync(Func<Task<List<ApiRequest>>> importFunc)
+    {
+        try
+        {
+            var requests = await importFunc();
+            if (requests.Count == 0)
+            {
+                MessageBox.Show("No requests found in the specification.", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            foreach (var req in requests)
+                _workspaceRequests.Add(req);
+
+            ApiWorkspaceService.SaveRequests(_activeWorkspace!, _workspaceRequests);
+            RenderSaved();
+
+            MessageBox.Show($"Imported {requests.Count} request(s).", "Import Complete",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Import failed: {ex.Message}", "Import Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // ── Send ────────────────────────────────────────────────────────
@@ -383,15 +463,17 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 UpdateEnvVarCount();
             }
 
-            ApiClientService.AddToHistory(request);
-            _history = ApiClientService.LoadHistory();
-            RenderHistory();
-
             if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
             {
                 var tab = _openTabs[_activeTabIndex];
                 tab.Title = ComputeTabTitle(tab);
                 RenderTabBar();
+
+                if (!string.IsNullOrWhiteSpace(tab.SavedName) && _lastResponse is not null)
+                {
+                    ApiHistoryDbService.Add(_activeWorkspace ?? "", tab.SavedName, request, _lastResponse);
+                    RenderRequestHistory(_activeWorkspace ?? "", tab.SavedName);
+                }
             }
         }
         catch (TaskCanceledException)
@@ -559,7 +641,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         foreach (var rule in req.ExtractionRules)
             AddExtractionRuleRow(rule.Variable, rule.Source, rule.Expression);
 
-        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
+        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count && IsLoaded)
         {
             CaptureCurrentState(_openTabs[_activeTabIndex]);
             RenderTabBar();
@@ -695,7 +777,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             var dlg = new InputDialog("Save Request", "Request name:");
-            dlg.Owner = Window.GetWindow(this);
+            var owner = Window.GetWindow(this);
+            if (owner is not null) dlg.Owner = owner;
             if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
                 return;
             request.Name = dlg.ResultText.Trim();
@@ -725,14 +808,39 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         }
 
         RenderSaved();
-        if (currentTab is not null)
+        if (currentTab is not null && IsLoaded)
         {
             CaptureCurrentState(currentTab);
             RenderTabBar();
         }
     }
 
-    private void OnNewRequestClick(object sender, RoutedEventArgs e) => AddNewTab();
+    private void OnNewRequestClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dlg = new InputDialog("New Request", "Request name:");
+            var owner = Window.GetWindow(this);
+            if (owner is not null)
+                dlg.Owner = owner;
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
+                return;
+
+            var name = dlg.ResultText.Trim();
+            var tab = new RequestTab
+            {
+                SavedName = name,
+                Title = name
+            };
+            _openTabs.Add(tab);
+            SwitchToTab(_openTabs.Count - 1);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to create request tab: {ex.Message}",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 
     // ── Sidebar rendering ───────────────────────────────────────────
 
@@ -772,6 +880,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                     coll.RemoveAll(r => r.Name == captured.Name);
                     ApiClientService.SaveCollection(coll);
                 }
+                ApiHistoryDbService.DeleteForRequest(_activeWorkspace ?? "", captured.Name);
                 RenderSaved();
             };
             ctx.Items.Add(del);
@@ -791,41 +900,6 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                 Margin = new Thickness(8, 4, 8, 4)
             });
         }
-    }
-
-    private void LoadHistory()
-    {
-        _history = ApiClientService.LoadHistory();
-        RenderHistory();
-    }
-
-    private void RenderHistory()
-    {
-        HistoryList.Children.Clear();
-        foreach (var req in _history)
-        {
-            var btn = MakeSidebarButton(req.Name, req.Method);
-            var captured = req;
-            btn.Click += (_, _) => LoadRequestToUi(captured);
-
-            var ctx = new ContextMenu();
-            var openInTab = new MenuItem { Header = "Open in New Tab" };
-            openInTab.Click += (_, _) => OpenRequestInNewTab(captured);
-            ctx.Items.Add(openInTab);
-            btn.ContextMenu = ctx;
-
-            HistoryList.Children.Add(btn);
-        }
-    }
-
-    private void OnClearHistoryClick(object sender, RoutedEventArgs e)
-    {
-        _history.Clear();
-        var historyPath = System.IO.Path.Combine(
-            JackOfAll.Lib.AppPaths.Root, "request-history.json");
-        if (System.IO.File.Exists(historyPath))
-            System.IO.File.Delete(historyPath);
-        RenderHistory();
     }
 
     private static Color GetMethodColor(string method) => method switch
@@ -877,6 +951,147 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     {
         if (!string.IsNullOrEmpty(ResponseBody.Text))
             Clipboard.SetText(ResponseBody.Text);
+    }
+
+    // ── Request history ─────────────────────────────────────────────
+
+    private void RenderRequestHistory(string workspace, string requestName)
+    {
+        if (HistoryEntryList is null || HistoryDetailTabs is null) return;
+
+        HistoryEntryList.Children.Clear();
+        _selectedHistoryEntry = null;
+        BtnFillFromHistory.Visibility = Visibility.Collapsed;
+        BtnClearHistory.Visibility = Visibility.Collapsed;
+        HistoryDetailTabs.Visibility = Visibility.Collapsed;
+        HistoryDetailLabel.Visibility = Visibility.Visible;
+
+        if (string.IsNullOrWhiteSpace(requestName))
+        {
+            HistoryTabLabel.Text = "REQUEST HISTORY";
+            HistoryDetailLabel.Text = "Save and name this request to see history.";
+            return;
+        }
+
+        HistoryTabLabel.Text = $"HISTORY — {requestName.ToUpperInvariant()}";
+        var entries = ApiHistoryDbService.LoadForRequest(workspace, requestName);
+
+        if (entries.Count == 0)
+        {
+            HistoryDetailLabel.Text = "No history yet. Send a request to start recording.";
+            return;
+        }
+
+        BtnClearHistory.Visibility = Visibility.Visible;
+        HistoryDetailLabel.Text = "Select an entry to view details.";
+
+        foreach (var entry in entries)
+        {
+            var captured = entry;
+            var btn = MakeHistoryEntryButton(entry);
+            btn.Click += (_, _) => ShowHistoryDetail(captured);
+            HistoryEntryList.Children.Add(btn);
+        }
+    }
+
+    private Button MakeHistoryEntryButton(ApiHistoryEntry entry)
+    {
+        var sp = new StackPanel { Orientation = Orientation.Horizontal };
+        var statusColor = entry.StatusCode >= 200 && entry.StatusCode < 300
+            ? Color.FromRgb(34, 139, 34)
+            : entry.StatusCode >= 400
+                ? Color.FromRgb(200, 50, 50)
+                : Color.FromRgb(200, 150, 0);
+
+        sp.Children.Add(new TextBlock
+        {
+            Text = entry.StatusCode.ToString(),
+            FontSize = 10, FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(statusColor),
+            VerticalAlignment = VerticalAlignment.Center,
+            Width = 35
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = entry.Timestamp.ToLocalTime().ToString("MM/dd HH:mm:ss"),
+            FontSize = 10,
+            Foreground = (Brush)FindResource("TextSecondary"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = $" ({entry.ElapsedMs}ms)",
+            FontSize = 9,
+            Foreground = (Brush)FindResource("TextDimmed"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        return new Button
+        {
+            Content = sp,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(6, 3, 6, 3),
+            Margin = new Thickness(0, 1, 0, 1),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Cursor = System.Windows.Input.Cursors.Hand
+        };
+    }
+
+    private void ShowHistoryDetail(ApiHistoryEntry entry)
+    {
+        if (HistoryDetailTabs is null || HistoryResponseBody is null) return;
+
+        _selectedHistoryEntry = entry;
+        HistoryDetailLabel.Visibility = Visibility.Collapsed;
+        HistoryDetailTabs.Visibility = Visibility.Visible;
+        BtnFillFromHistory.Visibility = Visibility.Visible;
+
+        try
+        {
+            var response = JsonSerializer.Deserialize<ApiResponse>(entry.ResponseJson);
+            var body = response?.Body ?? "";
+            if (response?.Headers.TryGetValue("Content-Type", out var ct) == true
+                && ct.Contains("json"))
+                body = ApiClientService.FormatJson(body);
+            HistoryResponseBody.Text = body;
+        }
+        catch { HistoryResponseBody.Text = entry.ResponseJson; }
+
+        try
+        {
+            var request = JsonSerializer.Deserialize<ApiRequest>(entry.RequestJson);
+            HistoryRequestBody.Text = JsonSerializer.Serialize(request,
+                new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch { HistoryRequestBody.Text = entry.RequestJson; }
+    }
+
+    private void OnFillFromHistoryClick(object sender, RoutedEventArgs e)
+    {
+        if (_selectedHistoryEntry is null) return;
+        try
+        {
+            var request = JsonSerializer.Deserialize<ApiRequest>(_selectedHistoryEntry.RequestJson);
+            if (request is not null)
+                LoadRequestToUi(request);
+        }
+        catch { }
+    }
+
+    private void OnClearRequestHistoryClick(object sender, RoutedEventArgs e)
+    {
+        if (_activeTabIndex < 0 || _activeTabIndex >= _openTabs.Count) return;
+        var tab = _openTabs[_activeTabIndex];
+        if (string.IsNullOrWhiteSpace(tab.SavedName)) return;
+
+        var result = MessageBox.Show(
+            $"Clear all history for \"{tab.SavedName}\"?",
+            "Clear History", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (result != MessageBoxResult.Yes) return;
+
+        ApiHistoryDbService.DeleteForRequest(_activeWorkspace ?? "", tab.SavedName);
+        RenderRequestHistory(_activeWorkspace ?? "", tab.SavedName);
     }
 
     // ── Environment ─────────────────────────────────────────────────
@@ -931,7 +1146,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         newItem.Click += (_, _) =>
         {
             var dlg = new InputDialog("New Environment", "Environment name (e.g. dev, uat, prod):");
-            dlg.Owner = Window.GetWindow(this);
+            var owner = Window.GetWindow(this);
+            if (owner is not null) dlg.Owner = owner;
             if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
             {
                 var name = dlg.ResultText.Trim().ToLowerInvariant().Replace(" ", "-");
@@ -1038,7 +1254,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     {
         if (string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment)) return;
         var dlg = new InputDialog("Add Variable", "Variable name:");
-        dlg.Owner = Window.GetWindow(this);
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dlg.Owner = owner;
         if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
         {
             ApiEnvironmentService.SetVariable(dlg.ResultText.Trim(), "");
@@ -1170,7 +1387,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     public Dictionary<string, string> SaveState()
     {
-        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
+        if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count && IsLoaded)
             CaptureCurrentState(_openTabs[_activeTabIndex]);
 
         var state = new Dictionary<string, string>

@@ -54,16 +54,16 @@
                         Visibility="Collapsed">
                     <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                 </Button>
+                <Button Click="OnImportClick" Padding="4,2" Margin="8,0,0,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="{DynamicResource TextSecondary}" ToolTip="Import OpenAPI / Swagger">
+                    <TextBlock Text="&#xE8B5;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                </Button>
             </StackPanel>
         </DockPanel>
 
         <!-- Request tab bar -->
         <DockPanel Grid.Row="1" Margin="0,0,0,4">
-            <Button Click="OnNewTabClick" DockPanel.Dock="Right"
-                    Padding="6,2" Margin="4,0,0,0"
-                    Background="Transparent" BorderThickness="0"
-                    Foreground="{DynamicResource TextSecondary}" ToolTip="New request tab"
-                    FontFamily="Segoe MDL2 Assets" FontSize="12" Content="&#xE710;"/>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="RequestTabBar" Orientation="Horizontal"/>
             </ScrollViewer>
@@ -94,29 +94,8 @@
                     <Border DockPanel.Dock="Top" Height="1"
                             Background="{DynamicResource SurfaceBorder}" Margin="8,4"/>
 
-                    <!-- Saved requests -->
-                    <DockPanel DockPanel.Dock="Top">
-                        <TextBlock Text="SAVED" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextDimmed}" Margin="8,6,8,2"/>
-                    </DockPanel>
-                    <ScrollViewer DockPanel.Dock="Top" MaxHeight="280" VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="SavedList"/>
-                    </ScrollViewer>
-
-                    <Border DockPanel.Dock="Top" Height="1"
-                            Background="{DynamicResource SurfaceBorder}" Margin="8,4"/>
-
-                    <!-- History -->
-                    <DockPanel DockPanel.Dock="Top">
-                        <Button Content="Clear" Click="OnClearHistoryClick" DockPanel.Dock="Right"
-                                Padding="4,1" Margin="0,4,8,2" FontSize="10"
-                                Background="Transparent" Foreground="{DynamicResource TextDimmed}"
-                                BorderThickness="0"/>
-                        <TextBlock Text="HISTORY" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextDimmed}" Margin="8,6,8,2"/>
-                    </DockPanel>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="HistoryList"/>
+                        <StackPanel x:Name="SavedList"/>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
@@ -429,6 +408,88 @@
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel x:Name="VarsList"/>
                                 </ScrollViewer>
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="History">
+                            <DockPanel Margin="8">
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <Button x:Name="BtnClearHistory" Click="OnClearRequestHistoryClick"
+                                            DockPanel.Dock="Right" Padding="8,3"
+                                            Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                            Visibility="Collapsed">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Clear" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="BtnFillFromHistory" Click="OnFillFromHistoryClick"
+                                            DockPanel.Dock="Right" Padding="8,3" Margin="0,0,6,0"
+                                            Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                            Visibility="Collapsed">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Fill request" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="HistoryTabLabel" Text="REQUEST HISTORY"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel x:Name="HistoryEntryList"/>
+                                    </ScrollViewer>
+                                    <GridSplitter Grid.Column="1" Width="3"
+                                                  Background="{DynamicResource SurfaceBorder}"/>
+                                    <DockPanel Grid.Column="2" Margin="8,0,0,0">
+                                        <TextBlock x:Name="HistoryDetailLabel" DockPanel.Dock="Top"
+                                                   Text="Select an entry to view details."
+                                                   Foreground="{DynamicResource TextDimmed}"
+                                                   FontSize="12" Margin="0,0,0,8"/>
+                                        <TabControl x:Name="HistoryDetailTabs" Visibility="Collapsed"
+                                                    Background="{DynamicResource AppBackground}"
+                                                    BorderThickness="0">
+                                            <TabControl.Resources>
+                                                <Style TargetType="TabItem"
+                                                       BasedOn="{StaticResource InnerTabItem}"/>
+                                            </TabControl.Resources>
+                                            <TabItem Header="Response">
+                                                <TextBox x:Name="HistoryResponseBody" IsReadOnly="True"
+                                                         AcceptsReturn="True" TextWrapping="Wrap"
+                                                         VerticalScrollBarVisibility="Auto"
+                                                         Background="{DynamicResource AppBackground}"
+                                                         Foreground="{DynamicResource TextPrimary}"
+                                                         BorderThickness="0"
+                                                         FontFamily="Cascadia Code,Consolas,Courier New"
+                                                         FontSize="{DynamicResource MonoFontSize}"
+                                                         Padding="8"/>
+                                            </TabItem>
+                                            <TabItem Header="Request">
+                                                <TextBox x:Name="HistoryRequestBody" IsReadOnly="True"
+                                                         AcceptsReturn="True" TextWrapping="Wrap"
+                                                         VerticalScrollBarVisibility="Auto"
+                                                         Background="{DynamicResource AppBackground}"
+                                                         Foreground="{DynamicResource TextPrimary}"
+                                                         BorderThickness="0"
+                                                         FontFamily="Cascadia Code,Consolas,Courier New"
+                                                         FontSize="{DynamicResource MonoFontSize}"
+                                                         Padding="8"/>
+                                            </TabItem>
+                                        </TabControl>
+                                    </DockPanel>
+                                </Grid>
                             </DockPanel>
                         </TabItem>
                     </TabControl>
