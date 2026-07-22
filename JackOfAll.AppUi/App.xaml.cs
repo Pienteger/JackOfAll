@@ -34,6 +34,7 @@ public partial class App : Application
         registry.Register(new WellbeingToolFactory());
         registry.Register(new GitHubToolFactory(settings));
         registry.Register(new ApiClientToolFactory());
+        registry.Register(new CodeRunnerToolFactory());
 
         ApplyTheme();
 
