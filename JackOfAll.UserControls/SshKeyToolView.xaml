@@ -80,10 +80,10 @@
         </DataGrid>
 
         <!-- Empty state -->
-        <TextBlock Grid.Row="1" Text="No SSH keys found"
+        <TextBlock x:Name="EmptyStateText" Grid.Row="1" Text="No SSH keys found"
                    Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                   IsHitTestVisible="False"/>
+                   IsHitTestVisible="False" Visibility="Collapsed"/>
 
         <!-- Public Key Preview -->
         <TextBox x:Name="PublicKeyPreview" Grid.Row="2" IsReadOnly="True"

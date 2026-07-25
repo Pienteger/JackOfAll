@@ -102,6 +102,15 @@
                     </Button.ContextMenu>
                 </Button>
 
+                <!-- Environment dropdown -->
+                <Border DockPanel.Dock="Right" Margin="4,2" VerticalAlignment="Center">
+                    <ComboBox x:Name="EnvCombo" Width="150" FontSize="11"
+                              SelectionChanged="OnEnvironmentChanged"
+                              Background="{DynamicResource SurfaceBackground}"
+                              Foreground="{DynamicResource TextPrimary}"
+                              BorderBrush="{DynamicResource SurfaceBorder}"/>
+                </Border>
+
                 <!-- New tab button -->
                 <Button DockPanel.Dock="Right" Content="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                         Width="36" Height="32" Margin="4,2"

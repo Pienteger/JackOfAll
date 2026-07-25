@@ -8,7 +8,6 @@
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -60,52 +59,15 @@
             </StackPanel>
         </DockPanel>
 
-        <!-- Workspace bar -->
-        <DockPanel Grid.Row="1" Margin="0,0,0,8">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Click="OnAddWorkspace" Padding="8,4" Margin="4,0,0,0"
-                        Background="{DynamicResource SurfaceBackground}"
-                        Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}" ToolTip="Add workspace">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="Add" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                <Button x:Name="BtnRemoveWorkspace" Click="OnRemoveWorkspace" Padding="8,4" Margin="4,0,0,0"
-                        Background="{DynamicResource SurfaceBackground}"
-                        Foreground="{DynamicResource DangerBrush}"
-                        BorderBrush="{DynamicResource SurfaceBorder}" ToolTip="Remove workspace"
-                        Visibility="Collapsed">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="Remove" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"
-                           Margin="0,0,8,0"/>
-                <ComboBox x:Name="WorkspaceCombo" Width="220"
-                          SelectionChanged="OnWorkspaceChanged"
-                          Background="{DynamicResource SurfaceBackground}"
-                          Foreground="{DynamicResource TextPrimary}"
-                          BorderBrush="{DynamicResource SurfaceBorder}"/>
-            </StackPanel>
-        </DockPanel>
-
         <!-- Content area: file panel + editor -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="FilePanelColumn" Width="0"/>
                 <ColumnDefinition x:Name="FilePanelSplitterColumn" Width="0"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- File panel (visible when workspace active) -->
+            <!-- File panel (visible when environment active) -->
             <Border x:Name="FilePanel" Grid.Column="0" Visibility="Collapsed"
                     Background="{DynamicResource SurfaceBackground}"
                     BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
@@ -186,7 +148,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Margin="0,8,0,0" CornerRadius="4" Padding="8,4"
+        <Border Grid.Row="2" Margin="0,8,0,0" CornerRadius="4" Padding="8,4"
                 Background="{DynamicResource SurfaceBackground}">
             <TextBlock x:Name="StatusText" Text="F5 or Run to execute" FontSize="11"
                        Foreground="{DynamicResource TextDimmed}"

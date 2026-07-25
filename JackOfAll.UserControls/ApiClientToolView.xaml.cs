@@ -11,12 +11,12 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 {
     private List<RequestTab> _openTabs = [];
     private int _activeTabIndex = -1;
-    private string? _activeWorkspace;
     private List<ApiRequest> _workspaceRequests = [];
     private ApiHistoryEntry? _selectedHistoryEntry;
     private ApiResponse? _lastResponse;
     private CancellationTokenSource? _cts;
-    private bool _suppressWorkspaceChange;
+
+    private string? ActiveWorkspace => EnvironmentContext.Current?.Name;
 
     public ApiClientToolView()
     {
@@ -25,7 +25,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         Loaded += (_, _) =>
         {
             ApiHistoryDbService.EnsureDatabase();
-            LoadWorkspaceCombo();
+            SyncWorkspaceFromEnvironment();
             LoadEnvironments();
             if (_openTabs.Count == 0)
                 AddNewTab();
@@ -195,7 +195,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         if (tab.RequestTabIndex >= 0 && tab.RequestTabIndex < RequestTabs.Items.Count)
             RequestTabs.SelectedIndex = tab.RequestTabIndex;
 
-        RenderRequestHistory(_activeWorkspace ?? "", tab.SavedName ?? "");
+        RenderRequestHistory(ActiveWorkspace ?? "", tab.SavedName ?? "");
     }
 
     private void RenderTabBar()
@@ -275,88 +275,23 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         return "New Request";
     }
 
-    // ── Workspace management ───────────────────────────────────────
+    // ── Workspace (driven by global environment) ────────────────────
 
-    private void LoadWorkspaceCombo()
+    private void SyncWorkspaceFromEnvironment()
     {
-        _suppressWorkspaceChange = true;
-        WorkspaceCombo.Items.Clear();
-        WorkspaceCombo.Items.Add("(No workspace)");
-        foreach (var ws in ApiWorkspaceService.List())
-            WorkspaceCombo.Items.Add(ws);
-
-        if (_activeWorkspace is not null)
+        var ws = ActiveWorkspace;
+        if (ws is not null)
         {
-            var idx = ApiWorkspaceService.List().IndexOf(_activeWorkspace);
-            WorkspaceCombo.SelectedIndex = idx >= 0 ? idx + 1 : 0;
+            if (!ApiWorkspaceService.List().Contains(ws))
+                ApiWorkspaceService.Create(ws);
+            _workspaceRequests = ApiWorkspaceService.LoadRequests(ws);
         }
         else
         {
-            WorkspaceCombo.SelectedIndex = 0;
-        }
-        _suppressWorkspaceChange = false;
-    }
-
-    private void OnWorkspaceChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_suppressWorkspaceChange) return;
-        var idx = WorkspaceCombo.SelectedIndex;
-        if (idx <= 0)
-        {
-            _activeWorkspace = null;
-            BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
             _workspaceRequests = [];
         }
-        else
-        {
-            _activeWorkspace = WorkspaceCombo.Items[idx]?.ToString();
-            BtnRemoveWorkspace.Visibility = Visibility.Visible;
-            _workspaceRequests = ApiWorkspaceService.LoadRequests(_activeWorkspace!);
-        }
         RenderSaved();
-        SidebarTitle.Text = _activeWorkspace is not null ? _activeWorkspace.ToUpperInvariant() : "REQUESTS";
-    }
-
-    private void OnAddWorkspace(object sender, RoutedEventArgs e)
-    {
-        var dlg = new InputDialog("New API Workspace", "Workspace name:");
-        var owner = Window.GetWindow(this);
-        if (owner is not null) dlg.Owner = owner;
-        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
-            return;
-
-        var name = dlg.ResultText.Trim();
-        if (ApiWorkspaceService.List().Any(w => w.Equals(name, StringComparison.OrdinalIgnoreCase)))
-        {
-            MessageBox.Show("Workspace already exists.", "Duplicate", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        ApiWorkspaceService.Create(name);
-        _activeWorkspace = name;
-        _workspaceRequests = [];
-        LoadWorkspaceCombo();
-        RenderSaved();
-        BtnRemoveWorkspace.Visibility = Visibility.Visible;
-        SidebarTitle.Text = name.ToUpperInvariant();
-    }
-
-    private void OnRemoveWorkspace(object sender, RoutedEventArgs e)
-    {
-        if (_activeWorkspace is null) return;
-        var result = MessageBox.Show(
-            $"Delete workspace \"{_activeWorkspace}\" and all saved requests?",
-            "Delete Workspace", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
-
-        ApiHistoryDbService.DeleteForWorkspace(_activeWorkspace);
-        ApiWorkspaceService.Delete(_activeWorkspace);
-        _activeWorkspace = null;
-        _workspaceRequests = [];
-        LoadWorkspaceCombo();
-        RenderSaved();
-        BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
-        SidebarTitle.Text = "REQUESTS";
+        SidebarTitle.Text = ws is not null ? ws.ToUpperInvariant() : "REQUESTS";
     }
 
     // ── OpenAPI Import ────────────────────────────────────────────────
@@ -398,11 +333,11 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     private bool EnsureWorkspaceForImport()
     {
-        if (_activeWorkspace is not null) return true;
+        if (ActiveWorkspace is not null) return true;
 
         MessageBox.Show(
-            "Select or create a workspace first to import requests into.",
-            "No Workspace", MessageBoxButton.OK, MessageBoxImage.Information);
+            "Select an environment first to import requests into.",
+            "No Environment", MessageBoxButton.OK, MessageBoxImage.Information);
         return false;
     }
 
@@ -420,7 +355,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             foreach (var req in requests)
                 _workspaceRequests.Add(req);
 
-            ApiWorkspaceService.SaveRequests(_activeWorkspace!, _workspaceRequests);
+            ApiWorkspaceService.SaveRequests(ActiveWorkspace!, _workspaceRequests);
             RenderSaved();
 
             MessageBox.Show($"Imported {requests.Count} request(s).", "Import Complete",
@@ -471,8 +406,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
                 if (!string.IsNullOrWhiteSpace(tab.SavedName) && _lastResponse is not null)
                 {
-                    ApiHistoryDbService.Add(_activeWorkspace ?? "", tab.SavedName, request, _lastResponse);
-                    RenderRequestHistory(_activeWorkspace ?? "", tab.SavedName);
+                    ApiHistoryDbService.Add(ActiveWorkspace ?? "", tab.SavedName, request, _lastResponse);
+                    RenderRequestHistory(ActiveWorkspace ?? "", tab.SavedName);
                 }
             }
         }
@@ -787,14 +722,14 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         if (currentTab is not null)
             currentTab.SavedName = request.Name;
 
-        if (_activeWorkspace is not null)
+        if (ActiveWorkspace is not null)
         {
             var existing = _workspaceRequests.FindIndex(r => r.Name == request.Name);
             if (existing >= 0)
                 _workspaceRequests[existing] = request;
             else
                 _workspaceRequests.Add(request);
-            ApiWorkspaceService.SaveRequests(_activeWorkspace, _workspaceRequests);
+            ApiWorkspaceService.SaveRequests(ActiveWorkspace, _workspaceRequests);
         }
         else
         {
@@ -847,7 +782,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     private void RenderSaved()
     {
         SavedList.Children.Clear();
-        var requests = _activeWorkspace is not null
+        var requests = ActiveWorkspace is not null
             ? _workspaceRequests
             : ApiClientService.LoadCollection();
 
@@ -869,10 +804,10 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             var del = new MenuItem { Header = "Delete" };
             del.Click += (_, _) =>
             {
-                if (_activeWorkspace is not null)
+                if (ActiveWorkspace is not null)
                 {
                     _workspaceRequests.Remove(captured);
-                    ApiWorkspaceService.SaveRequests(_activeWorkspace, _workspaceRequests);
+                    ApiWorkspaceService.SaveRequests(ActiveWorkspace, _workspaceRequests);
                 }
                 else
                 {
@@ -880,7 +815,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
                     coll.RemoveAll(r => r.Name == captured.Name);
                     ApiClientService.SaveCollection(coll);
                 }
-                ApiHistoryDbService.DeleteForRequest(_activeWorkspace ?? "", captured.Name);
+                ApiHistoryDbService.DeleteForRequest(ActiveWorkspace ?? "", captured.Name);
                 RenderSaved();
             };
             ctx.Items.Add(del);
@@ -1090,8 +1025,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             "Clear History", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (result != MessageBoxResult.Yes) return;
 
-        ApiHistoryDbService.DeleteForRequest(_activeWorkspace ?? "", tab.SavedName);
-        RenderRequestHistory(_activeWorkspace ?? "", tab.SavedName);
+        ApiHistoryDbService.DeleteForRequest(ActiveWorkspace ?? "", tab.SavedName);
+        RenderRequestHistory(ActiveWorkspace ?? "", tab.SavedName);
     }
 
     // ── Environment ─────────────────────────────────────────────────
@@ -1394,8 +1329,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         {
             ["tabCount"] = _openTabs.Count.ToString(),
             ["activeTab"] = _activeTabIndex.ToString(),
-            ["activeEnv"] = ApiEnvironmentService.ActiveEnvironment,
-            ["workspace"] = _activeWorkspace ?? ""
+            ["activeEnv"] = ApiEnvironmentService.ActiveEnvironment
         };
 
         for (int t = 0; t < _openTabs.Count; t++)
@@ -1433,16 +1367,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     public void LoadState(Dictionary<string, string> state)
     {
-        if (state.TryGetValue("workspace", out var ws) && !string.IsNullOrEmpty(ws))
-        {
-            _activeWorkspace = ws;
-            _workspaceRequests = ApiWorkspaceService.LoadRequests(ws);
-            LoadWorkspaceCombo();
-            BtnRemoveWorkspace.Visibility = Visibility.Visible;
-            SidebarTitle.Text = ws.ToUpperInvariant();
-        }
-
-        RenderSaved();
+        SyncWorkspaceFromEnvironment();
 
         if (state.TryGetValue("activeEnv", out var envName) && !string.IsNullOrEmpty(envName))
         {

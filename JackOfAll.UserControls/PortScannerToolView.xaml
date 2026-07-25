@@ -142,10 +142,33 @@
         </DataGrid>
 
         <!-- Empty state -->
-        <TextBlock Grid.Row="1" Text="Run a scan to see results"
-                   Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   IsHitTestVisible="False"/>
+        <TextBlock Grid.Row="1"
+           Text="Run a scan to see results"
+                   Foreground="{DynamicResource TextDimmed}"
+                   FontStyle="Italic"
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Center"
+                   IsHitTestVisible="False">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+
+                    <Style.Triggers>
+                        <!-- null ItemsSource -->
+                        <DataTrigger Binding="{Binding ElementName=PortGrid, Path=ItemsSource}"
+                             Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+
+                        <!-- empty collection -->
+                        <DataTrigger Binding="{Binding ElementName=PortGrid, Path=Items.Count}"
+                             Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
 
         <!-- Status bar -->
         <DockPanel Grid.Row="2" Margin="0,8,0,0">

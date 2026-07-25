@@ -21,7 +21,6 @@ public partial class App : Application
 
         registry.Register(new K8sToolFactory());
         registry.Register(new JwtToolFactory());
-        registry.Register(new JsonToolFactory());
         registry.Register(new GeneratorToolFactory());
         registry.Register(new Base64ToolFactory());
         registry.Register(new HashToolFactory());

@@ -8,14 +8,10 @@ using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public record FileEntry(string Name, string FullPath);
-
 public partial class CodeRunnerToolView : UserControl, IStatefulTool
 {
     private string _language = "csharp";
     private readonly string _tempDir;
-    private List<NotepadWorkspace> _workspaces;
-    private NotepadWorkspace? _activeWorkspace;
     private string? _currentFilePath;
     private bool _isDirty;
     private bool _suppressFileSelection;
@@ -61,101 +57,28 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
         InitializeComponent();
         _tempDir = Path.Combine(AppPaths.Root, "code-runner");
         Directory.CreateDirectory(_tempDir);
-        _workspaces = CodeRunnerWorkspaceStore.Load();
-        RefreshWorkspaceCombo();
+        Loaded += (_, _) => SyncFilePanel();
+        EnvironmentContext.Changed += SyncFilePanel;
         CodeEditor.Text = Templates["csharp"];
         UpdateLineNumbers();
     }
 
-    // ── Workspace ─────────────────────────────────────────────────
+    // ── Environment-driven file panel ─────────────────────────────
 
-    private void RefreshWorkspaceCombo()
-    {
-        WorkspaceCombo.Items.Clear();
-        WorkspaceCombo.Items.Add(new ComboBoxItem { Content = "(No workspace)", Tag = "" });
-        foreach (var ws in _workspaces)
-            WorkspaceCombo.Items.Add(new ComboBoxItem { Content = ws.Name, Tag = ws.FolderPath });
-        WorkspaceCombo.SelectedIndex = 0;
-    }
-
-    private void OnWorkspaceChanged(object sender, SelectionChangedEventArgs e)
+    private void SyncFilePanel()
     {
         if (!IsLoaded) return;
-        if (WorkspaceCombo.SelectedItem is not ComboBoxItem item) return;
-
-        var path = item.Tag?.ToString();
-        if (string.IsNullOrEmpty(path))
+        var env = EnvironmentContext.Current;
+        if (env is not null && Directory.Exists(env.FolderPath))
         {
-            _activeWorkspace = null;
+            ShowFilePanel(true);
+            RefreshFileList();
+        }
+        else
+        {
             ShowFilePanel(false);
-            BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        _activeWorkspace = _workspaces.FirstOrDefault(w => w.FolderPath == path);
-        BtnRemoveWorkspace.Visibility = Visibility.Visible;
-        ShowFilePanel(true);
-        RefreshFileList();
-    }
-
-    private void OnAddWorkspace(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var dlg = new InputDialog("New Workspace", "Workspace name:");
-            var owner = Window.GetWindow(this);
-            if (owner is not null) dlg.Owner = owner;
-            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
-
-            var name = dlg.ResultText.Trim();
-            if (_workspaces.Any(w => w.Name == name))
-            {
-                MessageBox.Show($"Workspace '{name}' already exists.", "Duplicate",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var folderDlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select workspace folder" };
-            if (folderDlg.ShowDialog() != true) return;
-
-            var ws = new NotepadWorkspace(name, folderDlg.FolderName);
-            _workspaces.Add(ws);
-            CodeRunnerWorkspaceStore.Save(_workspaces);
-
-            RefreshWorkspaceCombo();
-            for (int i = 0; i < WorkspaceCombo.Items.Count; i++)
-            {
-                if ((WorkspaceCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == ws.FolderPath)
-                {
-                    WorkspaceCombo.SelectedIndex = i;
-                    break;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Failed to add workspace: {ex.Message}", "Error",
-                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
-
-    private void OnRemoveWorkspace(object sender, RoutedEventArgs e)
-    {
-        if (_activeWorkspace is null) return;
-
-        var result = MessageBox.Show($"Remove workspace '{_activeWorkspace.Name}'?\nFiles on disk will not be deleted.",
-            "Remove Workspace", MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (result != MessageBoxResult.Yes) return;
-
-        _workspaces.RemoveAll(w => w.Name == _activeWorkspace.Name);
-        CodeRunnerWorkspaceStore.Save(_workspaces);
-        _activeWorkspace = null;
-        _currentFilePath = null;
-        UpdateFileTitle();
-        RefreshWorkspaceCombo();
-    }
-
-    // ── File panel ────────────────────────────────────────────────
 
     private void ShowFilePanel(bool show)
     {
@@ -175,13 +98,14 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
 
     private void RefreshFileList()
     {
-        if (_activeWorkspace is null || !Directory.Exists(_activeWorkspace.FolderPath))
+        var env = EnvironmentContext.Current;
+        if (env is null || !Directory.Exists(env.FolderPath))
         {
             FileList.ItemsSource = null;
             return;
         }
 
-        var files = Directory.EnumerateFiles(_activeWorkspace.FolderPath)
+        var files = Directory.EnumerateFiles(env.FolderPath)
             .Where(f => CodeExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => Path.GetFileName(f))
             .Select(f => new FileEntry(Path.GetFileName(f), f))
@@ -268,9 +192,10 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
             return;
         }
 
-        if (_activeWorkspace is null)
+        var env = EnvironmentContext.Current;
+        if (env is null)
         {
-            StatusText.Text = "Select a workspace first, or add one.";
+            StatusText.Text = "Select an environment first.";
             return;
         }
 
@@ -285,7 +210,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
             var fileName = dlg.ResultText.Trim();
             if (!Path.HasExtension(fileName)) fileName += ext;
 
-            var filePath = Path.Combine(_activeWorkspace.FolderPath, fileName);
+            var filePath = Path.Combine(env.FolderPath, fileName);
             File.WriteAllText(filePath, CodeEditor.Text);
             _currentFilePath = filePath;
             _isDirty = false;
@@ -522,30 +447,11 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
         if (_currentFilePath is not null)
             state["filePath"] = _currentFilePath;
 
-        if (_activeWorkspace is not null)
-            state["workspace"] = _activeWorkspace.Name;
-
         return state;
     }
 
     public void LoadState(Dictionary<string, string> state)
     {
-        if (state.TryGetValue("workspace", out var wsName))
-        {
-            var ws = _workspaces.FirstOrDefault(w => w.Name == wsName);
-            if (ws is not null)
-            {
-                for (int i = 0; i < WorkspaceCombo.Items.Count; i++)
-                {
-                    if ((WorkspaceCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == ws.FolderPath)
-                    {
-                        WorkspaceCombo.SelectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-
         if (state.TryGetValue("language", out var lang))
         {
             _language = lang;
@@ -571,5 +477,6 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
 
         _isDirty = false;
         UpdateFileTitle();
+        SyncFilePanel();
     }
 }

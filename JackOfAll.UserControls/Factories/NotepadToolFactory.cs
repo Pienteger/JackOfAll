@@ -7,7 +7,7 @@ namespace JackOfAll.UserControls.Factories;
 public sealed class NotepadToolFactory : IToolFactory
 {
     public string ToolId => "notepad";
-    public string DisplayName => "Notepad";
+    public string DisplayName => "Editor";
     public string IconGlyph => "";
 
     public UserControl CreateView(IMessageBus bus, Action<OpenToolMessage> openTool)

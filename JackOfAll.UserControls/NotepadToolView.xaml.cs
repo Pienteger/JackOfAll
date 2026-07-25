@@ -1,6 +1,8 @@
+using System.Data;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using JackOfAll.Lib.Services;
 using JackOfAll.Lib.Tools;
 using Microsoft.Win32;
@@ -11,112 +13,74 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 {
     private string? _currentPath;
     private bool _isDirty;
-    private List<NotepadWorkspace> _workspaces = [];
-    private NotepadWorkspace? _activeWorkspace;
-    private bool _suppressWorkspaceChange;
+    private bool _suppressFileSelection;
+    private FileMode _fileMode = FileMode.Markdown;
+
+    private enum FileMode { Markdown, Text, Csv, Tsv, Json }
+
+    private static readonly string[] SupportedExtensions =
+        [".md", ".markdown", ".txt", ".csv", ".tsv", ".json",
+         ".xml", ".yaml", ".yml", ".log", ".ini", ".cfg", ".conf", ".toml"];
 
     public NotepadToolView()
     {
         InitializeComponent();
-        LoadWorkspaces();
+        Loaded += (_, _) => SyncFilePanel();
+        EnvironmentContext.Changed += SyncFilePanel;
     }
 
-    private void LoadWorkspaces()
+    // ── File mode detection ───────────────────────────────────────
+
+    private static FileMode DetectMode(string? path)
     {
-        _workspaces = WorkspaceStore.Load();
-        RefreshWorkspaceCombo();
+        if (path is null) return FileMode.Markdown;
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        return ext switch
+        {
+            ".md" or ".markdown" => FileMode.Markdown,
+            ".csv" => FileMode.Csv,
+            ".tsv" => FileMode.Tsv,
+            ".json" => FileMode.Json,
+            _ => FileMode.Text
+        };
     }
 
-    private void RefreshWorkspaceCombo()
+    private void ApplyFileMode(FileMode mode)
     {
-        _suppressWorkspaceChange = true;
-        WorkspaceCombo.Items.Clear();
-        WorkspaceCombo.Items.Add("(No workspace)");
-        foreach (var ws in _workspaces)
-            WorkspaceCombo.Items.Add(ws.Name);
+        _fileMode = mode;
 
-        if (_activeWorkspace is not null)
-        {
-            var idx = _workspaces.FindIndex(w => w.Name == _activeWorkspace.Name);
-            WorkspaceCombo.SelectedIndex = idx >= 0 ? idx + 1 : 0;
-        }
-        else
-        {
-            WorkspaceCombo.SelectedIndex = 0;
-        }
+        HideSecondaryPanel();
 
-        _suppressWorkspaceChange = false;
+        PreviewToggle.Visibility = mode == FileMode.Markdown ? Visibility.Visible : Visibility.Collapsed;
+        CsvPreviewToggle.Visibility = mode is FileMode.Csv or FileMode.Tsv ? Visibility.Visible : Visibility.Collapsed;
+
+        var jsonVis = mode == FileMode.Json ? Visibility.Visible : Visibility.Collapsed;
+        BtnJsonFormat.Visibility = jsonVis;
+        BtnJsonMinify.Visibility = jsonVis;
+        BtnJsonEscape.Visibility = jsonVis;
+        BtnJsonUnescape.Visibility = jsonVis;
+
+        if (PreviewToggle.IsChecked == true && mode != FileMode.Markdown)
+            PreviewToggle.IsChecked = false;
+        if (CsvPreviewToggle.IsChecked == true && mode is not (FileMode.Csv or FileMode.Tsv))
+            CsvPreviewToggle.IsChecked = false;
     }
 
-    private void OnWorkspaceChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_suppressWorkspaceChange) return;
+    // ── Environment-driven file panel ─────────────────────────────
 
-        var idx = WorkspaceCombo.SelectedIndex;
-        if (idx <= 0)
+    private void SyncFilePanel()
+    {
+        if (!IsLoaded) return;
+        var env = EnvironmentContext.Current;
+        if (env is not null && Directory.Exists(env.FolderPath))
         {
-            _activeWorkspace = null;
-            HideFilePanel();
-            BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            _activeWorkspace = _workspaces[idx - 1];
             ShowFilePanel();
             RefreshFileList();
-            BtnRemoveWorkspace.Visibility = Visibility.Visible;
         }
-    }
-
-    private void OnAddWorkspace(object sender, RoutedEventArgs e)
-    {
-        var nameDlg = new InputDialog("New Workspace", "Workspace name:");
-        nameDlg.Owner = Window.GetWindow(this);
-        if (nameDlg.ShowDialog() != true || string.IsNullOrWhiteSpace(nameDlg.ResultText))
-            return;
-
-        var name = nameDlg.ResultText.Trim();
-        if (_workspaces.Any(w => w.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        else
         {
-            MessageBox.Show("A workspace with that name already exists.", "Duplicate", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+            HideFilePanel();
         }
-
-        var folderDlg = new OpenFolderDialog
-        {
-            Title = "Select workspace folder"
-        };
-
-        if (folderDlg.ShowDialog() != true)
-            return;
-
-        var ws = new NotepadWorkspace(name, folderDlg.FolderName);
-        _workspaces.Add(ws);
-        WorkspaceStore.Save(_workspaces);
-
-        _activeWorkspace = ws;
-        RefreshWorkspaceCombo();
-        ShowFilePanel();
-        RefreshFileList();
-        BtnRemoveWorkspace.Visibility = Visibility.Visible;
-    }
-
-    private void OnRemoveWorkspace(object sender, RoutedEventArgs e)
-    {
-        if (_activeWorkspace is null) return;
-
-        var result = MessageBox.Show(
-            $"Remove workspace \"{_activeWorkspace.Name}\"?\nThis won't delete any files.",
-            "Remove Workspace", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-        if (result != MessageBoxResult.Yes) return;
-
-        _workspaces.RemoveAll(w => w.Name == _activeWorkspace.Name);
-        WorkspaceStore.Save(_workspaces);
-        _activeWorkspace = null;
-        RefreshWorkspaceCombo();
-        HideFilePanel();
-        BtnRemoveWorkspace.Visibility = Visibility.Collapsed;
     }
 
     private void ShowFilePanel()
@@ -137,10 +101,8 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
     private void RefreshFileList()
     {
-        if (_activeWorkspace is null) return;
-
-        var folder = _activeWorkspace.FolderPath;
-        if (!Directory.Exists(folder))
+        var env = EnvironmentContext.Current;
+        if (env is null || !Directory.Exists(env.FolderPath))
         {
             FileList.ItemsSource = null;
             FilePanelEmpty.Text = "Folder not found";
@@ -148,12 +110,8 @@ public partial class NotepadToolView : UserControl, IStatefulTool
             return;
         }
 
-        var files = Directory.GetFiles(folder, "*.*", SearchOption.TopDirectoryOnly)
-            .Where(f =>
-            {
-                var ext = Path.GetExtension(f).ToLowerInvariant();
-                return ext is ".md" or ".markdown" or ".txt" or ".json" or ".xml" or ".yaml" or ".yml" or ".csv" or ".log" or ".ini" or ".cfg" or ".conf" or ".toml";
-            })
+        var files = Directory.GetFiles(env.FolderPath, "*.*", SearchOption.TopDirectoryOnly)
+            .Where(f => SupportedExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
             .Select(f => new FileEntry(Path.GetFileName(f), f))
             .ToList();
@@ -173,8 +131,6 @@ public partial class NotepadToolView : UserControl, IStatefulTool
             }
         }
     }
-
-    private bool _suppressFileSelection;
 
     private void OnRefreshFiles(object sender, RoutedEventArgs e) => RefreshFileList();
 
@@ -212,6 +168,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         EditorBox.Text = File.ReadAllText(path);
         _isDirty = false;
         FileTitle.Text = Path.GetFileName(path);
+        ApplyFileMode(DetectMode(path));
         UpdateStatus();
     }
 
@@ -227,9 +184,13 @@ public partial class NotepadToolView : UserControl, IStatefulTool
     {
         _isDirty = true;
         UpdateStatus();
-        if (PreviewToggle.IsChecked == true)
-            UpdatePreview();
+        if (PreviewToggle.IsChecked == true && _fileMode == FileMode.Markdown)
+            UpdateMarkdownPreview();
+        if (CsvPreviewToggle.IsChecked == true && _fileMode is FileMode.Csv or FileMode.Tsv)
+            UpdateCsvPreview();
     }
+
+    // ── File operations ───────────────────────────────────────────
 
     private void OnNewClick(object sender, RoutedEventArgs e)
     {
@@ -248,7 +209,8 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         EditorBox.Text = string.Empty;
         _currentPath = null;
         _isDirty = false;
-        FileTitle.Text = "Untitled.md";
+        FileTitle.Text = "Untitled";
+        ApplyFileMode(FileMode.Text);
         UpdateStatus();
 
         _suppressFileSelection = true;
@@ -258,12 +220,12 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
     private void OnOpenClick(object sender, RoutedEventArgs e)
     {
-        var initialDir = _activeWorkspace?.FolderPath;
+        var initialDir = EnvironmentContext.Current?.FolderPath;
 
         var dlg = new OpenFileDialog
         {
-            Filter = "Markdown files|*.md;*.markdown|Text files|*.txt|All files|*.*",
-            DefaultExt = ".md"
+            Filter = "All supported|*.md;*.markdown;*.txt;*.csv;*.tsv;*.json;*.xml;*.yaml;*.yml|Markdown|*.md;*.markdown|Text|*.txt|CSV/TSV|*.csv;*.tsv|JSON|*.json|All files|*.*",
+            DefaultExt = ".txt"
         };
 
         if (initialDir is not null && Directory.Exists(initialDir))
@@ -291,10 +253,11 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
     private void OnSaveAsClick(object sender, RoutedEventArgs e)
     {
+        var env = EnvironmentContext.Current;
         string defaultDir;
-        if (_activeWorkspace is not null && Directory.Exists(_activeWorkspace.FolderPath))
+        if (env is not null && Directory.Exists(env.FolderPath))
         {
-            defaultDir = _activeWorkspace.FolderPath;
+            defaultDir = env.FolderPath;
         }
         else
         {
@@ -304,9 +267,9 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
         var dlg = new SaveFileDialog
         {
-            Filter = "Markdown files|*.md|Text files|*.txt|All files|*.*",
-            DefaultExt = ".md",
-            FileName = _currentPath is not null ? Path.GetFileName(_currentPath) : "Untitled.md",
+            Filter = "All supported|*.md;*.txt;*.csv;*.tsv;*.json|Markdown|*.md|Text|*.txt|CSV|*.csv|TSV|*.tsv|JSON|*.json|All files|*.*",
+            DefaultExt = ".txt",
+            FileName = _currentPath is not null ? Path.GetFileName(_currentPath) : "Untitled.txt",
             InitialDirectory = _currentPath is not null ? Path.GetDirectoryName(_currentPath)! : defaultDir
         };
 
@@ -316,27 +279,25 @@ public partial class NotepadToolView : UserControl, IStatefulTool
             File.WriteAllText(_currentPath, EditorBox.Text);
             _isDirty = false;
             FileTitle.Text = Path.GetFileName(_currentPath);
+            ApplyFileMode(DetectMode(_currentPath));
             UpdateStatus();
             RefreshFileList();
         }
     }
 
+    // ── Markdown preview ──────────────────────────────────────────
+
     private void OnPreviewToggle(object sender, RoutedEventArgs e)
     {
         if (PreviewToggle.IsChecked == true)
         {
-            SplitterColumn.Width = new GridLength(6);
-            PreviewColumn.Width = new GridLength(1, GridUnitType.Star);
-            Splitter.Visibility = Visibility.Visible;
-            PreviewBrowser.Visibility = Visibility.Visible;
-            UpdatePreview();
+            ShowSecondaryPanel();
+            MarkdownPreviewPanel.Visibility = Visibility.Visible;
+            UpdateMarkdownPreview();
         }
         else
         {
-            SplitterColumn.Width = new GridLength(0);
-            PreviewColumn.Width = new GridLength(0);
-            Splitter.Visibility = Visibility.Collapsed;
-            PreviewBrowser.Visibility = Visibility.Collapsed;
+            HideSecondaryPanel();
         }
     }
 
@@ -387,20 +348,231 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         </html>
         """;
 
-    private void UpdatePreview()
+    private void UpdateMarkdownPreview()
     {
         var html = MarkdownService.ToHtml(EditorBox.Text);
         PreviewBrowser.NavigateToString(HtmlTemplate.Replace("{{CONTENT}}", html));
     }
+
+    // ── CSV/TSV table preview ─────────────────────────────────────
+
+    private void OnCsvPreviewToggle(object sender, RoutedEventArgs e)
+    {
+        if (CsvPreviewToggle.IsChecked == true)
+        {
+            ShowSecondaryPanel();
+            CsvPreviewPanel.Visibility = Visibility.Visible;
+            UpdateCsvPreview();
+        }
+        else
+        {
+            HideSecondaryPanel();
+        }
+    }
+
+    private void UpdateCsvPreview()
+    {
+        try
+        {
+            var separator = _fileMode == FileMode.Tsv ? '\t' : ',';
+            var lines = EditorBox.Text.Split('\n')
+                .Select(l => l.TrimEnd('\r'))
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToArray();
+
+            if (lines.Length == 0) { CsvDataGrid.ItemsSource = null; return; }
+
+            var headers = SplitCsvLine(lines[0], separator);
+            var dt = new DataTable();
+            foreach (var h in headers)
+                dt.Columns.Add(h.Trim());
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var cells = SplitCsvLine(lines[i], separator);
+                var row = dt.NewRow();
+                for (int c = 0; c < Math.Min(cells.Length, dt.Columns.Count); c++)
+                    row[c] = cells[c].Trim();
+                dt.Rows.Add(row);
+            }
+
+            CsvDataGrid.ItemsSource = dt.DefaultView;
+            SetStatus($"{dt.Rows.Count} rows, {dt.Columns.Count} columns", "SurfaceBackground", "TextSecondary");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Parse error: {ex.Message}", "ErrorBackground", "ErrorText");
+        }
+    }
+
+    private static string[] SplitCsvLine(string line, char separator)
+    {
+        if (separator == '\t') return line.Split('\t');
+
+        var result = new List<string>();
+        var current = "";
+        var inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current += '"';
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == separator && !inQuotes)
+            {
+                result.Add(current);
+                current = "";
+            }
+            else
+            {
+                current += c;
+            }
+        }
+        result.Add(current);
+        return result.ToArray();
+    }
+
+    // ── JSON tools ────────────────────────────────────────────────
+
+    private void OnJsonFormatClick(object sender, RoutedEventArgs e)
+    {
+        var input = EditorBox.Text.Trim();
+        if (string.IsNullOrEmpty(input)) return;
+
+        var (result, error) = JsonService.Format(input);
+        if (result is not null)
+        {
+            EditorBox.Text = result;
+            SetStatus("Formatted.", "SuccessBackground", "SuccessText");
+        }
+        else
+        {
+            SetStatus(error!, "ErrorBackground", "ErrorText");
+        }
+    }
+
+    private void OnJsonMinifyClick(object sender, RoutedEventArgs e)
+    {
+        var input = EditorBox.Text.Trim();
+        if (string.IsNullOrEmpty(input)) return;
+
+        var (result, error) = JsonService.Minify(input);
+        if (result is not null)
+        {
+            ShowJsonOutput(result);
+            SetStatus("Minified → output panel.", "SuccessBackground", "SuccessText");
+        }
+        else
+        {
+            SetStatus(error!, "ErrorBackground", "ErrorText");
+        }
+    }
+
+    private void OnJsonEscapeClick(object sender, RoutedEventArgs e)
+    {
+        var input = EditorBox.Text;
+        if (string.IsNullOrEmpty(input)) return;
+
+        ShowJsonOutput(JsonService.Escape(input));
+        SetStatus("Escaped → output panel.", "SuccessBackground", "SuccessText");
+    }
+
+    private void OnJsonUnescapeClick(object sender, RoutedEventArgs e)
+    {
+        var input = EditorBox.Text.Trim();
+        if (string.IsNullOrEmpty(input)) return;
+
+        var (result, error) = JsonService.Unescape(input);
+        if (result is not null)
+        {
+            ShowJsonOutput(result);
+            SetStatus("Unescaped → output panel.", "SuccessBackground", "SuccessText");
+        }
+        else
+        {
+            SetStatus(error!, "ErrorBackground", "ErrorText");
+        }
+    }
+
+    private void ShowJsonOutput(string text)
+    {
+        ShowSecondaryPanel();
+        JsonOutputPanel.Visibility = Visibility.Visible;
+        JsonOutputBox.Text = text;
+    }
+
+    private void OnCopyOutputClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(JsonOutputBox.Text))
+        {
+            Clipboard.SetText(JsonOutputBox.Text);
+            SetStatus("Copied to clipboard.", "SuccessBackground", "SuccessText");
+        }
+    }
+
+    // ── Secondary panel management ────────────────────────────────
+
+    private void ShowSecondaryPanel()
+    {
+        MarkdownPreviewPanel.Visibility = Visibility.Collapsed;
+        CsvPreviewPanel.Visibility = Visibility.Collapsed;
+        JsonOutputPanel.Visibility = Visibility.Collapsed;
+
+        SplitterColumn.Width = new GridLength(6);
+        SecondaryColumn.Width = new GridLength(1, GridUnitType.Star);
+        Splitter.Visibility = Visibility.Visible;
+    }
+
+    private void HideSecondaryPanel()
+    {
+        MarkdownPreviewPanel.Visibility = Visibility.Collapsed;
+        CsvPreviewPanel.Visibility = Visibility.Collapsed;
+        JsonOutputPanel.Visibility = Visibility.Collapsed;
+
+        SplitterColumn.Width = new GridLength(0);
+        SecondaryColumn.Width = new GridLength(0);
+        Splitter.Visibility = Visibility.Collapsed;
+    }
+
+    // ── Status ────────────────────────────────────────────────────
 
     private void UpdateStatus()
     {
         var lines = EditorBox.Text.Split('\n').Length;
         var chars = EditorBox.Text.Length;
         var dirty = _isDirty ? " (modified)" : "";
-        var wsLabel = _activeWorkspace is not null ? $"  [{_activeWorkspace.Name}]" : "";
-        StatusText.Text = $"Lines: {lines}  Chars: {chars}{dirty}{wsLabel}";
+        var envLabel = EnvironmentContext.Current is not null ? $"  [{EnvironmentContext.Current.Name}]" : "";
+        var modeLabel = _fileMode switch
+        {
+            FileMode.Json => "  JSON",
+            FileMode.Csv => "  CSV",
+            FileMode.Tsv => "  TSV",
+            FileMode.Markdown => "  Markdown",
+            _ => ""
+        };
+        SetStatus($"Lines: {lines}  Chars: {chars}{dirty}{modeLabel}{envLabel}", "SurfaceBackground", "TextSecondary");
     }
+
+    private void SetStatus(string message, string backgroundKey, string foregroundKey)
+    {
+        StatusText.Text = message;
+        StatusBorder.Background = FindBrush(backgroundKey);
+        StatusText.Foreground = FindBrush(foregroundKey);
+    }
+
+    private Brush FindBrush(string key) =>
+        (Brush)Application.Current.FindResource(key);
+
+    // ── IStatefulTool ─────────────────────────────────────────────
 
     public Dictionary<string, string> SaveState()
     {
@@ -408,40 +580,35 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         {
             ["text"] = EditorBox.Text,
             ["title"] = FileTitle.Text,
-            ["preview"] = (PreviewToggle.IsChecked == true).ToString()
+            ["preview"] = (PreviewToggle.IsChecked == true).ToString(),
+            ["mode"] = _fileMode.ToString()
         };
         if (_currentPath is not null)
             state["path"] = _currentPath;
-        if (_activeWorkspace is not null)
-            state["workspace"] = _activeWorkspace.Name;
         return state;
     }
 
     public void LoadState(Dictionary<string, string> state)
     {
-        if (state.TryGetValue("text", out var text))
-            EditorBox.Text = text;
-        if (state.TryGetValue("path", out var path))
-            _currentPath = path;
-        if (state.TryGetValue("title", out var title))
-            FileTitle.Text = title;
-        if (state.TryGetValue("preview", out var preview) && preview == "True")
-            PreviewToggle.IsChecked = true;
-        if (state.TryGetValue("workspace", out var wsName))
+        if (state.TryGetValue("path", out var path) && File.Exists(path))
         {
-            var ws = _workspaces.FirstOrDefault(w => w.Name == wsName);
-            if (ws is not null)
-            {
-                _activeWorkspace = ws;
-                RefreshWorkspaceCombo();
-                ShowFilePanel();
-                RefreshFileList();
-                BtnRemoveWorkspace.Visibility = Visibility.Visible;
-            }
+            OpenFile(path);
         }
+        else
+        {
+            if (state.TryGetValue("text", out var text))
+                EditorBox.Text = text;
+            if (state.TryGetValue("title", out var title))
+                FileTitle.Text = title;
+            if (state.TryGetValue("mode", out var modeStr) && Enum.TryParse<FileMode>(modeStr, out var mode))
+                ApplyFileMode(mode);
+        }
+
+        if (state.TryGetValue("preview", out var preview) && preview == "True" && _fileMode == FileMode.Markdown)
+            PreviewToggle.IsChecked = true;
+
         _isDirty = false;
         UpdateStatus();
+        SyncFilePanel();
     }
-
-    private record FileEntry(string Name, string FullPath);
 }

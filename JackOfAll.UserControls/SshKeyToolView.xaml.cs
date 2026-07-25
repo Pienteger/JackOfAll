@@ -16,6 +16,9 @@ public partial class SshKeyToolView : UserControl
     {
         var keys = SshKeyService.ListKeys();
         KeyGrid.ItemsSource = keys;
+        EmptyStateText.Visibility = keys.Count == 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         PublicKeyPreview.Visibility = Visibility.Collapsed;
     }
 

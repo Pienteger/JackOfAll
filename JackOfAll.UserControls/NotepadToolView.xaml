@@ -8,7 +8,6 @@
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -50,66 +49,88 @@
                         <TextBlock Text="Save As" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+
+                <!-- Markdown: Preview -->
                 <ToggleButton x:Name="PreviewToggle" Click="OnPreviewToggle"
                               Padding="10,4" Margin="4,0,0,0"
                               Background="{DynamicResource SurfaceBackground}"
                               Foreground="{DynamicResource TextPrimary}"
-                              BorderBrush="{DynamicResource SurfaceBorder}">
+                              BorderBrush="{DynamicResource SurfaceBorder}"
+                              Visibility="Visible">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE8A1;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBlock Text="Preview" VerticalAlignment="Center"/>
                     </StackPanel>
                 </ToggleButton>
+
+                <!-- CSV/TSV: Table Preview -->
+                <ToggleButton x:Name="CsvPreviewToggle" Click="OnCsvPreviewToggle"
+                              Padding="10,4" Margin="4,0,0,0"
+                              Background="{DynamicResource SurfaceBackground}"
+                              Foreground="{DynamicResource TextPrimary}"
+                              BorderBrush="{DynamicResource SurfaceBorder}"
+                              Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE80A;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Table" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ToggleButton>
+
+                <!-- JSON: Format, Minify, Escape, Unescape -->
+                <Button x:Name="BtnJsonFormat" Click="OnJsonFormatClick" Padding="10,4" Margin="4,0,0,0"
+                        Style="{StaticResource PrimaryButton}" Visibility="Collapsed"
+                        ToolTip="Format JSON in editor">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Format" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnJsonMinify" Click="OnJsonMinifyClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"
+                        Visibility="Collapsed" ToolTip="Minify → output panel">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8C0;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Minify" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnJsonEscape" Click="OnJsonEscapeClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"
+                        Visibility="Collapsed" ToolTip="Escape → output panel">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Escape" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnJsonUnescape" Click="OnJsonUnescapeClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"
+                        Visibility="Collapsed" ToolTip="Unescape → output panel">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE785;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Unescape" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
             <TextBlock x:Name="FileTitle" Text="Untitled.md" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
         </DockPanel>
 
-        <!-- Workspace bar -->
-        <DockPanel Grid.Row="1" Margin="0,0,0,8">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Click="OnAddWorkspace" Padding="8,4" Margin="4,0,0,0"
-                        Background="{DynamicResource SurfaceBackground}"
-                        Foreground="{DynamicResource TextPrimary}"
-                        BorderBrush="{DynamicResource SurfaceBorder}" ToolTip="Add workspace">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="Add" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                <Button x:Name="BtnRemoveWorkspace" Click="OnRemoveWorkspace" Padding="8,4" Margin="4,0,0,0"
-                        Background="{DynamicResource SurfaceBackground}"
-                        Foreground="{DynamicResource DangerBrush}"
-                        BorderBrush="{DynamicResource SurfaceBorder}" ToolTip="Remove selected workspace"
-                        Visibility="Collapsed">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Text="Remove" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <ComboBox x:Name="WorkspaceCombo" Width="220"
-                          SelectionChanged="OnWorkspaceChanged"
-                          Background="{DynamicResource SurfaceBackground}"
-                          Foreground="{DynamicResource TextPrimary}"
-                          BorderBrush="{DynamicResource SurfaceBorder}"/>
-            </StackPanel>
-        </DockPanel>
-
-        <!-- Content area: file panel + editor + preview -->
-        <Grid Grid.Row="2">
+        <!-- Content area: file panel + editor + preview/output -->
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="FilePanelColumn" Width="0"/>
                 <ColumnDefinition x:Name="FilePanelSplitterColumn" Width="0"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition x:Name="SplitterColumn" Width="0"/>
-                <ColumnDefinition x:Name="PreviewColumn" Width="0"/>
+                <ColumnDefinition x:Name="SecondaryColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
-            <!-- File panel (visible when workspace active) -->
+            <!-- File panel (visible when environment active) -->
             <Border x:Name="FilePanel" Grid.Column="0" Visibility="Collapsed"
                     Background="{DynamicResource SurfaceBackground}"
                     BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
@@ -171,22 +192,70 @@
                      FontSize="{DynamicResource MonoFontSize}"
                      Padding="12" TextChanged="OnTextChanged"/>
 
-            <!-- Splitter (shown when preview is on) -->
+            <!-- Splitter (shown when secondary panel is on) -->
             <GridSplitter x:Name="Splitter" Grid.Column="3" Width="6"
                           HorizontalAlignment="Center"
                           Background="{DynamicResource SurfaceBorder}"
                           Margin="4,0,4,0" Visibility="Collapsed"/>
 
-            <!-- Preview -->
-            <Border Grid.Column="4" Background="{DynamicResource SurfaceBackground}"
-                    BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1">
-                <WebBrowser x:Name="PreviewBrowser" Visibility="Collapsed"/>
-            </Border>
+            <!-- Secondary panel: markdown preview / csv table / json output -->
+            <Grid Grid.Column="4">
+                <!-- Markdown preview -->
+                <Border x:Name="MarkdownPreviewPanel" Visibility="Collapsed"
+                        Background="{DynamicResource SurfaceBackground}"
+                        BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1">
+                    <WebBrowser x:Name="PreviewBrowser"/>
+                </Border>
+
+                <!-- CSV/TSV table preview -->
+                <Border x:Name="CsvPreviewPanel" Visibility="Collapsed"
+                        Background="{DynamicResource SurfaceBackground}"
+                        BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                        CornerRadius="6">
+                    <DataGrid x:Name="CsvDataGrid" AutoGenerateColumns="True"
+                              IsReadOnly="True" HeadersVisibility="Column"
+                              Background="Transparent"
+                              RowBackground="{DynamicResource SurfaceBackground}"
+                              AlternatingRowBackground="{DynamicResource AppBackground}"
+                              BorderThickness="0"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="{DynamicResource SurfaceBorder}"
+                              FontFamily="Cascadia Code,Consolas,Courier New"
+                              FontSize="{DynamicResource MonoFontSize}"/>
+                </Border>
+
+                <!-- JSON output (read-only) -->
+                <DockPanel x:Name="JsonOutputPanel" Visibility="Collapsed">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                        <Button Click="OnCopyOutputClick" DockPanel.Dock="Right"
+                                Padding="8,2" Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text="OUTPUT" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBox x:Name="JsonOutputBox" IsReadOnly="True" AcceptsReturn="True"
+                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             Background="{DynamicResource SurfaceBackground}"
+                             Foreground="{DynamicResource HeaderColor}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             FontFamily="Cascadia Code,Consolas,Courier New"
+                             FontSize="{DynamicResource MonoFontSize}"
+                             Padding="8"/>
+                </DockPanel>
+            </Grid>
         </Grid>
 
         <!-- Status bar -->
-        <DockPanel Grid.Row="3" Margin="0,8,0,0">
-            <Border CornerRadius="4" Padding="8,4" Background="{DynamicResource SurfaceBackground}">
+        <DockPanel Grid.Row="2" Margin="0,8,0,0">
+            <Border x:Name="StatusBorder" CornerRadius="4" Padding="8,4"
+                    Background="{DynamicResource SurfaceBackground}">
                 <TextBlock x:Name="StatusText" Text="Ready" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
             </Border>
         </DockPanel>

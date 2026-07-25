@@ -40,20 +40,30 @@ public static class SshKeyService
     public static async Task<(bool Success, string Output)> GenerateKeyAsync(
         string name, string type, string comment, string passphrase = "")
     {
+        if (!IsSafeKeyName(name))
+            return (false, "Key name must be a file name, not a path, and cannot contain invalid characters.");
+
         var keyPath = Path.Combine(SshDir, name);
         if (File.Exists(keyPath))
             return (false, $"Key '{name}' already exists.");
 
         Directory.CreateDirectory(SshDir);
 
-        var args = $"-t {type} -f \"{keyPath}\" -C \"{comment}\" -N \"{passphrase}\"";
-        var psi = new ProcessStartInfo("ssh-keygen", args)
+        var psi = new ProcessStartInfo("ssh-keygen")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        psi.ArgumentList.Add("-t");
+        psi.ArgumentList.Add(type);
+        psi.ArgumentList.Add("-f");
+        psi.ArgumentList.Add(keyPath);
+        psi.ArgumentList.Add("-C");
+        psi.ArgumentList.Add(comment);
+        psi.ArgumentList.Add("-N");
+        psi.ArgumentList.Add(passphrase);
 
         try
         {
@@ -72,5 +82,12 @@ public static class SshKeyService
         {
             return (false, $"ssh-keygen not found or failed: {ex.Message}");
         }
+    }
+
+    private static bool IsSafeKeyName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return false;
+        return Path.GetFileName(name) == name;
     }
 }

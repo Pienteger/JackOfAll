@@ -20,6 +20,10 @@ public partial class MainWindow : Window
     private readonly List<ArchivedTab> _archivedTabs = new();
     private IDisposable? _openToolSub;
 
+    private List<AppEnvironment> _environments = [];
+    private AppEnvironment? _activeEnvironment;
+    private bool _suppressEnvChange;
+
     private Point _dragStart;
     private bool _isDragging;
 
@@ -49,7 +53,31 @@ public partial class MainWindow : Window
         _archivedTabs.AddRange(ArchiveStore.Load());
         UpdateArchivedButton();
 
-        AddNewTab();
+        _environments = EnvironmentStore.Load();
+        RefreshEnvCombo();
+        var activeName = EnvironmentStore.LoadActiveName();
+        if (activeName is not null)
+        {
+            var env = _environments.FirstOrDefault(e => e.Name == activeName);
+            if (env is not null)
+            {
+                _suppressEnvChange = true;
+                for (int i = 0; i < EnvCombo.Items.Count; i++)
+                {
+                    if ((EnvCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == env.Name)
+                    {
+                        EnvCombo.SelectedIndex = i;
+                        break;
+                    }
+                }
+                _suppressEnvChange = false;
+                _activeEnvironment = env;
+                EnvironmentContext.Set(env);
+                RestoreEnvironmentTabs(env.Name);
+            }
+        }
+
+        if (_tabs.Count == 0) AddNewTab();
     }
 
     // ── Tab lifecycle ───────────────────────────────────────────────
@@ -79,7 +107,6 @@ public partial class MainWindow : Window
         var view = payload is not null ? toolId switch
         {
             "jwt" => (UserControl)new JwtToolView(_bus, payload),
-            "json" => new JsonToolView(_bus, payload),
             _ => factory.CreateView(_bus, msg => _bus.Publish(msg))
         } : factory.CreateView(_bus, msg => _bus.Publish(msg));
 
@@ -99,7 +126,6 @@ public partial class MainWindow : Window
         var view = msg.Payload is not null ? msg.ToolId switch
         {
             "jwt" => (UserControl)new JwtToolView(_bus, msg.Payload),
-            "json" => new JsonToolView(_bus, msg.Payload),
             _ => factory.CreateView(_bus, m => _bus.Publish(m))
         } : factory.CreateView(_bus, m => _bus.Publish(m));
 
@@ -283,6 +309,190 @@ public partial class MainWindow : Window
         ArchivedBtn.Visibility = _archivedTabs.Count > 0
             ? Visibility.Visible
             : Visibility.Collapsed;
+    }
+
+    // ── Environment ────────────────────────────────────────────────
+
+    private void RefreshEnvCombo()
+    {
+        _suppressEnvChange = true;
+        EnvCombo.Items.Clear();
+
+        var addItem = new ComboBoxItem
+        {
+            Content = "+ Add Environment",
+            Tag = "__add__",
+            Foreground = (Brush)FindResource("AccentBrush"),
+            FontWeight = FontWeights.SemiBold
+        };
+        EnvCombo.Items.Add(addItem);
+
+        var noneItem = new ComboBoxItem { Content = "(No environment)", Tag = "" };
+        EnvCombo.Items.Add(noneItem);
+
+        foreach (var env in _environments)
+            EnvCombo.Items.Add(new ComboBoxItem { Content = env.Name, Tag = env.Name });
+
+        if (_activeEnvironment is not null)
+        {
+            for (int i = 0; i < EnvCombo.Items.Count; i++)
+            {
+                if ((EnvCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == _activeEnvironment.Name)
+                {
+                    EnvCombo.SelectedIndex = i;
+                    _suppressEnvChange = false;
+                    return;
+                }
+            }
+        }
+
+        EnvCombo.SelectedIndex = 1;
+        _suppressEnvChange = false;
+    }
+
+    private void OnEnvironmentChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressEnvChange) return;
+        if (EnvCombo.SelectedItem is not ComboBoxItem item) return;
+
+        var tag = item.Tag?.ToString() ?? "";
+
+        if (tag == "__add__")
+        {
+            _suppressEnvChange = true;
+            if (_activeEnvironment is not null)
+            {
+                for (int i = 0; i < EnvCombo.Items.Count; i++)
+                {
+                    if ((EnvCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == _activeEnvironment.Name)
+                    { EnvCombo.SelectedIndex = i; break; }
+                }
+            }
+            else
+            {
+                EnvCombo.SelectedIndex = 1;
+            }
+            _suppressEnvChange = false;
+
+            AddEnvironment();
+            return;
+        }
+
+        var outgoing = _activeEnvironment;
+
+        if (string.IsNullOrEmpty(tag))
+        {
+            if (outgoing is not null) ArchiveEnvironmentTabs(outgoing.Name);
+            _activeEnvironment = null;
+            EnvironmentContext.Set(null);
+            EnvironmentStore.SaveActiveName(null);
+            if (_tabs.Count == 0) AddNewTab();
+            return;
+        }
+
+        var env = _environments.FirstOrDefault(e => e.Name == tag);
+        if (env is null) return;
+
+        if (outgoing is not null) ArchiveEnvironmentTabs(outgoing.Name);
+        else ArchiveEnvironmentTabs(null);
+
+        _activeEnvironment = env;
+        EnvironmentContext.Set(env);
+        EnvironmentStore.SaveActiveName(env.Name);
+
+        RestoreEnvironmentTabs(env.Name);
+        if (_tabs.Count == 0) AddNewTab();
+    }
+
+    private void AddEnvironment()
+    {
+        var dlg = new InputDialog("New Environment", "Environment name:");
+        dlg.Owner = this;
+        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
+
+        var name = dlg.ResultText.Trim();
+        if (_environments.Any(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show($"Environment '{name}' already exists.", "Duplicate",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var folderDlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select environment folder" };
+        if (folderDlg.ShowDialog() != true) return;
+
+        var env = new AppEnvironment(name, folderDlg.FolderName);
+        _environments.Add(env);
+        EnvironmentStore.Save(_environments);
+
+        var outgoing = _activeEnvironment;
+        if (outgoing is not null) ArchiveEnvironmentTabs(outgoing.Name);
+        else ArchiveEnvironmentTabs(null);
+
+        _activeEnvironment = env;
+        EnvironmentContext.Set(env);
+        EnvironmentStore.SaveActiveName(env.Name);
+        RefreshEnvCombo();
+
+        if (_tabs.Count == 0) AddNewTab();
+    }
+
+    private void ArchiveEnvironmentTabs(string? envName)
+    {
+        var toArchive = _tabs.Where(t => t.ToolId != "newtab").ToList();
+        foreach (var tab in toArchive)
+        {
+            var state = new Dictionary<string, string>();
+            if (tab.View is IStatefulTool stateful)
+                state = stateful.SaveState();
+
+            if (tab.View is SplitPaneHost splitHost)
+                splitHost.Dispose();
+
+            _archivedTabs.Add(new ArchivedTab
+            {
+                ToolId = tab.ToolId,
+                Title = tab.Title,
+                ArchivedAt = DateTime.Now,
+                State = state,
+                Environment = envName
+            });
+        }
+
+        ContentArea.Content = null;
+        _tabs.Clear();
+
+        ArchiveStore.Save(_archivedTabs);
+        UpdateArchivedButton();
+    }
+
+    private void RestoreEnvironmentTabs(string envName)
+    {
+        var toRestore = _archivedTabs.Where(a => a.Environment == envName).ToList();
+        foreach (var archived in toRestore)
+        {
+            _archivedTabs.Remove(archived);
+            var factory = _registry.Get(archived.ToolId);
+            if (factory is null) continue;
+
+            var view = factory.CreateView(_bus, m => _bus.Publish(m));
+            if (view is IStatefulTool stateful && archived.State.Count > 0)
+                stateful.LoadState(archived.State);
+
+            var tab = new ToolTab
+            {
+                Title = archived.Title,
+                ToolId = archived.ToolId,
+                View = view
+            };
+            _tabs.Add(tab);
+        }
+
+        if (_tabs.Count > 0)
+            TabList.SelectedItem = _tabs[0];
+
+        ArchiveStore.Save(_archivedTabs);
+        UpdateArchivedButton();
     }
 
     // ── Pin ─────────────────────────────────────────────────────────

@@ -6,4 +6,5 @@ public sealed class ArchivedTab
     public string Title { get; set; } = "";
     public DateTime ArchivedAt { get; set; }
     public Dictionary<string, string> State { get; set; } = new();
+    public string? Environment { get; set; }
 }
