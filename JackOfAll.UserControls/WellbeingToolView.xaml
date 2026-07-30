@@ -4,85 +4,207 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             d:DesignHeight="700" d:DesignWidth="900">
+             d:DesignHeight="760" d:DesignWidth="980">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
         <StackPanel Margin="0">
 
-            <!-- ══════ Pomodoro Timer ══════ -->
-            <TextBlock Text="POMODORO TIMER" FontSize="11" FontWeight="SemiBold"
+            <TextBlock Text="WELLBEING" FontSize="11" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
 
-            <Border Background="{DynamicResource SurfaceBackground}"
-                    BorderBrush="{DynamicResource SurfaceBorder}"
-                    BorderThickness="1" CornerRadius="6" Padding="24" Margin="0,0,0,24">
-                <StackPanel>
-                    <!-- Timer display -->
-                    <TextBlock x:Name="TimerDisplay" Text="25:00" FontSize="64" FontWeight="Light"
-                               FontFamily="Cascadia Code,Consolas,Courier New"
-                               Foreground="{DynamicResource HeaderColor}"
-                               HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                    <TextBlock x:Name="TimerLabel" Text="Ready to focus" FontSize="14"
-                               Foreground="{DynamicResource TextSecondary}"
-                               HorizontalAlignment="Center" Margin="0,0,0,16"/>
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- Progress bar -->
-                    <ProgressBar x:Name="TimerProgress" Height="6" Margin="0,0,0,16"
-                                 Background="{DynamicResource AppBackground}"
-                                 Foreground="{DynamicResource AccentBrush}"
-                                 BorderThickness="0" Maximum="100" Value="0"/>
+                <Border Grid.Column="0" Background="{DynamicResource SurfaceBackground}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"
+                        BorderThickness="1" CornerRadius="6" Padding="24">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <Border x:Name="PhaseBadge" DockPanel.Dock="Right" CornerRadius="4"
+                                    Padding="8,4" Background="{DynamicResource AppBackground}">
+                                <TextBlock x:Name="PhaseBadgeText" Text="Focus" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource HeaderColor}"/>
+                            </Border>
+                            <TextBlock Text="POMODORO TIMER" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                        </DockPanel>
 
-                    <!-- Controls -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
-                        <Button x:Name="BtnStartPause" Click="OnStartPauseClick"
-                                Style="{StaticResource PrimaryButton}"
-                                Padding="20,8" FontSize="14" Margin="0,0,8,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="Start" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Content="Reset" Click="OnResetClick"
-                                Padding="20,8" Background="{DynamicResource SurfaceBackground}"
-                                Foreground="{DynamicResource TextPrimary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="14" Margin="0,0,8,0"/>
-                        <Button Content="Skip" Click="OnSkipClick"
-                                Padding="20,8" Background="{DynamicResource SurfaceBackground}"
-                                Foreground="{DynamicResource TextPrimary}"
-                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="14"/>
-                    </StackPanel>
-
-                    <!-- Settings -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="Work:" Foreground="{DynamicResource TextSecondary}"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox x:Name="WorkMinutes" Text="25" Width="40" Padding="4,2"
-                                 Background="{DynamicResource AppBackground}"
-                                 Foreground="{DynamicResource TextPrimary}"
-                                 BorderBrush="{DynamicResource SurfaceBorder}"
-                                 HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
-                        <TextBlock Text="min" Foreground="{DynamicResource TextDimmed}"
-                                   VerticalAlignment="Center" Margin="2,0,16,0"/>
-
-                        <TextBlock Text="Break:" Foreground="{DynamicResource TextSecondary}"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox x:Name="BreakMinutes" Text="5" Width="40" Padding="4,2"
-                                 Background="{DynamicResource AppBackground}"
-                                 Foreground="{DynamicResource TextPrimary}"
-                                 BorderBrush="{DynamicResource SurfaceBorder}"
-                                 HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
-                        <TextBlock Text="min" Foreground="{DynamicResource TextDimmed}"
-                                   VerticalAlignment="Center" Margin="2,0,16,0"/>
-
-                        <TextBlock Text="Sessions:" Foreground="{DynamicResource TextSecondary}"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBlock x:Name="SessionCount" Text="0" FontWeight="SemiBold"
+                        <TextBlock x:Name="TimerDisplay" Text="25:00" FontSize="64" FontWeight="Light"
+                                   FontFamily="Cascadia Code,Consolas,Courier New"
                                    Foreground="{DynamicResource HeaderColor}"
-                                   VerticalAlignment="Center"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+                                   HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="TimerLabel" Text="Ready to focus" FontSize="14"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="PhaseDetail" Text="Complete a focus block to count it." FontSize="12"
+                                   Foreground="{DynamicResource TextDimmed}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,16"/>
 
-            <!-- ══════ Break Reminder ══════ -->
+                        <ProgressBar x:Name="TimerProgress" Height="6" Margin="0,0,0,16"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     BorderThickness="0" Maximum="100" Value="0"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+                            <Button x:Name="BtnStartPause" Click="OnStartPauseClick"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Padding="20,8" FontSize="14" Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="StartPauseGlyph" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock x:Name="StartPauseText" Text="Start" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="OnResetClick" Padding="20,8" Margin="0,0,8,0"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="14">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reset" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="OnSkipClick" Padding="20,8"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="14">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Skip" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,14">
+                            <Button Content="25/5" Click="OnPresetClassic" Padding="10,4" Margin="0,0,6,6"
+                                    Background="{DynamicResource AppBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}"/>
+                            <Button Content="50/10" Click="OnPresetDeepWork" Padding="10,4" Margin="0,0,6,6"
+                                    Background="{DynamicResource AppBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}"/>
+                            <Button Content="90/15" Click="OnPresetUltradian" Padding="10,4" Margin="0,0,6,6"
+                                    Background="{DynamicResource AppBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}"/>
+                        </WrapPanel>
+
+                        <WrapPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Work" Foreground="{DynamicResource TextSecondary}"
+                                       VerticalAlignment="Center" Margin="0,0,4,6"/>
+                            <TextBox x:Name="WorkMinutes" Text="25" Width="42" Padding="4,2" Margin="0,0,4,6"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
+                            <TextBlock Text="min" Foreground="{DynamicResource TextDimmed}"
+                                       VerticalAlignment="Center" Margin="0,0,14,6"/>
+
+                            <TextBlock Text="Break" Foreground="{DynamicResource TextSecondary}"
+                                       VerticalAlignment="Center" Margin="0,0,4,6"/>
+                            <TextBox x:Name="BreakMinutes" Text="5" Width="42" Padding="4,2" Margin="0,0,4,6"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
+                            <TextBlock Text="min" Foreground="{DynamicResource TextDimmed}"
+                                       VerticalAlignment="Center" Margin="0,0,14,6"/>
+
+                            <TextBlock Text="Long" Foreground="{DynamicResource TextSecondary}"
+                                       VerticalAlignment="Center" Margin="0,0,4,6"/>
+                            <TextBox x:Name="LongBreakMinutes" Text="15" Width="42" Padding="4,2" Margin="0,0,4,6"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     HorizontalContentAlignment="Center" TextChanged="OnSettingsChanged"/>
+                            <TextBlock Text="min every" Foreground="{DynamicResource TextDimmed}"
+                                       VerticalAlignment="Center" Margin="0,0,4,6"/>
+                            <TextBox x:Name="LongBreakEvery" Text="4" Width="34" Padding="4,2" Margin="0,0,4,6"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     HorizontalContentAlignment="Center"/>
+                            <TextBlock Text="sessions" Foreground="{DynamicResource TextDimmed}"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Column="2">
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="TODAY" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock x:Name="SessionCount" Text="0" FontSize="32" FontWeight="Light"
+                                               Foreground="{DynamicResource HeaderColor}"/>
+                                    <TextBlock Text="focus blocks" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock x:Name="FocusToday" Text="0m" FontSize="32" FontWeight="Light"
+                                               Foreground="{DynamicResource PayloadColor}"/>
+                                    <TextBlock Text="focus time" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Button Click="OnResetStatsClick" Padding="10,4" Margin="0,14,0,0"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reset Today" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            BorderThickness="1" CornerRadius="6" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="RESET BREATHING" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+                            <TextBlock x:Name="BreathDisplay" Text="01:00" FontSize="36" FontWeight="Light"
+                                       FontFamily="Cascadia Code,Consolas,Courier New"
+                                       Foreground="{DynamicResource HeaderColor}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="BreathInstruction" Text="Box breathing" FontSize="13"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                            <ProgressBar x:Name="BreathProgress" Height="5" Maximum="100" Value="0"
+                                         Background="{DynamicResource AppBackground}"
+                                         Foreground="{DynamicResource AccentBrush}"
+                                         BorderThickness="0" Margin="0,0,0,12"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button x:Name="BtnBreathStart" Click="OnBreathStartPauseClick"
+                                        Style="{StaticResource PrimaryButton}" Padding="12,6" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="BreathStartText" Text="Start" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="OnBreathResetClick" Padding="12,6"
+                                        Background="{DynamicResource SurfaceBackground}"
+                                        Foreground="{DynamicResource TextPrimary}"
+                                        BorderBrush="{DynamicResource SurfaceBorder}" Content="Reset"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
             <TextBlock Text="BREAK REMINDER" FontSize="11" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
 
@@ -95,34 +217,29 @@
                                 DockPanel.Dock="Right" Padding="14,6"
                                 Style="{StaticResource PrimaryButton}" Margin="8,0,0,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="Enable" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ReminderGlyph" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="ReminderToggleText" Text="Enable" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <StackPanel Orientation="Horizontal">
+                        <WrapPanel>
                             <TextBlock Text="Remind every" Foreground="{DynamicResource TextPrimary}"
-                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBox x:Name="ReminderInterval" Text="20" Width="40" Padding="4,2"
+                                       VerticalAlignment="Center" Margin="0,0,6,6"/>
+                            <TextBox x:Name="ReminderInterval" Text="20" Width="42" Padding="4,2" Margin="0,0,6,6"
                                      Background="{DynamicResource AppBackground}"
                                      Foreground="{DynamicResource TextPrimary}"
                                      BorderBrush="{DynamicResource SurfaceBorder}"
                                      HorizontalContentAlignment="Center"/>
-                            <TextBlock Text="minutes to take a break" Foreground="{DynamicResource TextPrimary}"
-                                       VerticalAlignment="Center" Margin="6,0,0,0"/>
-                        </StackPanel>
+                            <TextBlock Text="minutes for" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="0,0,6,6"/>
+                            <TextBox x:Name="BreakDuration" Text="20" Width="42" Padding="4,2" Margin="0,0,6,6"
+                                     Background="{DynamicResource AppBackground}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource SurfaceBorder}"
+                                     HorizontalContentAlignment="Center"/>
+                            <TextBlock Text="seconds" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                        </WrapPanel>
                     </DockPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="Break duration:" Foreground="{DynamicResource TextPrimary}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="BreakDuration" Text="20" Width="40" Padding="4,2"
-                                 Background="{DynamicResource AppBackground}"
-                                 Foreground="{DynamicResource TextPrimary}"
-                                 BorderBrush="{DynamicResource SurfaceBorder}"
-                                 HorizontalContentAlignment="Center"/>
-                        <TextBlock Text="seconds (screen will be blocked)"
-                                   Foreground="{DynamicResource TextDimmed}"
-                                   VerticalAlignment="Center" Margin="6,0,0,0"/>
-                    </StackPanel>
                     <TextBlock Text="20-20-20 Rule: Every 20 min, look at something 20 feet away for 20 seconds."
                                Foreground="{DynamicResource TextDimmed}" FontSize="12" TextWrapping="Wrap"
                                Margin="0,0,0,8"/>

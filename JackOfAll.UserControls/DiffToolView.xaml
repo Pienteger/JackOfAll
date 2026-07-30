@@ -1,0 +1,156 @@
+<UserControl x:Class="JackOfAll.UserControls.DiffToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+             mc:Ignorable="d"
+             d:DesignHeight="720" d:DesignWidth="980">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3*"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button Click="OnCompareClick" Style="{StaticResource PrimaryButton}" Padding="12,6" Margin="8,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8AB;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Compare" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnSwapClick" Padding="12,6" Margin="8,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8AB;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Swap" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Content="Clear" Click="OnClearClick" Padding="12,6" Margin="8,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="DIFF / COMPARE" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <RadioButton x:Name="TextModeRadio" Content="Text" IsChecked="True"
+                             Checked="OnOptionsChanged" VerticalAlignment="Center" Margin="0,0,12,0"
+                             Foreground="{DynamicResource TextPrimary}"/>
+                <RadioButton x:Name="JsonModeRadio" Content="JSON semantic"
+                             Checked="OnOptionsChanged" VerticalAlignment="Center" Margin="0,0,12,0"
+                             Foreground="{DynamicResource TextPrimary}"/>
+                <CheckBox x:Name="IgnoreWhitespaceCheck" Content="Ignore whitespace"
+                          Checked="OnOptionsChanged" Unchecked="OnOptionsChanged"
+                          VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                    CornerRadius="6" Padding="12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Left" Foreground="{DynamicResource TextSecondary}"
+                               FontSize="12" Margin="0,0,0,8"/>
+                    <Border BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                            CornerRadius="6" ClipToBounds="True">
+                        <avalonEdit:TextEditor x:Name="LeftBox"
+                                               ShowLineNumbers="True"
+                                               WordWrap="False"
+                                               Background="{DynamicResource AppBackground}"
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               FontFamily="Cascadia Code,Consolas,Courier New"
+                                               FontSize="{DynamicResource EditorFontSize}"
+                                               HorizontalScrollBarVisibility="Auto"
+                                               VerticalScrollBarVisibility="Auto"
+                                               Padding="8,4"/>
+                    </Border>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="{DynamicResource SurfaceBackground}"
+                    BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                    CornerRadius="6" Padding="12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Right" Foreground="{DynamicResource TextSecondary}"
+                               FontSize="12" Margin="0,0,0,8"/>
+                    <Border BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                            CornerRadius="6" ClipToBounds="True">
+                        <avalonEdit:TextEditor x:Name="RightBox"
+                                               ShowLineNumbers="True"
+                                               WordWrap="False"
+                                               Background="{DynamicResource AppBackground}"
+                                               Foreground="{DynamicResource TextPrimary}"
+                                               FontFamily="Cascadia Code,Consolas,Courier New"
+                                               FontSize="{DynamicResource EditorFontSize}"
+                                               HorizontalScrollBarVisibility="Auto"
+                                               VerticalScrollBarVisibility="Auto"
+                                               Padding="8,4"/>
+                    </Border>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <DockPanel Grid.Row="2" Margin="0,12,0,8">
+            <Button Click="OnCopyDiffClick" DockPanel.Dock="Right" Padding="10,4"
+                    Background="{DynamicResource SurfaceBackground}"
+                    Foreground="{DynamicResource TextPrimary}"
+                    BorderBrush="{DynamicResource SurfaceBorder}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="Copy diff" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <TextBlock x:Name="StatusText" Text="Paste content on both sides to compare."
+                       Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                       VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <Border Grid.Row="3" Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                CornerRadius="6" Padding="0">
+            <ListBox x:Name="DiffList"
+                     BorderThickness="0"
+                     Background="{DynamicResource SurfaceBackground}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{Binding Background}" Padding="8,3">
+                            <DockPanel LastChildFill="True">
+                                <TextBlock Text="{Binding Prefix}" Width="22"
+                                           Foreground="{Binding Foreground}"
+                                           FontFamily="Cascadia Code,Consolas,Courier New"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Text}"
+                                           Foreground="{Binding Foreground}"
+                                           FontFamily="Cascadia Code,Consolas,Courier New"
+                                           FontSize="{DynamicResource MonoFontSize}"
+                                           TextWrapping="NoWrap"/>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+    </Grid>
+</UserControl>
