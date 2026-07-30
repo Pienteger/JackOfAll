@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Settings;
@@ -31,6 +33,12 @@ public partial class SettingsWindow : Window
             _ => 0,
         };
         ThemeCombo.SelectedIndex = themeIndex;
+
+        var version = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+            ?? "1.0.0";
+        VersionLabel.Text = $"v{version}";
 
         _initializing = false;
     }
@@ -87,4 +95,10 @@ public partial class SettingsWindow : Window
         PreviewEditor.FontSize = editorSize;
         PreviewSecondary.FontSize = uiSize;
     }
+
+    private void OnWebsiteLinkClick(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://mahmudx.com") { UseShellExecute = true });
+
+    private void OnGitHubLinkClick(object sender, RoutedEventArgs e) =>
+        Process.Start(new ProcessStartInfo("https://github.com/mahmudx") { UseShellExecute = true });
 }
