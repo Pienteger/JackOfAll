@@ -19,7 +19,9 @@ public partial class SettingsWindow : Window
 
         FontSizeSlider.Value = settings.FontSize;
         FontSizeLabel.Text = $"{settings.FontSize:F0}";
-        UpdatePreviewFontSizes(settings.FontSize);
+        EditorFontSizeSlider.Value = settings.EditorFontSize;
+        EditorFontSizeLabel.Text = $"{settings.EditorFontSize:F0}";
+        UpdatePreviewFontSizes(settings.FontSize, settings.EditorFontSize);
 
         var themeIndex = settings.ThemeMode switch
         {
@@ -59,16 +61,30 @@ public partial class SettingsWindow : Window
         var size = Math.Round(e.NewValue);
         _settings.FontSize = size;
         FontSizeLabel.Text = $"{size:F0}";
-        UpdatePreviewFontSizes(size);
+        UpdatePreviewFontSizes(size, _settings.EditorFontSize);
 
         _applyTheme();
         _settings.Save();
     }
 
-    private void UpdatePreviewFontSizes(double size)
+    private void OnEditorFontSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        PreviewNormal.FontSize = size;
-        PreviewMono.FontSize = Math.Max(size - 1, 10);
-        PreviewSecondary.FontSize = size;
+        if (_initializing) return;
+
+        var size = Math.Round(e.NewValue);
+        _settings.EditorFontSize = size;
+        EditorFontSizeLabel.Text = $"{size:F0}";
+        UpdatePreviewFontSizes(_settings.FontSize, size);
+
+        _applyTheme();
+        _settings.Save();
+    }
+
+    private void UpdatePreviewFontSizes(double uiSize, double editorSize)
+    {
+        PreviewNormal.FontSize = uiSize;
+        PreviewMono.FontSize = Math.Max(uiSize - 1, 10);
+        PreviewEditor.FontSize = editorSize;
+        PreviewSecondary.FontSize = uiSize;
     }
 }

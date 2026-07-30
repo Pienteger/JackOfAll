@@ -39,6 +39,7 @@
             <SolidColorBrush x:Key="WarningBrush" Color="#f59e0b"/>
             <sys:Double x:Key="AppFontSize">13</sys:Double>
             <sys:Double x:Key="MonoFontSize">12</sys:Double>
+            <sys:Double x:Key="EditorFontSize">14</sys:Double>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

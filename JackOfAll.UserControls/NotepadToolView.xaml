@@ -147,6 +147,11 @@
                                 Foreground="{DynamicResource TextSecondary}">
                             <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
                         </Button>
+                        <Button DockPanel.Dock="Right" Click="OnNewFileClick" Padding="4,2" ToolTip="New File"
+                                Background="Transparent" BorderThickness="0"
+                                Foreground="{DynamicResource TextSecondary}" Margin="0,0,4,0">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </Button>
                         <TextBlock Text="Files" FontWeight="SemiBold" FontSize="12"
                                    Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                     </DockPanel>
@@ -155,6 +160,20 @@
                              Background="Transparent" BorderThickness="0"
                              SelectionChanged="OnFileSelected"
                              ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Rename" Click="OnRenameFileClick">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE8AC;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Delete" Click="OnDeleteFileClick">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="4,3">
@@ -189,8 +208,9 @@
                      Foreground="{DynamicResource TextPrimary}"
                      BorderBrush="{DynamicResource SurfaceBorder}"
                      FontFamily="Cascadia Code,Consolas,Courier New"
-                     FontSize="{DynamicResource MonoFontSize}"
-                     Padding="12" TextChanged="OnTextChanged"/>
+                     FontSize="{DynamicResource EditorFontSize}"
+                     Padding="12" TextChanged="OnTextChanged"
+                     PreviewMouseWheel="OnEditorMouseWheel"/>
 
             <!-- Splitter (shown when secondary panel is on) -->
             <GridSplitter x:Name="Splitter" Grid.Column="3" Width="6"
@@ -221,7 +241,7 @@
                               GridLinesVisibility="Horizontal"
                               HorizontalGridLinesBrush="{DynamicResource SurfaceBorder}"
                               FontFamily="Cascadia Code,Consolas,Courier New"
-                              FontSize="{DynamicResource MonoFontSize}"/>
+                              FontSize="{DynamicResource EditorFontSize}"/>
                 </Border>
 
                 <!-- JSON output (read-only) -->
@@ -246,7 +266,7 @@
                              Foreground="{DynamicResource HeaderColor}"
                              BorderBrush="{DynamicResource SurfaceBorder}"
                              FontFamily="Cascadia Code,Consolas,Courier New"
-                             FontSize="{DynamicResource MonoFontSize}"
+                             FontSize="{DynamicResource EditorFontSize}"
                              Padding="8"/>
                 </DockPanel>
             </Grid>

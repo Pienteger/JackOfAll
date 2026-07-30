@@ -39,11 +39,11 @@
 
                     <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,0,0,16"/>
 
-                    <!-- Font Size -->
-                    <DockPanel>
+                    <!-- UI Font Size -->
+                    <DockPanel Margin="0,0,0,16">
                         <StackPanel DockPanel.Dock="Left">
-                            <TextBlock Text="Font Size" FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
-                            <TextBlock Text="Adjust the text size across the app" FontSize="12"
+                            <TextBlock Text="UI Font Size" FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="Labels, buttons, and navigation text" FontSize="12"
                                        Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
                         </StackPanel>
                         <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right"
@@ -54,6 +54,26 @@
                             <Slider x:Name="FontSizeSlider" Width="150" Minimum="10" Maximum="24"
                                     TickFrequency="1" IsSnapToTickEnabled="True"
                                     ValueChanged="OnFontSizeChanged" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,0,0,16"/>
+
+                    <!-- Editor Font Size -->
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="Editor Font Size" FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Text="Code and text editors (Ctrl+Scroll to adjust)" FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                    VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock x:Name="EditorFontSizeLabel" FontSize="14" MinWidth="30"
+                                       TextAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimary}" Margin="0,0,12,0"/>
+                            <Slider x:Name="EditorFontSizeSlider" Width="150" Minimum="10" Maximum="32"
+                                    TickFrequency="1" IsSnapToTickEnabled="True"
+                                    ValueChanged="OnEditorFontSizeChanged" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DockPanel>
                 </StackPanel>
@@ -72,6 +92,9 @@
                     <TextBlock x:Name="PreviewMono" Text='{}{ "preview": "monospace text" }'
                                FontFamily="Cascadia Code,Consolas,Courier New"
                                Foreground="{DynamicResource HeaderColor}" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="PreviewEditor" Text="Editor text preview (Ctrl+Scroll)"
+                               FontFamily="Cascadia Code,Consolas,Courier New"
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
                     <TextBlock x:Name="PreviewSecondary" Text="Secondary text appears like this."
                                Foreground="{DynamicResource TextSecondary}"/>
                 </StackPanel>

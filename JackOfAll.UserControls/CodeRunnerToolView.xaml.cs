@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using JackOfAll.Lib;
+using JackOfAll.Lib.Settings;
 using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
@@ -432,6 +433,136 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
             if (result is not null) return result;
         }
         return null;
+    }
+
+    // ── Ctrl+Wheel font zoom ─────────────────────────────────────
+
+    private void OnEditorMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+        e.Handled = true;
+
+        var settings = AppSettings.Current;
+        if (settings is null) return;
+
+        var newSize = Math.Clamp(settings.EditorFontSize + (e.Delta > 0 ? 1 : -1), 10, 32);
+        if (Math.Abs(newSize - settings.EditorFontSize) < 0.1) return;
+
+        settings.EditorFontSize = newSize;
+        Application.Current.Resources["EditorFontSize"] = newSize;
+        settings.Save();
+    }
+
+    // ── File panel: New / Rename / Delete ─────────────────────────
+
+    private void OnNewFileClick(object sender, RoutedEventArgs e)
+    {
+        var env = EnvironmentContext.Current;
+        if (env is null || !Directory.Exists(env.FolderPath))
+        {
+            StatusText.Text = "Select an environment first.";
+            return;
+        }
+
+        var ext = Extensions.GetValueOrDefault(_language, ".txt");
+        var dlg = new InputDialog("New File", $"File name (e.g. main{ext}):");
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dlg.Owner = owner;
+        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
+
+        var fileName = dlg.ResultText.Trim();
+        if (!Path.HasExtension(fileName)) fileName += ext;
+
+        var filePath = Path.Combine(env.FolderPath, fileName);
+        if (File.Exists(filePath))
+        {
+            MessageBox.Show($"'{fileName}' already exists.", "File Exists",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var template = "";
+        var fileExt = Path.GetExtension(fileName).ToLowerInvariant();
+        if (ExtensionToLanguage.TryGetValue(fileExt, out var lang))
+            template = Templates.GetValueOrDefault(lang, "");
+
+        File.WriteAllText(filePath, template);
+        RefreshFileList();
+        OpenFile(filePath);
+        StatusText.Text = $"Created: {fileName}";
+    }
+
+    private void OnRenameFileClick(object sender, RoutedEventArgs e)
+    {
+        if (FileList.SelectedItem is not FileEntry entry) return;
+
+        var dlg = new InputDialog("Rename File", "New name:");
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dlg.Owner = owner;
+        dlg.InputBox.Text = entry.Name;
+        dlg.InputBox.SelectAll();
+        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
+
+        var newName = dlg.ResultText.Trim();
+        var dir = Path.GetDirectoryName(entry.FullPath)!;
+        var newPath = Path.Combine(dir, newName);
+
+        if (File.Exists(newPath))
+        {
+            MessageBox.Show($"'{newName}' already exists.", "File Exists",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        File.Move(entry.FullPath, newPath);
+
+        if (_currentFilePath is not null &&
+            _currentFilePath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _currentFilePath = newPath;
+            UpdateFileTitle();
+
+            var ext = Path.GetExtension(newPath).ToLowerInvariant();
+            if (ExtensionToLanguage.TryGetValue(ext, out var lang) && lang != _language)
+            {
+                _language = lang;
+                for (int i = 0; i < LanguagePicker.Items.Count; i++)
+                {
+                    if ((LanguagePicker.Items[i] as ComboBoxItem)?.Tag?.ToString() == lang)
+                    {
+                        LanguagePicker.SelectedIndex = i;
+                        break;
+                    }
+                }
+                RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
+            }
+        }
+
+        RefreshFileList();
+        StatusText.Text = $"Renamed to: {newName}";
+    }
+
+    private void OnDeleteFileClick(object sender, RoutedEventArgs e)
+    {
+        if (FileList.SelectedItem is not FileEntry entry) return;
+
+        var result = MessageBox.Show($"Delete '{entry.Name}'?", "Confirm Delete",
+            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        File.Delete(entry.FullPath);
+
+        if (_currentFilePath is not null &&
+            _currentFilePath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _currentFilePath = null;
+            CodeEditor.Text = Templates.GetValueOrDefault(_language, "");
+            _isDirty = false;
+            UpdateFileTitle();
+        }
+
+        RefreshFileList();
+        StatusText.Text = $"Deleted: {entry.Name}";
     }
 
     // ── IStatefulTool ──────────────────────────────────────────────

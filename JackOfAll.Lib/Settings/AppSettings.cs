@@ -15,8 +15,13 @@ public partial class AppSettings : ObservableObject
 {
     private static readonly string SettingsPath = Path.Combine(AppPaths.Root, "settings.json");
 
+    public static AppSettings? Current { get; private set; }
+
     [ObservableProperty]
     private double _fontSize = 13;
+
+    [ObservableProperty]
+    private double _editorFontSize = 14;
 
     [ObservableProperty]
     private ThemeMode _themeMode = ThemeMode.Dark;
@@ -29,7 +34,7 @@ public partial class AppSettings : ObservableObject
         var dir = Path.GetDirectoryName(SettingsPath)!;
         Directory.CreateDirectory(dir);
 
-        var dto = new SettingsDto { FontSize = FontSize, ThemeMode = ThemeMode.ToString(), GitHubToken = GitHubToken };
+        var dto = new SettingsDto { FontSize = FontSize, EditorFontSize = EditorFontSize, ThemeMode = ThemeMode.ToString(), GitHubToken = GitHubToken };
         var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(SettingsPath, json);
     }
@@ -37,6 +42,7 @@ public partial class AppSettings : ObservableObject
     public static AppSettings Load()
     {
         var settings = new AppSettings();
+        Current = settings;
         if (!File.Exists(SettingsPath)) return settings;
 
         try
@@ -46,6 +52,7 @@ public partial class AppSettings : ObservableObject
             if (dto is null) return settings;
 
             settings.FontSize = Math.Clamp(dto.FontSize, 10, 24);
+            settings.EditorFontSize = Math.Clamp(dto.EditorFontSize, 10, 32);
             if (Enum.TryParse<ThemeMode>(dto.ThemeMode, out var mode))
                 settings.ThemeMode = mode;
             settings.GitHubToken = dto.GitHubToken;
@@ -61,6 +68,7 @@ public partial class AppSettings : ObservableObject
     private sealed class SettingsDto
     {
         public double FontSize { get; set; } = 13;
+        public double EditorFontSize { get; set; } = 14;
         public string ThemeMode { get; set; } = "Dark";
         public string GitHubToken { get; set; } = "";
     }

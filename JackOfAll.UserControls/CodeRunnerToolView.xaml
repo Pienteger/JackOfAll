@@ -15,6 +15,16 @@
         <!-- Toolbar -->
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Click="OnNewFileClick" Padding="10,4" Margin="4,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="New" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Click="OnSaveClick" Padding="10,4" Margin="4,0,0,0"
                         Background="{DynamicResource SurfaceBackground}"
                         Foreground="{DynamicResource TextPrimary}"
@@ -84,6 +94,11 @@
                                 Foreground="{DynamicResource TextSecondary}">
                             <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
                         </Button>
+                        <Button DockPanel.Dock="Right" Click="OnNewFileClick" Padding="4,2" ToolTip="New File"
+                                Background="Transparent" BorderThickness="0"
+                                Foreground="{DynamicResource TextSecondary}" Margin="0,0,4,0">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </Button>
                         <TextBlock Text="Files" FontWeight="SemiBold" FontSize="12"
                                    Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                     </DockPanel>
@@ -92,6 +107,20 @@
                              Background="Transparent" BorderThickness="0"
                              SelectionChanged="OnFileSelected"
                              ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Rename" Click="OnRenameFileClick">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE8AC;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Delete" Click="OnDeleteFileClick">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="4,3">
@@ -122,7 +151,7 @@
                     <Border Grid.Column="0" Background="{DynamicResource SurfaceBackground}"
                             BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="0,0,1,0"
                             Padding="8,6,8,6">
-                        <TextBlock x:Name="LineNumbers" Text="1" FontSize="{DynamicResource MonoFontSize}"
+                        <TextBlock x:Name="LineNumbers" Text="1" FontSize="{DynamicResource EditorFontSize}"
                                    FontFamily="Cascadia Code,Consolas,Courier New"
                                    Foreground="{DynamicResource TextDimmed}"
                                    TextAlignment="Right" MinWidth="24"/>
@@ -138,10 +167,11 @@
                              CaretBrush="{DynamicResource TextPrimary}"
                              BorderThickness="0"
                              FontFamily="Cascadia Code,Consolas,Courier New"
-                             FontSize="{DynamicResource MonoFontSize}"
+                             FontSize="{DynamicResource EditorFontSize}"
                              Padding="8,6"
                              TextChanged="OnCodeChanged"
                              PreviewKeyDown="OnCodeKeyDown"
+                             PreviewMouseWheel="OnEditorMouseWheel"
                              ScrollViewer.ScrollChanged="OnEditorScroll"/>
                 </Grid>
             </Border>

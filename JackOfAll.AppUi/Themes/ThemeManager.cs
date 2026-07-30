@@ -76,6 +76,7 @@ public static class ThemeManager
 
         res["AppFontSize"] = settings.FontSize;
         res["MonoFontSize"] = Math.Max(settings.FontSize - 1, 10.0);
+        res["EditorFontSize"] = settings.EditorFontSize;
     }
 
     private static bool IsSystemDark()
