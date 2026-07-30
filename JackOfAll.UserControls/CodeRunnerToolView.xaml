@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
     <Grid Margin="16">
@@ -139,41 +140,20 @@
             <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
                           Background="Transparent" ShowsPreview="True"/>
 
-            <!-- Code editor -->
+            <!-- Code editor (AvalonEdit) -->
             <Border Grid.Column="2" BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
                     CornerRadius="6" ClipToBounds="True">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Border Grid.Column="0" Background="{DynamicResource SurfaceBackground}"
-                            BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="0,0,1,0"
-                            Padding="8,6,8,6">
-                        <TextBlock x:Name="LineNumbers" Text="1" FontSize="{DynamicResource EditorFontSize}"
-                                   FontFamily="Cascadia Code,Consolas,Courier New"
-                                   Foreground="{DynamicResource TextDimmed}"
-                                   TextAlignment="Right" MinWidth="24"/>
-                    </Border>
-
-                    <TextBox x:Name="CodeEditor" Grid.Column="1"
-                             AcceptsReturn="True" AcceptsTab="True"
-                             TextWrapping="NoWrap"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             Background="{DynamicResource AppBackground}"
-                             Foreground="{DynamicResource TextPrimary}"
-                             CaretBrush="{DynamicResource TextPrimary}"
-                             BorderThickness="0"
-                             FontFamily="Cascadia Code,Consolas,Courier New"
-                             FontSize="{DynamicResource EditorFontSize}"
-                             Padding="8,6"
-                             TextChanged="OnCodeChanged"
-                             PreviewKeyDown="OnCodeKeyDown"
-                             PreviewMouseWheel="OnEditorMouseWheel"
-                             ScrollViewer.ScrollChanged="OnEditorScroll"/>
-                </Grid>
+                <avalonEdit:TextEditor x:Name="CodeEditor"
+                                       ShowLineNumbers="True"
+                                       WordWrap="False"
+                                       Background="{DynamicResource AppBackground}"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       FontFamily="Cascadia Code,Consolas,Courier New"
+                                       FontSize="{DynamicResource EditorFontSize}"
+                                       HorizontalScrollBarVisibility="Auto"
+                                       VerticalScrollBarVisibility="Auto"
+                                       Padding="8,4"
+                                       PreviewMouseWheel="OnEditorMouseWheel"/>
             </Border>
         </Grid>
 

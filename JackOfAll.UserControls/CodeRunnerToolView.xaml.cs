@@ -3,9 +3,12 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using JackOfAll.Lib;
+using JackOfAll.Lib.Services;
 using JackOfAll.Lib.Settings;
 using JackOfAll.Lib.Tools;
+using JackOfAll.UserControls.Helpers;
 
 namespace JackOfAll.UserControls;
 
@@ -13,6 +16,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
 {
     private string _language = "csharp";
     private readonly string _tempDir;
+    private readonly AutoSaveService _autoSave;
     private string? _currentFilePath;
     private bool _isDirty;
     private bool _suppressFileSelection;
@@ -56,12 +60,61 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
     public CodeRunnerToolView()
     {
         InitializeComponent();
+        SyntaxHelper.EnsureRegistered();
         _tempDir = Path.Combine(AppPaths.Root, "code-runner");
         Directory.CreateDirectory(_tempDir);
+
+        ConfigureEditorTheme();
+        CodeEditor.TextChanged += OnCodeChanged;
+        CodeEditor.PreviewKeyDown += OnCodeKeyDown;
+        ApplySyntaxHighlighting();
+
+        _autoSave = new AutoSaveService(
+            () => SaveCurrentFile(),
+            () => _isDirty,
+            () => _currentFilePath is not null);
+
         Loaded += (_, _) => SyncFilePanel();
         EnvironmentContext.Changed += SyncFilePanel;
         CodeEditor.Text = Templates["csharp"];
-        UpdateLineNumbers();
+        ThemeNotifier.ThemeChanged += OnThemeChanged;
+        LostFocus += (_, _) => _autoSave.NotifyFocusLost();
+    }
+
+    private void OnThemeChanged()
+    {
+        ConfigureEditorTheme();
+        ApplySyntaxHighlighting();
+    }
+
+    private void ConfigureEditorTheme()
+    {
+        var dark = SyntaxHelper.IsDarkTheme();
+        CodeEditor.Options.EnableHyperlinks = false;
+        CodeEditor.Options.HighlightCurrentLine = true;
+        CodeEditor.Options.ConvertTabsToSpaces = true;
+        CodeEditor.Options.IndentationSize = 4;
+        CodeEditor.TextArea.SelectionForeground = null;
+
+        if (dark)
+        {
+            CodeEditor.LineNumbersForeground = new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60));
+            CodeEditor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
+            CodeEditor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF)), 1);
+            CodeEditor.TextArea.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x26, 0x4F, 0x78));
+        }
+        else
+        {
+            CodeEditor.LineNumbersForeground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+            CodeEditor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.FromArgb(0x18, 0x00, 0x00, 0x00));
+            CodeEditor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Color.FromArgb(0x10, 0x00, 0x00, 0x00)), 1);
+            CodeEditor.TextArea.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x33, 0x99, 0xFF));
+        }
+    }
+
+    private void ApplySyntaxHighlighting()
+    {
+        CodeEditor.SyntaxHighlighting = SyntaxHelper.ForLanguage(_language);
     }
 
     // ── Environment-driven file panel ─────────────────────────────
@@ -132,21 +185,28 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
 
         if (_isDirty)
         {
-            var answer = MessageBox.Show("Save changes before switching files?",
-                "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            if (answer == MessageBoxResult.Cancel)
+            if (_autoSave.IsEnabled)
             {
-                _suppressFileSelection = true;
-                if (_currentFilePath is not null)
-                {
-                    var files = FileList.ItemsSource as List<FileEntry>;
-                    var idx = files?.FindIndex(f => f.FullPath == _currentFilePath) ?? -1;
-                    FileList.SelectedIndex = idx;
-                }
-                _suppressFileSelection = false;
-                return;
+                _autoSave.TrySaveBeforeAction();
             }
-            if (answer == MessageBoxResult.Yes) SaveCurrentFile();
+            else
+            {
+                var answer = MessageBox.Show("Save changes before switching files?",
+                    "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (answer == MessageBoxResult.Cancel)
+                {
+                    _suppressFileSelection = true;
+                    if (_currentFilePath is not null)
+                    {
+                        var files = FileList.ItemsSource as List<FileEntry>;
+                        var idx = files?.FindIndex(f => f.FullPath == _currentFilePath) ?? -1;
+                        FileList.SelectedIndex = idx;
+                    }
+                    _suppressFileSelection = false;
+                    return;
+                }
+                if (answer == MessageBoxResult.Yes) SaveCurrentFile();
+            }
         }
 
         OpenFile(entry.FullPath);
@@ -173,6 +233,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
                     }
                 }
                 RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
+                ApplySyntaxHighlighting();
             }
 
             UpdateFileTitle();
@@ -263,6 +324,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
 
         _language = lang;
         RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
+        ApplySyntaxHighlighting();
     }
 
     // ── Run ───────────────────────────────────────────────────────
@@ -367,14 +429,14 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
 
     // ── Editor helpers ─────────────────────────────────────────────
 
-    private void OnCodeChanged(object sender, TextChangedEventArgs e)
+    private void OnCodeChanged(object? sender, EventArgs e)
     {
         if (!_isDirty && IsLoaded)
         {
             _isDirty = true;
             UpdateFileTitle();
         }
-        UpdateLineNumbers();
+        if (IsLoaded) _autoSave.NotifyChanged();
     }
 
     private void OnCodeKeyDown(object sender, KeyEventArgs e)
@@ -390,49 +452,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
         {
             e.Handled = true;
             OnSaveClick(sender, e);
-            return;
         }
-
-        if (e.Key == Key.Tab)
-        {
-            e.Handled = true;
-            var caretIndex = CodeEditor.CaretIndex;
-            CodeEditor.Text = CodeEditor.Text.Insert(caretIndex, "    ");
-            CodeEditor.CaretIndex = caretIndex + 4;
-        }
-    }
-
-    private void UpdateLineNumbers()
-    {
-        if (LineNumbers is null) return;
-        var count = CodeEditor.Text.Split('\n').Length;
-        LineNumbers.Text = string.Join("\n", Enumerable.Range(1, Math.Max(count, 1)));
-    }
-
-    private void OnEditorScroll(object sender, ScrollChangedEventArgs e)
-    {
-        if (e.VerticalChange == 0) return;
-        var sv = GetScrollViewer(CodeEditor);
-        if (sv is null) return;
-
-        var lineNumberParent = LineNumbers.Parent as FrameworkElement;
-        if (lineNumberParent?.Parent is Border border)
-        {
-            border.Margin = new Thickness(0, -sv.VerticalOffset, 0, 0);
-            border.Padding = new Thickness(8, 6 + sv.VerticalOffset, 8, 6);
-        }
-    }
-
-    private static ScrollViewer? GetScrollViewer(DependencyObject dep)
-    {
-        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(dep); i++)
-        {
-            var child = System.Windows.Media.VisualTreeHelper.GetChild(dep, i);
-            if (child is ScrollViewer sv) return sv;
-            var result = GetScrollViewer(child);
-            if (result is not null) return result;
-        }
-        return null;
     }
 
     // ── Ctrl+Wheel font zoom ─────────────────────────────────────
@@ -535,6 +555,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
                     }
                 }
                 RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
+                ApplySyntaxHighlighting();
             }
         }
 
@@ -595,6 +616,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
                 }
             }
             RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
+            ApplySyntaxHighlighting();
         }
 
         if (state.TryGetValue("filePath", out var fp) && File.Exists(fp))

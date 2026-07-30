@@ -11,6 +11,13 @@ public enum ThemeMode
     System
 }
 
+public enum AutoSaveMode
+{
+    Off,
+    AfterDelay,
+    OnFocusChange
+}
+
 public partial class AppSettings : ObservableObject
 {
     private static readonly string SettingsPath = Path.Combine(AppPaths.Root, "settings.json");
@@ -27,6 +34,12 @@ public partial class AppSettings : ObservableObject
     private ThemeMode _themeMode = ThemeMode.Dark;
 
     [ObservableProperty]
+    private AutoSaveMode _autoSaveMode = AutoSaveMode.AfterDelay;
+
+    [ObservableProperty]
+    private int _autoSaveDelayMs = 1000;
+
+    [ObservableProperty]
     private string _gitHubToken = "";
 
     public void Save()
@@ -34,7 +47,15 @@ public partial class AppSettings : ObservableObject
         var dir = Path.GetDirectoryName(SettingsPath)!;
         Directory.CreateDirectory(dir);
 
-        var dto = new SettingsDto { FontSize = FontSize, EditorFontSize = EditorFontSize, ThemeMode = ThemeMode.ToString(), GitHubToken = GitHubToken };
+        var dto = new SettingsDto
+        {
+            FontSize = FontSize,
+            EditorFontSize = EditorFontSize,
+            ThemeMode = ThemeMode.ToString(),
+            AutoSaveMode = AutoSaveMode.ToString(),
+            AutoSaveDelayMs = AutoSaveDelayMs,
+            GitHubToken = GitHubToken
+        };
         var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(SettingsPath, json);
     }
@@ -55,6 +76,9 @@ public partial class AppSettings : ObservableObject
             settings.EditorFontSize = Math.Clamp(dto.EditorFontSize, 10, 32);
             if (Enum.TryParse<ThemeMode>(dto.ThemeMode, out var mode))
                 settings.ThemeMode = mode;
+            if (Enum.TryParse<AutoSaveMode>(dto.AutoSaveMode, out var autoSave))
+                settings.AutoSaveMode = autoSave;
+            settings.AutoSaveDelayMs = Math.Clamp(dto.AutoSaveDelayMs, 200, 30000);
             settings.GitHubToken = dto.GitHubToken;
         }
         catch
@@ -70,6 +94,8 @@ public partial class AppSettings : ObservableObject
         public double FontSize { get; set; } = 13;
         public double EditorFontSize { get; set; } = 14;
         public string ThemeMode { get; set; } = "Dark";
+        public string AutoSaveMode { get; set; } = "AfterDelay";
+        public int AutoSaveDelayMs { get; set; } = 1000;
         public string GitHubToken { get; set; } = "";
     }
 }

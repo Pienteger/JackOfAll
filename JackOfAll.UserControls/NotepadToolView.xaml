@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
     <Grid Margin="16">
@@ -76,7 +77,7 @@
                     </StackPanel>
                 </ToggleButton>
 
-                <!-- JSON: Format, Minify, Escape, Unescape -->
+                <!-- JSON: Format, Minify, Escape, Unescape, Visualize -->
                 <Button x:Name="BtnJsonFormat" Click="OnJsonFormatClick" Padding="10,4" Margin="4,0,0,0"
                         Style="{StaticResource PrimaryButton}" Visibility="Collapsed"
                         ToolTip="Format JSON in editor">
@@ -115,6 +116,17 @@
                         <TextBlock Text="Unescape" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
+                <ToggleButton x:Name="BtnJsonVisualize" Click="OnJsonVisualizeClick"
+                              Padding="10,4" Margin="4,0,0,0"
+                              Background="{DynamicResource SurfaceBackground}"
+                              Foreground="{DynamicResource TextPrimary}"
+                              BorderBrush="{DynamicResource SurfaceBorder}"
+                              Visibility="Collapsed" ToolTip="Tree visualizer">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8A9;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Visualize" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ToggleButton>
             </StackPanel>
             <TextBlock x:Name="FileTitle" Text="Untitled.md" Foreground="{DynamicResource TextPrimary}"
                        FontSize="{DynamicResource AppFontSize}" VerticalAlignment="Center"/>
@@ -200,17 +212,21 @@
                           Background="{DynamicResource SurfaceBorder}"
                           Margin="4,0,4,0" Visibility="Collapsed"/>
 
-            <!-- Editor -->
-            <TextBox x:Name="EditorBox" Grid.Column="2" AcceptsReturn="True" AcceptsTab="True"
-                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     Background="{DynamicResource SurfaceBackground}"
-                     Foreground="{DynamicResource TextPrimary}"
-                     BorderBrush="{DynamicResource SurfaceBorder}"
-                     FontFamily="Cascadia Code,Consolas,Courier New"
-                     FontSize="{DynamicResource EditorFontSize}"
-                     Padding="12" TextChanged="OnTextChanged"
-                     PreviewMouseWheel="OnEditorMouseWheel"/>
+            <!-- Editor (AvalonEdit) -->
+            <Border Grid.Column="2" BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                    CornerRadius="6" ClipToBounds="True">
+                <avalonEdit:TextEditor x:Name="EditorBox"
+                                       ShowLineNumbers="True"
+                                       WordWrap="True"
+                                       Background="{DynamicResource SurfaceBackground}"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       FontFamily="Cascadia Code,Consolas,Courier New"
+                                       FontSize="{DynamicResource EditorFontSize}"
+                                       HorizontalScrollBarVisibility="Auto"
+                                       VerticalScrollBarVisibility="Auto"
+                                       Padding="8,4"
+                                       PreviewMouseWheel="OnEditorMouseWheel"/>
+            </Border>
 
             <!-- Splitter (shown when secondary panel is on) -->
             <GridSplitter x:Name="Splitter" Grid.Column="3" Width="6"
@@ -218,7 +234,7 @@
                           Background="{DynamicResource SurfaceBorder}"
                           Margin="4,0,4,0" Visibility="Collapsed"/>
 
-            <!-- Secondary panel: markdown preview / csv table / json output -->
+            <!-- Secondary panel: markdown preview / csv table / json output / json tree -->
             <Grid Grid.Column="4">
                 <!-- Markdown preview -->
                 <Border x:Name="MarkdownPreviewPanel" Visibility="Collapsed"
@@ -259,15 +275,51 @@
                         <TextBlock Text="OUTPUT" FontSize="11" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                     </DockPanel>
-                    <TextBox x:Name="JsonOutputBox" IsReadOnly="True" AcceptsReturn="True"
-                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             Background="{DynamicResource SurfaceBackground}"
-                             Foreground="{DynamicResource HeaderColor}"
-                             BorderBrush="{DynamicResource SurfaceBorder}"
-                             FontFamily="Cascadia Code,Consolas,Courier New"
-                             FontSize="{DynamicResource EditorFontSize}"
-                             Padding="8"/>
+                    <Border BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                            CornerRadius="6" ClipToBounds="True">
+                        <avalonEdit:TextEditor x:Name="JsonOutputBox" IsReadOnly="True"
+                                               WordWrap="True"
+                                               ShowLineNumbers="False"
+                                               Background="{DynamicResource SurfaceBackground}"
+                                               Foreground="{DynamicResource HeaderColor}"
+                                               FontFamily="Cascadia Code,Consolas,Courier New"
+                                               FontSize="{DynamicResource EditorFontSize}"
+                                               HorizontalScrollBarVisibility="Auto"
+                                               VerticalScrollBarVisibility="Auto"
+                                               Padding="8,4"/>
+                    </Border>
+                </DockPanel>
+
+                <!-- JSON tree visualizer -->
+                <DockPanel x:Name="JsonTreePanel" Visibility="Collapsed">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Click="OnExpandAllClick" Padding="6,2" Margin="0,0,4,0"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                    ToolTip="Expand all">
+                                <TextBlock Text="&#xE740;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                            </Button>
+                            <Button Click="OnCollapseAllClick" Padding="6,2"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                    ToolTip="Collapse all">
+                                <TextBlock Text="&#xE73F;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Text="TREE VIEW" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
+                            CornerRadius="6">
+                        <TreeView x:Name="JsonTree" Background="Transparent" BorderThickness="0"
+                                  Padding="8,4"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                    </Border>
                 </DockPanel>
             </Grid>
         </Grid>

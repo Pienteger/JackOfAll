@@ -4,9 +4,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ICSharpCode.AvalonEdit.Highlighting;
+using JackOfAll.Lib;
 using JackOfAll.Lib.Services;
 using JackOfAll.Lib.Settings;
 using JackOfAll.Lib.Tools;
+using JackOfAll.UserControls.Helpers;
 using Microsoft.Win32;
 
 namespace JackOfAll.UserControls;
@@ -17,18 +20,71 @@ public partial class NotepadToolView : UserControl, IStatefulTool
     private bool _isDirty;
     private bool _suppressFileSelection;
     private FileMode _fileMode = FileMode.Markdown;
+    private readonly AutoSaveService _autoSave;
 
     private enum FileMode { Markdown, Text, Csv, Tsv, Json }
 
     private static readonly string[] SupportedExtensions =
         [".md", ".markdown", ".txt", ".csv", ".tsv", ".json",
-         ".xml", ".yaml", ".yml", ".log", ".ini", ".cfg", ".conf", ".toml"];
+         ".xml", ".yaml", ".yml", ".log", ".ini", ".cfg", ".conf", ".toml",
+         ".cs", ".js", ".py", ".html", ".htm", ".css"];
 
     public NotepadToolView()
     {
         InitializeComponent();
+        SyntaxHelper.EnsureRegistered();
+        EditorBox.TextChanged += OnTextChanged;
+        EditorBox.TextArea.Caret.PositionChanged += (_, _) => UpdateStatus();
+        ConfigureEditorTheme(EditorBox);
+        ConfigureEditorTheme(JsonOutputBox);
+        ApplyJsonOutputHighlighting();
+        _autoSave = new AutoSaveService(
+            () => SaveCurrentFile(),
+            () => _isDirty,
+            () => _currentPath is not null);
         Loaded += (_, _) => SyncFilePanel();
         EnvironmentContext.Changed += SyncFilePanel;
+        ThemeNotifier.ThemeChanged += OnThemeChanged;
+        LostFocus += (_, _) => _autoSave.NotifyFocusLost();
+    }
+
+    private void OnThemeChanged()
+    {
+        ConfigureEditorTheme(EditorBox);
+        ConfigureEditorTheme(JsonOutputBox);
+        ApplyJsonOutputHighlighting();
+        ApplySyntaxHighlighting();
+    }
+
+    private void ApplyJsonOutputHighlighting()
+    {
+        var suffix = SyntaxHelper.IsDarkTheme() ? "Dark" : "Light";
+        JsonOutputBox.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition($"JSON-{suffix}");
+    }
+
+    private static void ConfigureEditorTheme(ICSharpCode.AvalonEdit.TextEditor editor)
+    {
+        var dark = SyntaxHelper.IsDarkTheme();
+        editor.Options.EnableHyperlinks = false;
+        editor.Options.HighlightCurrentLine = true;
+        editor.TextArea.SelectionForeground = null;
+
+        if (dark)
+        {
+            editor.TextArea.TextView.LinkTextForegroundBrush = new SolidColorBrush(Color.FromRgb(0x56, 0x9C, 0xD6));
+            editor.LineNumbersForeground = new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60));
+            editor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
+            editor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF)), 1);
+            editor.TextArea.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x26, 0x4F, 0x78));
+        }
+        else
+        {
+            editor.TextArea.TextView.LinkTextForegroundBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x66, 0xCC));
+            editor.LineNumbersForeground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+            editor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.FromArgb(0x18, 0x00, 0x00, 0x00));
+            editor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Color.FromArgb(0x10, 0x00, 0x00, 0x00)), 1);
+            editor.TextArea.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x33, 0x99, 0xFF));
+        }
     }
 
     // ── File mode detection ───────────────────────────────────────
@@ -61,11 +117,34 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         BtnJsonMinify.Visibility = jsonVis;
         BtnJsonEscape.Visibility = jsonVis;
         BtnJsonUnescape.Visibility = jsonVis;
+        BtnJsonVisualize.Visibility = jsonVis;
 
         if (PreviewToggle.IsChecked == true && mode != FileMode.Markdown)
             PreviewToggle.IsChecked = false;
         if (CsvPreviewToggle.IsChecked == true && mode is not (FileMode.Csv or FileMode.Tsv))
             CsvPreviewToggle.IsChecked = false;
+        if (BtnJsonVisualize.IsChecked == true && mode != FileMode.Json)
+            BtnJsonVisualize.IsChecked = false;
+
+        ApplySyntaxHighlighting();
+    }
+
+    private void ApplySyntaxHighlighting()
+    {
+        if (_currentPath is not null)
+        {
+            var ext = Path.GetExtension(_currentPath);
+            EditorBox.SyntaxHighlighting = SyntaxHelper.ForExtension(ext);
+        }
+        else
+        {
+            EditorBox.SyntaxHighlighting = _fileMode switch
+            {
+                FileMode.Json => SyntaxHelper.ForExtension(".json"),
+                FileMode.Markdown => null,
+                _ => null
+            };
+        }
     }
 
     // ── Environment-driven file panel ─────────────────────────────
@@ -143,22 +222,29 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
         if (_isDirty && _currentPath != entry.FullPath)
         {
-            var save = MessageBox.Show("Save changes before switching?", "Unsaved Changes",
-                MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            if (save == MessageBoxResult.Cancel)
+            if (_autoSave.IsEnabled)
             {
-                _suppressFileSelection = true;
-                if (_currentPath is not null)
-                {
-                    var prev = (FileList.ItemsSource as List<FileEntry>)?.FirstOrDefault(f =>
-                        f.FullPath.Equals(_currentPath, StringComparison.OrdinalIgnoreCase));
-                    FileList.SelectedItem = prev;
-                }
-                _suppressFileSelection = false;
-                return;
+                _autoSave.TrySaveBeforeAction();
             }
-            if (save == MessageBoxResult.Yes)
-                SaveCurrentFile();
+            else
+            {
+                var save = MessageBox.Show("Save changes before switching?", "Unsaved Changes",
+                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (save == MessageBoxResult.Cancel)
+                {
+                    _suppressFileSelection = true;
+                    if (_currentPath is not null)
+                    {
+                        var prev = (FileList.ItemsSource as List<FileEntry>)?.FirstOrDefault(f =>
+                            f.FullPath.Equals(_currentPath, StringComparison.OrdinalIgnoreCase));
+                        FileList.SelectedItem = prev;
+                    }
+                    _suppressFileSelection = false;
+                    return;
+                }
+                if (save == MessageBoxResult.Yes)
+                    SaveCurrentFile();
+            }
         }
 
         OpenFile(entry.FullPath);
@@ -182,14 +268,17 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         UpdateStatus();
     }
 
-    private void OnTextChanged(object sender, TextChangedEventArgs e)
+    private void OnTextChanged(object? sender, EventArgs e)
     {
         _isDirty = true;
+        _autoSave.NotifyChanged();
         UpdateStatus();
         if (PreviewToggle.IsChecked == true && _fileMode == FileMode.Markdown)
             UpdateMarkdownPreview();
         if (CsvPreviewToggle.IsChecked == true && _fileMode is FileMode.Csv or FileMode.Tsv)
             UpdateCsvPreview();
+        if (BtnJsonVisualize.IsChecked == true && _fileMode == FileMode.Json)
+            UpdateJsonTree();
     }
 
     // ── File operations ───────────────────────────────────────────
@@ -198,13 +287,20 @@ public partial class NotepadToolView : UserControl, IStatefulTool
     {
         if (_isDirty)
         {
-            var save = MessageBox.Show("Save changes first?", "Unsaved Changes",
-                MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            if (save == MessageBoxResult.Cancel) return;
-            if (save == MessageBoxResult.Yes)
+            if (_autoSave.IsEnabled)
             {
-                OnSaveClick(sender, e);
-                if (_isDirty) return;
+                _autoSave.TrySaveBeforeAction();
+            }
+            else
+            {
+                var save = MessageBox.Show("Save changes first?", "Unsaved Changes",
+                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                if (save == MessageBoxResult.Cancel) return;
+                if (save == MessageBoxResult.Yes)
+                {
+                    OnSaveClick(sender, e);
+                    if (_isDirty) return;
+                }
             }
         }
 
@@ -226,7 +322,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
         var dlg = new OpenFileDialog
         {
-            Filter = "All supported|*.md;*.markdown;*.txt;*.csv;*.tsv;*.json;*.xml;*.yaml;*.yml|Markdown|*.md;*.markdown|Text|*.txt|CSV/TSV|*.csv;*.tsv|JSON|*.json|All files|*.*",
+            Filter = "All supported|*.md;*.markdown;*.txt;*.csv;*.tsv;*.json;*.xml;*.yaml;*.yml;*.cs;*.js;*.py;*.html;*.htm|Markdown|*.md;*.markdown|Text|*.txt|CSV/TSV|*.csv;*.tsv|JSON|*.json|All files|*.*",
             DefaultExt = ".txt"
         };
 
@@ -521,6 +617,51 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         }
     }
 
+    // ── JSON tree visualizer ─────────────────────────────────────
+
+    private void OnJsonVisualizeClick(object sender, RoutedEventArgs e)
+    {
+        if (BtnJsonVisualize.IsChecked == true)
+        {
+            ShowSecondaryPanel();
+            JsonTreePanel.Visibility = Visibility.Visible;
+            UpdateJsonTree();
+        }
+        else
+        {
+            HideSecondaryPanel();
+        }
+    }
+
+    private void UpdateJsonTree()
+    {
+        var text = EditorBox.Text.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            JsonTree.Items.Clear();
+            return;
+        }
+        JsonTreeBuilder.TryBuild(text, JsonTree);
+    }
+
+    private void OnExpandAllClick(object sender, RoutedEventArgs e) =>
+        SetTreeExpansion(JsonTree, true);
+
+    private void OnCollapseAllClick(object sender, RoutedEventArgs e) =>
+        SetTreeExpansion(JsonTree, false);
+
+    private static void SetTreeExpansion(ItemsControl parent, bool expanded)
+    {
+        foreach (var item in parent.Items)
+        {
+            if (item is TreeViewItem tvi)
+            {
+                tvi.IsExpanded = expanded;
+                SetTreeExpansion(tvi, expanded);
+            }
+        }
+    }
+
     // ── Ctrl+Wheel font zoom ─────────────────────────────────────
 
     private void OnEditorMouseWheel(object sender, MouseWheelEventArgs e)
@@ -633,6 +774,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         MarkdownPreviewPanel.Visibility = Visibility.Collapsed;
         CsvPreviewPanel.Visibility = Visibility.Collapsed;
         JsonOutputPanel.Visibility = Visibility.Collapsed;
+        JsonTreePanel.Visibility = Visibility.Collapsed;
 
         SplitterColumn.Width = new GridLength(6);
         SecondaryColumn.Width = new GridLength(1, GridUnitType.Star);
@@ -644,6 +786,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         MarkdownPreviewPanel.Visibility = Visibility.Collapsed;
         CsvPreviewPanel.Visibility = Visibility.Collapsed;
         JsonOutputPanel.Visibility = Visibility.Collapsed;
+        JsonTreePanel.Visibility = Visibility.Collapsed;
 
         SplitterColumn.Width = new GridLength(0);
         SecondaryColumn.Width = new GridLength(0);
@@ -654,8 +797,9 @@ public partial class NotepadToolView : UserControl, IStatefulTool
 
     private void UpdateStatus()
     {
-        var lines = EditorBox.Text.Split('\n').Length;
-        var chars = EditorBox.Text.Length;
+        var text = EditorBox.Text;
+        var lines = text.Split('\n').Length;
+        var chars = text.Length;
         var dirty = _isDirty ? " (modified)" : "";
         var envLabel = EnvironmentContext.Current is not null ? $"  [{EnvironmentContext.Current.Name}]" : "";
         var modeLabel = _fileMode switch
@@ -666,7 +810,11 @@ public partial class NotepadToolView : UserControl, IStatefulTool
             FileMode.Markdown => "  Markdown",
             _ => ""
         };
-        SetStatus($"Lines: {lines}  Chars: {chars}{dirty}{modeLabel}{envLabel}", "SurfaceBackground", "TextSecondary");
+
+        var caret = EditorBox.TextArea.Caret;
+        var posLabel = $"  Ln {caret.Line}, Col {caret.Column}";
+
+        SetStatus($"Lines: {lines}  Chars: {chars}{dirty}{modeLabel}{posLabel}{envLabel}", "SurfaceBackground", "TextSecondary");
     }
 
     private void SetStatus(string message, string backgroundKey, string foregroundKey)
