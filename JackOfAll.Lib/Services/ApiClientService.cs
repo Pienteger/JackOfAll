@@ -69,15 +69,23 @@ public static class ApiClientService
             Key = ApiEnvironmentService.Resolve(p.Key),
             Value = ApiEnvironmentService.Resolve(p.Value)
         }).ToList();
+        var resolvedHeaders = request.Headers.Select(h => new KeyValueItem
+        {
+            Enabled = h.Enabled,
+            Key = ApiEnvironmentService.Resolve(h.Key),
+            Value = ApiEnvironmentService.Resolve(h.Value)
+        }).ToList();
 
         var url = BuildUrl(resolvedUrl, resolvedParams);
         var method = new HttpMethod(request.Method);
         using var msg = new HttpRequestMessage(method, url);
 
-        foreach (var h in request.Headers.Where(h => h.Enabled && !string.IsNullOrWhiteSpace(h.Key)))
-            msg.Headers.TryAddWithoutValidation(
-                ApiEnvironmentService.Resolve(h.Key),
-                ApiEnvironmentService.Resolve(h.Value));
+        foreach (var h in resolvedHeaders.Where(h => h.Enabled && !string.IsNullOrWhiteSpace(h.Key)))
+        {
+            if (h.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                continue;
+            msg.Headers.TryAddWithoutValidation(h.Key, h.Value);
+        }
 
         msg.Headers.UserAgent.TryParseAdd("JackOfAll/1.0");
 
@@ -104,6 +112,7 @@ public static class ApiClientService
             var resolvedRequest = request with
             {
                 Body = ApiEnvironmentService.Resolve(request.Body),
+                Headers = resolvedHeaders,
                 FormData = resolvedFormData
             };
 
@@ -144,6 +153,8 @@ public static class ApiClientService
         foreach (var rule in rules)
         {
             if (string.IsNullOrWhiteSpace(rule.Variable) || string.IsNullOrWhiteSpace(rule.Expression))
+                continue;
+            if (!ApiEnvironmentService.IsValidVariableName(rule.Variable))
                 continue;
 
             string? value = rule.Source switch

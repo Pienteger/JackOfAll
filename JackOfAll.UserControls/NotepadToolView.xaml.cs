@@ -37,6 +37,8 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         EditorBox.TextArea.Caret.PositionChanged += (_, _) => UpdateStatus();
         ConfigureEditorTheme(EditorBox);
         ConfigureEditorTheme(JsonOutputBox);
+        AttachEditorContextMenu(EditorBox);
+        AttachEditorContextMenu(JsonOutputBox);
         ApplyJsonOutputHighlighting();
         _autoSave = new AutoSaveService(
             () => SaveCurrentFile(),
@@ -48,6 +50,35 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         LostFocus += (_, _) => _autoSave.NotifyFocusLost();
     }
 
+
+    private static void AttachEditorContextMenu(ICSharpCode.AvalonEdit.TextEditor editor)
+    {
+        editor.ContextMenu = BuildEditorContextMenu(editor);
+        editor.TextArea.ContextMenu = editor.ContextMenu;
+    }
+
+    private static ContextMenu BuildEditorContextMenu(ICSharpCode.AvalonEdit.TextEditor editor)
+    {
+        var menu = new ContextMenu();
+        AddEditorMenuItem(menu, "Cut", () => editor.Cut(), () => !editor.IsReadOnly && !string.IsNullOrEmpty(editor.SelectedText));
+        AddEditorMenuItem(menu, "Copy", () => editor.Copy(), () => !string.IsNullOrEmpty(editor.SelectedText));
+        AddEditorMenuItem(menu, "Paste", () => editor.Paste(), () => !editor.IsReadOnly && Clipboard.ContainsText());
+        menu.Items.Add(new Separator());
+        AddEditorMenuItem(menu, "Select All", () => editor.SelectAll(), () => editor.Text.Length > 0);
+        menu.Opened += (_, _) =>
+        {
+            foreach (var item in menu.Items.OfType<MenuItem>())
+                item.IsEnabled = item.Tag is Func<bool> canExecute && canExecute();
+        };
+        return menu;
+    }
+
+    private static void AddEditorMenuItem(ContextMenu menu, string header, Action execute, Func<bool> canExecute)
+    {
+        var item = new MenuItem { Header = header, Tag = canExecute };
+        item.Click += (_, _) => execute();
+        menu.Items.Add(item);
+    }
     private void OnThemeChanged()
     {
         ConfigureEditorTheme(EditorBox);

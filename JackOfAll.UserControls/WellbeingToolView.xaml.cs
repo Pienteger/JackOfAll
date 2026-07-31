@@ -257,8 +257,7 @@ public partial class WellbeingToolView : UserControl, IStatefulTool
         ReminderStatus.Foreground = FindBrush("PayloadColor");
 
         var breakSeconds = GetInt(BreakDuration, 20, 5, 300);
-        var overlay = new BreakOverlayWindow(breakSeconds);
-        overlay.ShowDialog();
+        BreakOverlayWindow.ShowForAllScreens(breakSeconds);
 
         ReminderStatus.Text = $"Active. Next reminder in {minutes:0} minutes.";
         ReminderStatus.Foreground = FindBrush("SuccessText");
@@ -339,7 +338,8 @@ public partial class WellbeingToolView : UserControl, IStatefulTool
             ["sessions"] = _sessions.ToString(),
             ["focusTodaySeconds"] = ((int)_focusToday.TotalSeconds).ToString(),
             ["reminderInterval"] = ReminderInterval.Text,
-            ["breakDuration"] = BreakDuration.Text
+            ["breakDuration"] = BreakDuration.Text,
+            ["selectedTab"] = WellbeingTabs.SelectedIndex.ToString()
         };
     }
 
@@ -354,6 +354,8 @@ public partial class WellbeingToolView : UserControl, IStatefulTool
         if (state.TryGetValue("sessions", out var sessions) && int.TryParse(sessions, out var parsedSessions)) _sessions = parsedSessions;
         if (state.TryGetValue("focusTodaySeconds", out var seconds) && int.TryParse(seconds, out var parsedSeconds))
             _focusToday = TimeSpan.FromSeconds(parsedSeconds);
+        if (state.TryGetValue("selectedTab", out var selectedTab) && int.TryParse(selectedTab, out var tabIndex) && tabIndex >= 0 && tabIndex < WellbeingTabs.Items.Count)
+            WellbeingTabs.SelectedIndex = tabIndex;
 
         ResetPomodoro();
         UpdateStats();

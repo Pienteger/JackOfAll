@@ -3,10 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:JackOfAll.UserControls"
              mc:Ignorable="d"
              d:DesignHeight="760" d:DesignWidth="980">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
-        <StackPanel Margin="0">
+    <TabControl x:Name="WellbeingTabs" Margin="0">
+        <TabControl.Resources>
+            <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
+        </TabControl.Resources>
+        <TabItem Header="Focus">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel Margin="0">
 
             <TextBlock Text="WELLBEING" FontSize="11" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
@@ -248,6 +254,11 @@
                 </StackPanel>
             </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Reminders">
+            <local:ReminderToolView x:Name="ReminderListView"/>
+        </TabItem>
+    </TabControl>
 </UserControl>

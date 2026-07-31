@@ -1,9 +1,15 @@
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Threading;
+using System.Windows.Input;
+using ICSharpCode.AvalonEdit;
+using JackOfAll.Lib;
 using JackOfAll.Lib.Services;
 using JackOfAll.Lib.Tools;
+using JackOfAll.UserControls.Helpers;
 
 namespace JackOfAll.UserControls;
 
@@ -15,13 +21,34 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
     private ApiHistoryEntry? _selectedHistoryEntry;
     private ApiResponse? _lastResponse;
     private CancellationTokenSource? _cts;
+    private bool _isSending;
+    private readonly ContextMenu _envSuggestionMenu = new();
+    private TextBox? _envSuggestionTextBox;
+    private TextEditor? _envSuggestionEditor;
+    private int _envSuggestionStart;
+    private int _envSuggestionEnd;
 
     private string? ActiveWorkspace => EnvironmentContext.Current?.Name;
 
     public ApiClientToolView()
     {
         InitializeComponent();
+        SyntaxHelper.EnsureRegistered();
+        ConfigureEditorTheme(BodyBox);
+        ConfigureEditorTheme(ResponseBody);
+        ConfigureEditorTheme(HistoryResponseBody);
+        ConfigureEditorTheme(HistoryRequestBody);
+        ApplyEditorHighlighting();
+        AttachEditorContextMenu(BodyBox);
+        AttachEditorContextMenu(ResponseBody);
+        AttachEditorContextMenu(HistoryResponseBody);
+        AttachEditorContextMenu(HistoryRequestBody);
+RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
+        ThemeNotifier.ThemeChanged += OnThemeChanged;
         DataObject.AddPastingHandler(UrlBox, OnUrlBoxPaste);
+        AttachEnvironmentSuggestions(UrlBox);
+        AttachEnvironmentSuggestions(AuthValueBox);
+        AttachEnvironmentSuggestions(BodyBox);
         Loaded += (_, _) =>
         {
             ApiHistoryDbService.EnsureDatabase();
@@ -37,6 +64,265 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         };
     }
 
+    private void OnThemeChanged()
+    {
+        ConfigureEditorTheme(BodyBox);
+        ConfigureEditorTheme(ResponseBody);
+        ConfigureEditorTheme(HistoryResponseBody);
+        ConfigureEditorTheme(HistoryRequestBody);
+        ApplyEditorHighlighting();
+    }
+
+    private static void ConfigureEditorTheme(TextEditor editor)
+    {
+        var dark = SyntaxHelper.IsDarkTheme();
+        editor.Options.EnableHyperlinks = false;
+        editor.Options.HighlightCurrentLine = true;
+        editor.TextArea.SelectionForeground = null;
+
+        if (dark)
+        {
+            editor.TextArea.TextView.LinkTextForegroundBrush = new SolidColorBrush(Color.FromRgb(0x56, 0x9C, 0xD6));
+            editor.LineNumbersForeground = new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60));
+            editor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
+            editor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF)), 1);
+            editor.TextArea.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x26, 0x4F, 0x78));
+        }
+        else
+        {
+            editor.TextArea.TextView.LinkTextForegroundBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x66, 0xCC));
+            editor.LineNumbersForeground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+            editor.TextArea.TextView.CurrentLineBackground = new SolidColorBrush(Color.FromArgb(0x18, 0x00, 0x00, 0x00));
+            editor.TextArea.TextView.CurrentLineBorder = new Pen(new SolidColorBrush(Color.FromArgb(0x10, 0x00, 0x00, 0x00)), 1);
+            editor.TextArea.SelectionBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x33, 0x99, 0xFF));
+        }
+    }
+
+
+    private static void AttachEditorContextMenu(TextEditor editor)
+    {
+        editor.ContextMenu = BuildEditorContextMenu(editor);
+        editor.TextArea.ContextMenu = editor.ContextMenu;
+    }
+
+    private static ContextMenu BuildEditorContextMenu(TextEditor editor)
+    {
+        var menu = new ContextMenu();
+        AddEditorMenuItem(menu, "Cut", () => editor.Cut(), () => !editor.IsReadOnly && !string.IsNullOrEmpty(editor.SelectedText));
+        AddEditorMenuItem(menu, "Copy", () => editor.Copy(), () => !string.IsNullOrEmpty(editor.SelectedText));
+        AddEditorMenuItem(menu, "Paste", () => editor.Paste(), () => !editor.IsReadOnly && Clipboard.ContainsText());
+        menu.Items.Add(new Separator());
+        AddEditorMenuItem(menu, "Select All", () => editor.SelectAll(), () => editor.Text.Length > 0);
+        menu.Opened += (_, _) =>
+        {
+            foreach (var item in menu.Items.OfType<MenuItem>())
+                item.IsEnabled = item.Tag is Func<bool> canExecute && canExecute();
+        };
+        return menu;
+    }
+
+    private static void AddEditorMenuItem(ContextMenu menu, string header, Action execute, Func<bool> canExecute)
+    {
+        var item = new MenuItem { Header = header, Tag = canExecute };
+        item.Click += (_, _) => execute();
+        menu.Items.Add(item);
+    }
+
+    private void ApplyEditorHighlighting()
+    {
+        ApplyRequestBodyHighlighting();
+        ResponseBody.SyntaxHighlighting = LooksLikeJson(ResponseBody.Text) ? SyntaxHelper.ForExtension(".json") : null;
+        HistoryResponseBody.SyntaxHighlighting = LooksLikeJson(HistoryResponseBody.Text) ? SyntaxHelper.ForExtension(".json") : null;
+        HistoryRequestBody.SyntaxHighlighting = SyntaxHelper.ForExtension(".json");
+    }
+
+    private void ApplyRequestBodyHighlighting()
+    {
+        var contentType = (RawContentType.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        BodyBox.SyntaxHighlighting = IsJsonContentType(contentType) ? SyntaxHelper.ForExtension(".json") : null;
+    }
+
+    private static bool IsJsonContentType(string? contentType) =>
+        contentType?.IndexOf("json", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static bool LooksLikeJson(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var trimmed = text.TrimStart();
+        return trimmed.StartsWith("{") || trimmed.StartsWith("[");
+    }
+
+
+    private void AttachEnvironmentSuggestions(TextBox box)
+    {
+        box.TextChanged += (_, _) => QueueEnvironmentSuggestions(box);
+        box.SelectionChanged += (_, _) => QueueEnvironmentSuggestions(box);
+        box.KeyUp += (_, _) => QueueEnvironmentSuggestions(box);
+        box.PreviewKeyDown += OnEnvironmentSuggestionKeyDown;
+    }
+
+    private void AttachEnvironmentSuggestions(TextEditor editor)
+    {
+        editor.TextChanged += (_, _) => QueueEnvironmentSuggestions(editor);
+        editor.TextArea.Caret.PositionChanged += (_, _) => QueueEnvironmentSuggestions(editor);
+        editor.TextArea.KeyUp += (_, _) => QueueEnvironmentSuggestions(editor);
+        editor.TextArea.PreviewKeyDown += OnEnvironmentSuggestionKeyDown;
+    }
+
+
+    private void QueueEnvironmentSuggestions(TextBox box)
+    {
+        Dispatcher.BeginInvoke(() => UpdateEnvironmentSuggestions(box), DispatcherPriority.Background);
+    }
+
+    private void QueueEnvironmentSuggestions(TextEditor editor)
+    {
+        Dispatcher.BeginInvoke(() => UpdateEnvironmentSuggestions(editor), DispatcherPriority.Background);
+    }
+
+    private void OnEnvironmentSuggestionKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!_envSuggestionMenu.IsOpen) return;
+        if (e.Key == Key.Escape)
+        {
+            HideEnvironmentSuggestions();
+            e.Handled = true;
+        }
+    }
+
+    private void UpdateEnvironmentSuggestions(TextBox box)
+    {
+        if (!TryFindEnvironmentToken(box.Text, box.CaretIndex, out var start, out var prefix))
+        {
+            if (ReferenceEquals(_envSuggestionTextBox, box)) HideEnvironmentSuggestions();
+            return;
+        }
+
+        _envSuggestionTextBox = box;
+        _envSuggestionEditor = null;
+        _envSuggestionStart = start;
+        _envSuggestionEnd = box.CaretIndex;
+        ShowEnvironmentSuggestions(box, prefix, GetTextBoxCaretPoint(box));
+    }
+
+    private void UpdateEnvironmentSuggestions(TextEditor editor)
+    {
+        if (!TryFindEnvironmentToken(editor.Text, editor.CaretOffset, out var start, out var prefix))
+        {
+            if (ReferenceEquals(_envSuggestionEditor, editor)) HideEnvironmentSuggestions();
+            return;
+        }
+
+        _envSuggestionTextBox = null;
+        _envSuggestionEditor = editor;
+        _envSuggestionStart = start;
+        _envSuggestionEnd = editor.CaretOffset;
+        ShowEnvironmentSuggestions(editor, prefix, GetEditorCaretPoint(editor));
+    }
+
+    private void ShowEnvironmentSuggestions(Control target, string prefix, Point caretPoint)
+    {
+        var variables = ApiEnvironmentService.Variables.Keys
+            .Where(k => k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(k => k)
+            .Take(8)
+            .ToList();
+
+        if (variables.Count == 0)
+        {
+            HideEnvironmentSuggestions();
+            return;
+        }
+
+        _envSuggestionMenu.Items.Clear();
+        foreach (var variable in variables)
+        {
+            var value = ApiEnvironmentService.Variables.TryGetValue(variable, out var v) ? v : "";
+            var item = new MenuItem
+            {
+                Header = variable,
+                ToolTip = string.IsNullOrEmpty(value) ? "Empty" : value.Length > 80 ? value[..80] + "..." : value,
+                FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New")
+            };
+            item.Click += (_, _) => InsertEnvironmentSuggestion(variable);
+            _envSuggestionMenu.Items.Add(item);
+        }
+
+        _envSuggestionMenu.PlacementTarget = target;
+        _envSuggestionMenu.Placement = PlacementMode.RelativePoint;
+        _envSuggestionMenu.HorizontalOffset = caretPoint.X;
+        _envSuggestionMenu.VerticalOffset = caretPoint.Y;
+        _envSuggestionMenu.IsOpen = true;
+    }
+
+
+    private static Point GetTextBoxCaretPoint(TextBox box)
+    {
+        var rect = box.GetRectFromCharacterIndex(Math.Max(0, box.CaretIndex), true);
+        if (rect.IsEmpty)
+            return new Point(0, box.ActualHeight);
+        return new Point(rect.X, rect.Bottom + 2);
+    }
+
+    private static Point GetEditorCaretPoint(TextEditor editor)
+    {
+        var caret = editor.TextArea.Caret;
+        var lineHeight = editor.TextArea.TextView.DefaultLineHeight;
+        return new Point(caret.VisualColumn * editor.FontSize * 0.6, Math.Max(0, caret.Line - 1) * lineHeight + lineHeight + 2);
+    }
+
+    private void HideEnvironmentSuggestions()
+    {
+        _envSuggestionMenu.IsOpen = false;
+        _envSuggestionMenu.Items.Clear();
+        _envSuggestionTextBox = null;
+        _envSuggestionEditor = null;
+    }
+
+    private void InsertEnvironmentSuggestion(string variable)
+    {
+        var replacement = "{{" + variable + "}}";
+        if (_envSuggestionTextBox is not null)
+        {
+            var box = _envSuggestionTextBox;
+            var removeLength = Math.Max(0, _envSuggestionEnd - _envSuggestionStart);
+            if (box.Text.Length >= _envSuggestionEnd + 2 && box.Text.Substring(_envSuggestionEnd, 2) == "}}")
+                removeLength += 2;
+            box.Text = box.Text.Remove(_envSuggestionStart, removeLength).Insert(_envSuggestionStart, replacement);
+            box.CaretIndex = _envSuggestionStart + replacement.Length;
+            box.Focus();
+        }
+        else if (_envSuggestionEditor is not null)
+        {
+            var editor = _envSuggestionEditor;
+            var removeLength = Math.Max(0, _envSuggestionEnd - _envSuggestionStart);
+            if (editor.Text.Length >= _envSuggestionEnd + 2 && editor.Text.Substring(_envSuggestionEnd, 2) == "}}")
+                removeLength += 2;
+            editor.Document.Replace(_envSuggestionStart, removeLength, replacement);
+            editor.CaretOffset = _envSuggestionStart + replacement.Length;
+            editor.Focus();
+        }
+
+        HideEnvironmentSuggestions();
+    }
+
+    private static bool TryFindEnvironmentToken(string text, int caret, out int start, out string prefix)
+    {
+        start = -1;
+        prefix = "";
+        if (caret < 2 || caret > text.Length) return false;
+
+        var open = text.LastIndexOf("{{", Math.Max(0, caret - 1), StringComparison.Ordinal);
+        if (open < 0) return false;
+        var close = text.LastIndexOf("}}", Math.Max(0, caret - 1), StringComparison.Ordinal);
+        if (close > open) return false;
+
+        var rawPrefix = text[(open + 2)..caret];
+        if (rawPrefix.Contains('{') || rawPrefix.Contains('}') || rawPrefix.Any(char.IsWhiteSpace)) return false;
+        start = open;
+        prefix = rawPrefix;
+        return true;
+    }
     private void OnUrlBoxPaste(object sender, DataObjectPastingEventArgs e)
     {
         if (!e.DataObject.GetDataPresent(typeof(string))) return;
@@ -372,23 +658,32 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     private async void OnSendClick(object sender, RoutedEventArgs e)
     {
+        if (_isSending)
+        {
+            _cts?.Cancel();
+            SendButtonText.Text = "Cancelling...";
+            return;
+        }
+
         var url = UrlBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(url)) return;
 
         var request = BuildRequest();
-        BtnSend.IsEnabled = false;
-        SendButtonText.Text = "...";
+        SetSendingState(true);
         StatusBadge.Visibility = Visibility.Collapsed;
         TimingText.Text = "";
         ResponseBody.Text = "Sending...";
+        ResponseBody.SyntaxHighlighting = null;
         ResponseHeadersList.Children.Clear();
 
         _cts?.Cancel();
-        _cts = new CancellationTokenSource();
+        _cts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _cts = cts;
 
         try
         {
-            _lastResponse = await ApiClientService.SendAsync(request, _cts.Token);
+            _lastResponse = await ApiClientService.SendAsync(request, cts.Token);
             ShowResponse(_lastResponse);
 
             if (request.ExtractionRules.Count > 0 && !string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
@@ -414,18 +709,37 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         catch (TaskCanceledException)
         {
             ResponseBody.Text = "Request cancelled.";
+            ResponseBody.SyntaxHighlighting = null;
+            TimingText.Text = "Cancelled";
+        }
+        catch (OperationCanceledException)
+        {
+            ResponseBody.Text = "Request cancelled.";
+            ResponseBody.SyntaxHighlighting = null;
+            TimingText.Text = "Cancelled";
         }
         catch (Exception ex)
         {
             ResponseBody.Text = $"Error: {ex.Message}";
+            ResponseBody.SyntaxHighlighting = null;
         }
         finally
         {
-            BtnSend.IsEnabled = true;
-            SendButtonText.Text = "Send";
+            if (ReferenceEquals(_cts, cts))
+            {
+                _cts.Dispose();
+                _cts = null;
+                SetSendingState(false);
+            }
         }
     }
 
+    private void SetSendingState(bool sending)
+    {
+        _isSending = sending;
+        SendButtonText.Text = sending ? "Cancel" : "Send";
+        BtnSend.ToolTip = sending ? "Cancel request" : "Send request";
+    }
     private void ShowResponse(ApiResponse resp)
     {
         StatusBadge.Visibility = Visibility.Visible;
@@ -435,9 +749,11 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         TimingText.Text = $"{resp.ElapsedMs} ms";
 
         var body = resp.Body;
-        if (resp.Headers.TryGetValue("Content-Type", out var ct) && ct.Contains("json"))
+        var isJson = resp.Headers.TryGetValue("Content-Type", out var ct) && IsJsonContentType(ct);
+        if (isJson)
             body = ApiClientService.FormatJson(body);
         ResponseBody.Text = body;
+        ResponseBody.SyntaxHighlighting = isJson ? SyntaxHelper.ForExtension(".json") : null;
 
         ResponseHeadersList.Children.Clear();
         foreach (var h in resp.Headers)
@@ -494,7 +810,11 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         UpdateBodyPanels();
     }
 
-    private void OnBodyTypeChanged(object sender, RoutedEventArgs e) => UpdateBodyPanels();
+    private void OnBodyTypeChanged(object sender, RoutedEventArgs e)
+    {
+        UpdateBodyPanels();
+        ApplyRequestBodyHighlighting();
+    }
 
     private void UpdateBodyPanels()
     {
@@ -536,7 +856,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         {
             var ct = (RawContentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "application/json";
             var hasContentType = request.Headers.Any(h =>
-                h.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase));
+                h.Enabled && h.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase));
             if (!hasContentType)
                 request.Headers.Add(new KeyValueItem { Enabled = true, Key = "Content-Type", Value = ct });
         }
@@ -544,6 +864,27 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         return request;
     }
 
+    private string GetRawContentTypeFromHeaders(List<KeyValueItem> headers)
+    {
+        return headers.FirstOrDefault(h =>
+                h.Enabled && h.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+            ?.Value ?? "application/json";
+    }
+
+    private void SelectRawContentTypeFromHeaders(List<KeyValueItem> headers)
+    {
+        SelectComboByContent(RawContentType, NormalizeRawContentType(GetRawContentTypeFromHeaders(headers)));
+    }
+
+    private static string NormalizeRawContentType(string contentType)
+    {
+        if (contentType.Contains("json", StringComparison.OrdinalIgnoreCase)) return "application/json";
+        if (contentType.Contains("xml", StringComparison.OrdinalIgnoreCase)) return "application/xml";
+        if (contentType.Contains("html", StringComparison.OrdinalIgnoreCase)) return "text/html";
+        if (contentType.Contains("javascript", StringComparison.OrdinalIgnoreCase)) return "application/javascript";
+        if (contentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)) return "text/plain";
+        return contentType;
+    }
     private void LoadRequestToUi(ApiRequest req)
     {
         if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
@@ -557,6 +898,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         BodyBox.Text = req.Body;
         AuthValueBox.Text = req.AuthValue;
         SetBodyType(req.BodyType);
+        SelectRawContentTypeFromHeaders(req.Headers);
+        ApplyRequestBodyHighlighting();
 
         FormDataList.Children.Clear();
         foreach (var f in req.FormData)
@@ -591,6 +934,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             Url = req.Url,
             Body = req.Body,
             BodyType = req.BodyType,
+            RawContentType = GetRawContentTypeFromHeaders(req.Headers),
             AuthType = req.AuthType,
             AuthValue = req.AuthValue,
             Headers = [.. req.Headers],
@@ -651,6 +995,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             Foreground = (Brush)FindResource("TextPrimary"),
             BorderBrush = (Brush)FindResource("SurfaceBorder")
         };
+        AttachEnvironmentSuggestions(keyBox);
         DockPanel.SetDock(keyBox, Dock.Left);
         row.Children.Add(keyBox);
 
@@ -664,6 +1009,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             Foreground = (Brush)FindResource("TextPrimary"),
             BorderBrush = (Brush)FindResource("SurfaceBorder")
         };
+        AttachEnvironmentSuggestions(valueBox);
         row.Children.Add(valueBox);
 
         parent.Children.Add(row);
@@ -986,20 +1332,31 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         {
             var response = JsonSerializer.Deserialize<ApiResponse>(entry.ResponseJson);
             var body = response?.Body ?? "";
-            if (response?.Headers.TryGetValue("Content-Type", out var ct) == true
-                && ct.Contains("json"))
+            var isJson = response?.Headers.TryGetValue("Content-Type", out var ct) == true
+                && IsJsonContentType(ct);
+            if (isJson)
                 body = ApiClientService.FormatJson(body);
             HistoryResponseBody.Text = body;
+            HistoryResponseBody.SyntaxHighlighting = isJson ? SyntaxHelper.ForExtension(".json") : null;
         }
-        catch { HistoryResponseBody.Text = entry.ResponseJson; }
+        catch
+        {
+            HistoryResponseBody.Text = entry.ResponseJson;
+            HistoryResponseBody.SyntaxHighlighting = LooksLikeJson(entry.ResponseJson) ? SyntaxHelper.ForExtension(".json") : null;
+        }
 
         try
         {
             var request = JsonSerializer.Deserialize<ApiRequest>(entry.RequestJson);
             HistoryRequestBody.Text = JsonSerializer.Serialize(request,
                 new JsonSerializerOptions { WriteIndented = true });
+            HistoryRequestBody.SyntaxHighlighting = SyntaxHelper.ForExtension(".json");
         }
-        catch { HistoryRequestBody.Text = entry.RequestJson; }
+        catch
+        {
+            HistoryRequestBody.Text = entry.RequestJson;
+            HistoryRequestBody.SyntaxHighlighting = LooksLikeJson(entry.RequestJson) ? SyntaxHelper.ForExtension(".json") : null;
+        }
     }
 
     private void OnFillFromHistoryClick(object sender, RoutedEventArgs e)
@@ -1075,53 +1432,25 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
     private void OnManageEnvClick(object sender, RoutedEventArgs e)
     {
-        var menu = new ContextMenu();
-
-        var newItem = new MenuItem { Header = "New Environment..." };
-        newItem.Click += (_, _) =>
+        var dlg = new ApiEnvironmentManagerWindow();
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dlg.Owner = owner;
+        if (dlg.ShowDialog() == true)
         {
-            var dlg = new InputDialog("New Environment", "Environment name (e.g. dev, uat, prod):");
-            var owner = Window.GetWindow(this);
-            if (owner is not null) dlg.Owner = owner;
-            if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
-            {
-                var name = dlg.ResultText.Trim().ToLowerInvariant().Replace(" ", "-");
-                ApiEnvironmentService.CreateEnvironment(name);
-                LoadEnvironments();
-                SelectComboByTag(EnvPicker, name);
-            }
-        };
-        menu.Items.Add(newItem);
-
-        var envs = ApiEnvironmentService.ListEnvironments();
-        if (envs.Count > 0)
-        {
-            menu.Items.Add(new Separator());
-            foreach (var env in envs)
-            {
-                var delItem = new MenuItem { Header = $"Delete '{env}'" };
-                var captured = env;
-                delItem.Click += (_, _) =>
-                {
-                    ApiEnvironmentService.DeleteEnvironment(captured);
-                    LoadEnvironments();
-                };
-                menu.Items.Add(delItem);
-            }
+            LoadEnvironments();
+            if (!string.IsNullOrEmpty(dlg.SelectedEnvironment))
+                SelectComboByTag(EnvPicker, dlg.SelectedEnvironment);
+            UpdateEnvVarCount();
+            RenderVars();
         }
-
-        menu.IsOpen = true;
     }
-
-    // ── Vars tab ────────────────────────────────────────────────────
-
     private void RenderVars()
     {
         VarsList.Children.Clear();
         var active = ApiEnvironmentService.ActiveEnvironment;
         VarsTabLabel.Text = string.IsNullOrEmpty(active)
             ? "ENVIRONMENT VARIABLES"
-            : $"VARIABLES — {active.ToUpperInvariant()}";
+            : $"VARIABLES - {active.ToUpperInvariant()}";
 
         if (string.IsNullOrEmpty(active))
         {
@@ -1141,7 +1470,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
             var removeBtn = new Button
             {
-                Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+                Content = "x", Width = 22, Height = 22, Padding = new Thickness(0),
                 Background = Brushes.Transparent,
                 Foreground = (Brush)FindResource("TextDimmed"),
                 BorderThickness = new Thickness(0), FontSize = 14
@@ -1193,7 +1522,14 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         if (owner is not null) dlg.Owner = owner;
         if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.ResultText))
         {
-            ApiEnvironmentService.SetVariable(dlg.ResultText.Trim(), "");
+            var key = dlg.ResultText.Trim();
+            if (!ApiEnvironmentService.IsValidVariableName(key))
+            {
+                MessageBox.Show("Use letters, numbers, dots, underscores, or hyphens for variable names.",
+                    "Invalid Variable", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            ApiEnvironmentService.SetVariable(key, "");
             RenderVars();
             UpdateEnvVarCount();
         }
@@ -1209,7 +1545,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
 
         var removeBtn = new Button
         {
-            Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+            Content = "x", Width = 22, Height = 22, Padding = new Thickness(0),
             Background = Brushes.Transparent,
             Foreground = (Brush)FindResource("TextDimmed"),
             BorderThickness = new Thickness(0), FontSize = 14
@@ -1257,6 +1593,7 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
             BorderBrush = (Brush)FindResource("SurfaceBorder"),
             ToolTip = "jsonpath: $.data.token | regex: \"token\":\"(.+?)\" | header: Authorization"
         };
+        AttachEnvironmentSuggestions(exprBox);
         row.Children.Add(exprBox);
 
         ExtractionRulesList.Children.Add(row);

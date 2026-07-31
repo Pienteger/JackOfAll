@@ -63,15 +63,12 @@ public partial class App : Application
 
         registry.Register(new K8sToolFactory());
         registry.Register(new JwtToolFactory());
-        registry.Register(new GeneratorToolFactory());
+        registry.Register(new UtilityToolFactory());
         registry.Register(new Base64ToolFactory());
-        registry.Register(new HashToolFactory());
         registry.Register(new DiffToolFactory());
-        registry.Register(new TimestampToolFactory());
         registry.Register(new EnvVarToolFactory());
         registry.Register(new PortScannerToolFactory());
         registry.Register(new SshKeyToolFactory());
-        registry.Register(new ReminderToolFactory());
         registry.Register(new NotepadToolFactory());
         registry.Register(new WellbeingToolFactory());
         registry.Register(new GitHubToolFactory(settings));
