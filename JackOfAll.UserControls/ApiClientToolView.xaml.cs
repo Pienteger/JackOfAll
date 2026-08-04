@@ -1112,29 +1112,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     private void OnNewRequestClick(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            var dlg = new InputDialog("New Request", "Request name:");
-            var owner = Window.GetWindow(this);
-            if (owner is not null)
-                dlg.Owner = owner;
-            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText))
-                return;
-
-            var name = dlg.ResultText.Trim();
-            var tab = new RequestTab
-            {
-                SavedName = name,
-                Title = name
-            };
-            _openTabs.Add(tab);
-            SwitchToTab(_openTabs.Count - 1);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Failed to create request tab: {ex.Message}",
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        AddNewTab();
     }
 
     // ── Sidebar rendering ───────────────────────────────────────────
@@ -1155,9 +1133,29 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
             var ctx = new ContextMenu();
 
+            var clone = new MenuItem { Header = "Clone" };
+            clone.Click += (_, _) => CloneSavedRequest(captured, requests);
+            ctx.Items.Add(clone);
+
+            var rename = new MenuItem { Header = "Rename" };
+            rename.Click += (_, _) => RenameSavedRequest(captured, requests);
+            ctx.Items.Add(rename);
+
+            ctx.Items.Add(new Separator());
+
             var del = new MenuItem { Header = "Delete" };
+            del.SetResourceReference(Control.ForegroundProperty, "DangerBrush");
             del.Click += (_, _) =>
             {
+                var dialog = new ConfirmationDialog(
+                    "Delete Request",
+                    "Delete saved request?",
+                    $"\"{captured.Name}\" and its request history will be permanently deleted.",
+                    "Delete");
+                var owner = Window.GetWindow(this);
+                if (owner is not null) dialog.Owner = owner;
+                if (dialog.ShowDialog() != true) return;
+
                 if (ActiveWorkspace is not null)
                 {
                     _workspaceRequests.Remove(captured);
@@ -1191,6 +1189,73 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         }
     }
 
+    private void CloneSavedRequest(ApiRequest source, List<ApiRequest> requests)
+    {
+        var clone = source with
+        {
+            Name = GetUniqueRequestName($"{source.Name} (Copy)", requests),
+            Headers = source.Headers.Select(item => item with { }).ToList(),
+            Params = source.Params.Select(item => item with { }).ToList(),
+            FormData = source.FormData.Select(item => item with { }).ToList(),
+            ExtractionRules = source.ExtractionRules.Select(rule => rule with { }).ToList()
+        };
+
+        requests.Add(clone);
+        SaveRequests(requests);
+        RenderSaved();
+        OpenOrSwitchToRequest(clone);
+    }
+
+    private void RenameSavedRequest(ApiRequest request, List<ApiRequest> requests)
+    {
+        var dialog = new InputDialog("Rename Request", "Request name:", request.Name);
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dialog.Owner = owner;
+        if (dialog.ShowDialog() != true) return;
+
+        var newName = dialog.ResultText.Trim();
+        if (string.IsNullOrWhiteSpace(newName) || newName == request.Name) return;
+        if (requests.Any(item => !ReferenceEquals(item, request) &&
+                                 item.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show($"A request named \"{newName}\" already exists.", "Rename Request",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var oldName = request.Name;
+        request.Name = newName;
+        SaveRequests(requests);
+        ApiHistoryDbService.RenameRequest(ActiveWorkspace ?? "", oldName, newName);
+
+        foreach (var tab in _openTabs.Where(tab => tab.SavedName == oldName))
+        {
+            tab.SavedName = newName;
+            tab.Title = newName;
+        }
+
+        RenderSaved();
+        RenderTabBar();
+        if (_activeTabIndex >= 0 && _openTabs[_activeTabIndex].SavedName == newName)
+            RenderRequestHistory(ActiveWorkspace ?? "", newName);
+    }
+
+    private void SaveRequests(List<ApiRequest> requests)
+    {
+        if (ActiveWorkspace is not null)
+            ApiWorkspaceService.SaveRequests(ActiveWorkspace, requests);
+        else
+            ApiClientService.SaveCollection(requests);
+    }
+
+    private static string GetUniqueRequestName(string desiredName, List<ApiRequest> requests)
+    {
+        var name = desiredName;
+        var suffix = 2;
+        while (requests.Any(request => request.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            name = $"{desiredName} {suffix++}";
+        return name;
+    }
     private static Color GetMethodColor(string method) => method switch
     {
         "GET" => Color.FromRgb(97, 175, 239),

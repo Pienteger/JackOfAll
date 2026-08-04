@@ -12,6 +12,8 @@ namespace JackOfAll.UserControls;
 public partial class DiffToolView : UserControl, IStatefulTool
 {
     private List<DiffLine> _lastLines = [];
+    private List<int> _differenceIndices = [];
+    private int _currentDifferencePosition = -1;
 
     public DiffToolView()
     {
@@ -123,6 +125,7 @@ public partial class DiffToolView : UserControl, IStatefulTool
         {
             _lastLines = [];
             DiffList.ItemsSource = null;
+            ResetDifferenceNavigation([]);
             StatusText.Text = "Paste content on both sides to compare.";
             StatusText.Foreground = FindBrush("TextDimmed");
             return;
@@ -139,6 +142,7 @@ public partial class DiffToolView : UserControl, IStatefulTool
         {
             _lastLines = [];
             DiffList.ItemsSource = null;
+            ResetDifferenceNavigation([]);
             StatusText.Text = result.Error ?? result.Summary;
             StatusText.Foreground = FindBrush("ErrorText");
             return;
@@ -146,6 +150,7 @@ public partial class DiffToolView : UserControl, IStatefulTool
 
         _lastLines = result.Lines;
         DiffList.ItemsSource = result.Lines.Select(ToViewLine).ToList();
+        ResetDifferenceNavigation(result.Lines);
         StatusText.Text = mode == DiffMode.JsonSemantic
             ? $"{result.Summary} Object properties ignored for ordering."
             : result.Summary;
@@ -181,6 +186,55 @@ public partial class DiffToolView : UserControl, IStatefulTool
     {
         if (_lastLines.Count > 0)
             Clipboard.SetText(DiffService.ToUnifiedDiff(_lastLines));
+    }
+
+    private void OnPreviousDifferenceClick(object sender, RoutedEventArgs e)
+    {
+        if (_currentDifferencePosition <= 0) return;
+        _currentDifferencePosition--;
+        SelectCurrentDifference();
+    }
+
+    private void OnNextDifferenceClick(object sender, RoutedEventArgs e)
+    {
+        if (_currentDifferencePosition >= _differenceIndices.Count - 1) return;
+        _currentDifferencePosition++;
+        SelectCurrentDifference();
+    }
+
+    private void ResetDifferenceNavigation(IReadOnlyList<DiffLine> lines)
+    {
+        _differenceIndices = [];
+        for (var index = 0; index < lines.Count; index++)
+        {
+            if (lines[index].Kind != DiffLineKind.Context &&
+                (index == 0 || lines[index - 1].Kind == DiffLineKind.Context))
+            {
+                _differenceIndices.Add(index);
+            }
+        }
+
+        _currentDifferencePosition = _differenceIndices.Count > 0 ? 0 : -1;
+        SelectCurrentDifference();
+    }
+
+    private void SelectCurrentDifference()
+    {
+        if (_currentDifferencePosition < 0 || _currentDifferencePosition >= _differenceIndices.Count)
+        {
+            DiffList.SelectedIndex = -1;
+            DifferencePositionText.Text = "0 differences";
+            PreviousDifferenceButton.IsEnabled = false;
+            NextDifferenceButton.IsEnabled = false;
+            return;
+        }
+
+        var itemIndex = _differenceIndices[_currentDifferencePosition];
+        DiffList.SelectedIndex = itemIndex;
+        DiffList.ScrollIntoView(DiffList.Items[itemIndex]);
+        DifferencePositionText.Text = $"{_currentDifferencePosition + 1} / {_differenceIndices.Count}";
+        PreviousDifferenceButton.IsEnabled = _currentDifferencePosition > 0;
+        NextDifferenceButton.IsEnabled = _currentDifferencePosition < _differenceIndices.Count - 1;
     }
 
     private Brush FindBrush(string key)

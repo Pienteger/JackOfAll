@@ -105,15 +105,43 @@
         </Grid>
 
         <DockPanel Grid.Row="2" Margin="0,12,0,8">
-            <Button Click="OnCopyDiffClick" DockPanel.Dock="Right" Padding="10,4"
-                    Background="{DynamicResource SurfaceBackground}"
-                    Foreground="{DynamicResource TextPrimary}"
-                    BorderBrush="{DynamicResource SurfaceBorder}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <TextBlock Text="Copy diff" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button x:Name="PreviousDifferenceButton" Click="OnPreviousDifferenceClick"
+                        Padding="10,4" IsEnabled="False"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE70E;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBlock Text="Previous" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <TextBlock x:Name="DifferencePositionText" Text="0 differences"
+                           Foreground="{DynamicResource TextDimmed}" FontSize="11"
+                           VerticalAlignment="Center" Margin="10,0" MinWidth="42"
+                           TextAlignment="Center"/>
+                <Button x:Name="NextDifferenceButton" Click="OnNextDifferenceClick"
+                        Padding="10,4" IsEnabled="False"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Next" VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnCopyDiffClick" Padding="10,4" Margin="8,0,0,0"
+                        Background="{DynamicResource SurfaceBackground}"
+                        Foreground="{DynamicResource TextPrimary}"
+                        BorderBrush="{DynamicResource SurfaceBorder}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Copy diff" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
             <TextBlock x:Name="StatusText" Text="Paste content on both sides to compare."
                        Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
                        VerticalAlignment="Center"/>
@@ -131,6 +159,12 @@
                     <Style TargetType="ListBoxItem">
                         <Setter Property="Padding" Value="0"/>
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                            </Trigger>
+                        </Style.Triggers>
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>

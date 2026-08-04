@@ -98,6 +98,17 @@ public static class ApiHistoryDbService
         cmd.ExecuteNonQuery();
     }
 
+    public static void RenameRequest(string workspace, string oldName, string newName)
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE history SET request_name = $newName WHERE workspace = $ws AND request_name = $oldName;";
+        cmd.Parameters.AddWithValue("$ws", workspace);
+        cmd.Parameters.AddWithValue("$oldName", oldName);
+        cmd.Parameters.AddWithValue("$newName", newName);
+        cmd.ExecuteNonQuery();
+    }
+
     public static void DeleteForWorkspace(string workspace)
     {
         using var conn = Open();
