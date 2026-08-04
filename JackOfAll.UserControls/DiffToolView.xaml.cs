@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using ICSharpCode.AvalonEdit;
 using JackOfAll.Lib;
 using JackOfAll.Lib.Services;
@@ -9,11 +10,12 @@ using JackOfAll.UserControls.Helpers;
 
 namespace JackOfAll.UserControls;
 
-public partial class DiffToolView : UserControl, IStatefulTool
+public partial class DiffToolView : UserControl, IStatefulTool, IDisposable
 {
     private List<DiffLine> _lastLines = [];
     private List<int> _differenceIndices = [];
     private int _currentDifferencePosition = -1;
+    private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     public DiffToolView()
     {
@@ -24,8 +26,11 @@ public partial class DiffToolView : UserControl, IStatefulTool
         ConfigureEditorTheme(RightBox);
         AttachEditorContextMenu(LeftBox);
         AttachEditorContextMenu(RightBox);
+        AvalonEditSearchReplace.Attach(LeftBox);
+        AvalonEditSearchReplace.Attach(RightBox);
         ApplySyntaxHighlighting();
 
+        _debounce.Tick += (_, _) => { _debounce.Stop(); Compare(); };
         LeftBox.TextChanged += OnInputChanged;
         RightBox.TextChanged += OnInputChanged;
         Loaded += (_, _) => Compare();
@@ -105,7 +110,11 @@ public partial class DiffToolView : UserControl, IStatefulTool
 
     private void OnCompareClick(object sender, RoutedEventArgs e) => Compare();
 
-    private void OnInputChanged(object? sender, EventArgs e) => Compare();
+    private void OnInputChanged(object? sender, EventArgs e)
+    {
+        _debounce.Stop();
+        _debounce.Start();
+    }
 
     private void OnOptionsChanged(object sender, RoutedEventArgs e)
     {
@@ -272,6 +281,12 @@ public partial class DiffToolView : UserControl, IStatefulTool
 
         ApplySyntaxHighlighting();
         Compare();
+    }
+
+    public void Dispose()
+    {
+        _debounce.Stop();
+        ThemeNotifier.ThemeChanged -= OnThemeChanged;
     }
 
     private sealed record DiffViewLine(string Prefix, string Text, Brush Foreground, Brush Background);

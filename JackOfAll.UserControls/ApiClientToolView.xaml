@@ -110,6 +110,13 @@
                                 <TextBlock Text="&#xE724;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock x:Name="SendButtonText" Text="Send" VerticalAlignment="Center"/>
                             </StackPanel>
+                        </Button>                        <Button x:Name="BtnSendAndSave" Click="OnSendAndSaveClick"
+                                DockPanel.Dock="Right" Padding="9,6" Margin="4,0,0,0"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" FontSize="12"
+                                ToolTip="Send and save full response…">
+                            <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
                         </Button>
                         <Button Click="OnSaveClick"
                                 DockPanel.Dock="Right" Padding="10,6" Margin="4,0,0,0"
@@ -323,7 +330,7 @@
                                     <TextBlock Text="Copy" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-                            <Button Click="OnFormatResponseClick" DockPanel.Dock="Right"
+                            <Button x:Name="BtnFormatResponse" Click="OnFormatResponseClick" DockPanel.Dock="Right"
                                     Padding="8,3" Margin="0,0,4,0"
                                     Background="{DynamicResource SurfaceBackground}"
                                     Foreground="{DynamicResource TextPrimary}"
@@ -344,7 +351,10 @@
                                 </Border>
                                 <TextBlock x:Name="TimingText" FontSize="11"
                                            Foreground="{DynamicResource TextDimmed}"
-                                           VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                           VerticalAlignment="Center" Margin="12,0,0,0"/>                                <TextBlock x:Name="ResponseNotice" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondary}"
+                                           VerticalAlignment="Center" Margin="12,0,0,0"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="440"/>
                             </StackPanel>
                         </DockPanel>
                     </Border>

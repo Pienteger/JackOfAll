@@ -41,6 +41,14 @@ public partial class AppSettings : ObservableObject
 
     [ObservableProperty]
     private string _gitHubToken = "";
+    [ObservableProperty]
+    private int _apiResponsePreviewLimitMb = 10;
+
+    [ObservableProperty]
+    private int _apiHistoryEntriesPerRequest = 50;
+
+    [ObservableProperty]
+    private int _apiHistoryStorageLimitMb = 100;
 
     public void Save()
     {
@@ -54,7 +62,10 @@ public partial class AppSettings : ObservableObject
             ThemeMode = ThemeMode.ToString(),
             AutoSaveMode = AutoSaveMode.ToString(),
             AutoSaveDelayMs = AutoSaveDelayMs,
-            GitHubToken = GitHubToken
+            GitHubToken = GitHubToken,
+            ApiResponsePreviewLimitMb = ApiResponsePreviewLimitMb,
+            ApiHistoryEntriesPerRequest = ApiHistoryEntriesPerRequest,
+            ApiHistoryStorageLimitMb = ApiHistoryStorageLimitMb
         };
         var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(SettingsPath, json);
@@ -80,6 +91,9 @@ public partial class AppSettings : ObservableObject
                 settings.AutoSaveMode = autoSave;
             settings.AutoSaveDelayMs = Math.Clamp(dto.AutoSaveDelayMs, 200, 30000);
             settings.GitHubToken = dto.GitHubToken;
+            settings.ApiResponsePreviewLimitMb = Math.Clamp(dto.ApiResponsePreviewLimitMb, 1, 100);
+            settings.ApiHistoryEntriesPerRequest = Math.Clamp(dto.ApiHistoryEntriesPerRequest, 10, 200);
+            settings.ApiHistoryStorageLimitMb = Math.Clamp(dto.ApiHistoryStorageLimitMb, 10, 500);
         }
         catch
         {
@@ -97,5 +111,8 @@ public partial class AppSettings : ObservableObject
         public string AutoSaveMode { get; set; } = "AfterDelay";
         public int AutoSaveDelayMs { get; set; } = 1000;
         public string GitHubToken { get; set; } = "";
+        public int ApiResponsePreviewLimitMb { get; set; } = 10;
+        public int ApiHistoryEntriesPerRequest { get; set; } = 50;
+        public int ApiHistoryStorageLimitMb { get; set; } = 100;
     }
 }

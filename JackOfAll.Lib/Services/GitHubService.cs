@@ -101,8 +101,9 @@ public static class GitHubService
         var json = await _client!.GetStringAsync(
             $"/search/issues?q=is:open+mentions:{_username}&sort=updated&order=desc&per_page=30", ct);
         using var doc = JsonDocument.Parse(json);
-        var items = new List<CommentItem>();
-        var tasks = new List<Task>();
+        using var throttle = new SemaphoreSlim(6);
+
+        var fetchTasks = new List<Task<List<CommentItem>>>();
 
         foreach (var el in doc.RootElement.GetProperty("items").EnumerateArray())
         {
@@ -110,34 +111,48 @@ public static class GitHubService
             var repoName = ExtractRepoFromUrl(htmlUrl);
             var issueNumber = el.GetProperty("number").GetInt32();
             var issueTitle = el.GetProperty("title").GetString()!;
-            var commentsUrl = $"/repos/{repoName}/issues/{issueNumber}/comments?per_page=10&sort=updated&direction=desc";
 
-            try
-            {
-                var commentsJson = await _client!.GetStringAsync(commentsUrl, ct);
-                using var commentsDoc = JsonDocument.Parse(commentsJson);
-                foreach (var c in commentsDoc.RootElement.EnumerateArray())
-                {
-                    var authorLogin = c.GetProperty("user").GetProperty("login").GetString() ?? "";
-                    if (!authorLogin.Equals(_username, StringComparison.OrdinalIgnoreCase) &&
-                        (c.GetProperty("body").GetString() ?? "").Contains($"@{_username}", StringComparison.OrdinalIgnoreCase))
-                    {
-                        items.Add(new CommentItem(
-                            c.GetProperty("body").GetString() ?? "",
-                            repoName,
-                            issueTitle,
-                            issueNumber,
-                            authorLogin,
-                            c.GetProperty("user").GetProperty("avatar_url").GetString() ?? "",
-                            c.GetProperty("created_at").GetDateTime(),
-                            c.GetProperty("html_url").GetString() ?? ""));
-                    }
-                }
-            }
-            catch { }
+            fetchTasks.Add(FetchCommentsForIssueAsync(repoName, issueNumber, issueTitle, throttle, ct));
         }
 
-        return items.OrderByDescending(c => c.CreatedAt).ToList();
+        var results = await Task.WhenAll(fetchTasks);
+        return results.SelectMany(r => r).OrderByDescending(c => c.CreatedAt).ToList();
+    }
+
+    private static async Task<List<CommentItem>> FetchCommentsForIssueAsync(
+        string repoName, int issueNumber, string issueTitle, SemaphoreSlim throttle, CancellationToken ct)
+    {
+        var items = new List<CommentItem>();
+        await throttle.WaitAsync(ct);
+        try
+        {
+            var commentsUrl = $"/repos/{repoName}/issues/{issueNumber}/comments?per_page=10&sort=updated&direction=desc";
+            var commentsJson = await _client!.GetStringAsync(commentsUrl, ct);
+            using var commentsDoc = JsonDocument.Parse(commentsJson);
+            foreach (var c in commentsDoc.RootElement.EnumerateArray())
+            {
+                var authorLogin = c.GetProperty("user").GetProperty("login").GetString() ?? "";
+                if (!authorLogin.Equals(_username, StringComparison.OrdinalIgnoreCase) &&
+                    (c.GetProperty("body").GetString() ?? "").Contains($"@{_username}", StringComparison.OrdinalIgnoreCase))
+                {
+                    items.Add(new CommentItem(
+                        c.GetProperty("body").GetString() ?? "",
+                        repoName,
+                        issueTitle,
+                        issueNumber,
+                        authorLogin,
+                        c.GetProperty("user").GetProperty("avatar_url").GetString() ?? "",
+                        c.GetProperty("created_at").GetDateTime(),
+                        c.GetProperty("html_url").GetString() ?? ""));
+                }
+            }
+        }
+        catch { }
+        finally
+        {
+            throttle.Release();
+        }
+        return items;
     }
 
     private static async Task<List<AssignedItem>> SearchIssuesAsync(string query, CancellationToken ct)

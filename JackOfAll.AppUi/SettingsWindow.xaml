@@ -95,6 +95,12 @@
                     </ListBoxItem>
                     <ListBoxItem>
                         <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="API Client"/>
+                        </StackPanel>
+                    </ListBoxItem>                    <ListBoxItem>
+                        <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                        VerticalAlignment="Center" Margin="0,0,10,0"/>
                             <TextBlock Text="About"/>
@@ -288,6 +294,96 @@
                     </Border>
                 </StackPanel>
 
+                <!-- API Client Page -->
+                <StackPanel x:Name="PageApiClient" Visibility="Collapsed">
+                    <TextBlock Text="API Client" FontSize="20" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                    <TextBlock Text="Balance response visibility with memory and disk usage" FontSize="13"
+                               Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,20"/>
+
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            BorderThickness="1" CornerRadius="8" Padding="20">
+                        <StackPanel>
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="Response Preview Limit" FontSize="14"
+                                               Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Maximum response body kept in memory"
+                                               FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ApiPreviewLimitLabel" MinWidth="58"
+                                               TextAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ApiPreviewLimitSlider" Width="140"
+                                            Minimum="1" Maximum="100" TickFrequency="1"
+                                            IsSnapToTickEnabled="True"
+                                            ValueChanged="OnApiPreviewLimitChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,16"/>
+
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="History Per Request" FontSize="14"
+                                               Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Maximum saved responses for each request"
+                                               FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ApiHistoryEntriesLabel" MinWidth="58"
+                                               TextAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ApiHistoryEntriesSlider" Width="140"
+                                            Minimum="10" Maximum="200" TickFrequency="10"
+                                            IsSnapToTickEnabled="True"
+                                            ValueChanged="OnApiHistoryEntriesChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,16"/>
+
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="Total History Storage" FontSize="14"
+                                               Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Logical request and response payload cap"
+                                               FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ApiHistoryStorageLabel" MinWidth="58"
+                                               TextAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ApiHistoryStorageSlider" Width="140"
+                                            Minimum="10" Maximum="500" TickFrequency="10"
+                                            IsSnapToTickEnabled="True"
+                                            ValueChanged="OnApiHistoryStorageChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       Foreground="{DynamicResource TextDimmed}" VerticalAlignment="Top"
+                                       Margin="0,2,10,0"/>
+                            <TextBlock Text="Optimized defaults: 10 MB preview, 50 history entries, 100 MB total. Higher limits can increase memory or disk usage."
+                                       TextWrapping="Wrap" FontSize="12"
+                                       Foreground="{DynamicResource TextSecondary}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
                 <!-- About Page -->
                 <StackPanel x:Name="PageAbout" Visibility="Collapsed">
                     <TextBlock Text="About" FontSize="20" FontWeight="SemiBold"

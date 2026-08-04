@@ -21,7 +21,7 @@ public partial class SettingsWindow : Window
         _settings = settings;
         _applyTheme = applyTheme;
 
-        _pages = [PageAppearance, PageEditor, PageAutoSave, PageAbout];
+        _pages = [PageAppearance, PageEditor, PageAutoSave, PageApiClient, PageAbout];
 
         FontSizeSlider.Value = settings.FontSize;
         FontSizeLabel.Text = $"{settings.FontSize:F0}";
@@ -47,6 +47,13 @@ public partial class SettingsWindow : Window
         AutoSaveDelaySlider.Value = settings.AutoSaveDelayMs;
         AutoSaveDelayLabel.Text = $"{settings.AutoSaveDelayMs}ms";
         UpdateAutoSaveDelayVisibility(settings.AutoSaveMode);
+
+        ApiPreviewLimitSlider.Value = settings.ApiResponsePreviewLimitMb;
+        ApiPreviewLimitLabel.Text = $"{settings.ApiResponsePreviewLimitMb} MB";
+        ApiHistoryEntriesSlider.Value = settings.ApiHistoryEntriesPerRequest;
+        ApiHistoryEntriesLabel.Text = $"{settings.ApiHistoryEntriesPerRequest}";
+        ApiHistoryStorageSlider.Value = settings.ApiHistoryStorageLimitMb;
+        ApiHistoryStorageLabel.Text = $"{settings.ApiHistoryStorageLimitMb} MB";
 
         var version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
@@ -157,6 +164,34 @@ public partial class SettingsWindow : Window
         AutoSaveDelaySeparator.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    // API Client
+
+    private void OnApiPreviewLimitChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)Math.Round(e.NewValue);
+        _settings.ApiResponsePreviewLimitMb = value;
+        ApiPreviewLimitLabel.Text = $"{value} MB";
+        _settings.Save();
+    }
+
+    private void OnApiHistoryEntriesChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 10.0) * 10);
+        _settings.ApiHistoryEntriesPerRequest = value;
+        ApiHistoryEntriesLabel.Text = $"{value}";
+        _settings.Save();
+    }
+
+    private void OnApiHistoryStorageChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 10.0) * 10);
+        _settings.ApiHistoryStorageLimitMb = value;
+        ApiHistoryStorageLabel.Text = $"{value} MB";
+        _settings.Save();
+    }
     // ── About ────────────────────────────────────────────────────
 
     private void OnWebsiteLinkClick(object sender, RoutedEventArgs e) =>

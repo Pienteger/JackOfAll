@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace JackOfAll.Lib.Services;
 
@@ -36,6 +37,11 @@ public record ApiResponse
     public string Body { get; set; } = "";
     public Dictionary<string, string> Headers { get; set; } = new();
     public long ElapsedMs { get; set; }
+    public long BodySizeBytes { get; set; }
+    public bool IsBodyTruncated { get; set; }
+    public int PreviewLimitBytes { get; set; }
+    [JsonIgnore]
+    public string? SavedBodyPath { get; set; }
 }
 
 public record ApiHistoryEntry
@@ -60,7 +66,13 @@ public static class ApiClientService
     private static readonly string CollectionPath = Path.Combine(AppPaths.Root, "requests.json");
 
 
-    public static async Task<ApiResponse> SendAsync(ApiRequest request, CancellationToken ct = default)
+    public static Task<ApiResponse> SendAsync(ApiRequest request, CancellationToken ct = default) =>
+        SendAsync(request, new ApiResponseReadOptions(), ct);
+
+    public static async Task<ApiResponse> SendAsync(
+        ApiRequest request,
+        ApiResponseReadOptions readOptions,
+        CancellationToken ct = default)
     {
         var resolvedUrl = ApiEnvironmentService.Resolve(request.Url);
         var resolvedParams = request.Params.Select(p => new KeyValueItem
@@ -126,8 +138,8 @@ public static class ApiClientService
         }
 
         var sw = Stopwatch.StartNew();
-        using var response = await Client.SendAsync(msg, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
+        using var response = await Client.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, ct);
+        var responseBody = await ApiResponseReader.ReadAsync(response.Content, readOptions, ct);
         sw.Stop();
 
         var headers = new Dictionary<string, string>();
@@ -140,9 +152,13 @@ public static class ApiClientService
         {
             StatusCode = (int)response.StatusCode,
             StatusText = response.ReasonPhrase ?? "",
-            Body = body,
+            Body = responseBody.Preview,
             Headers = headers,
-            ElapsedMs = sw.ElapsedMilliseconds
+            ElapsedMs = sw.ElapsedMilliseconds,
+            BodySizeBytes = responseBody.SizeBytes,
+            IsBodyTruncated = responseBody.IsTruncated,
+            PreviewLimitBytes = readOptions.PreviewLimitBytes,
+            SavedBodyPath = responseBody.SavedPath
         };
     }
 
@@ -150,28 +166,38 @@ public static class ApiClientService
         ApiResponse response, List<ExtractionRule> rules)
     {
         var results = new Dictionary<string, string?>();
-        foreach (var rule in rules)
+        JsonDocument? json = null;
+        if (!response.IsBodyTruncated && rules.Any(rule => rule.Source == "jsonpath"))
         {
-            if (string.IsNullOrWhiteSpace(rule.Variable) || string.IsNullOrWhiteSpace(rule.Expression))
-                continue;
-            if (!ApiEnvironmentService.IsValidVariableName(rule.Variable))
-                continue;
-
-            string? value = rule.Source switch
-            {
-                "jsonpath" => ApiEnvironmentService.ExtractJsonPath(response.Body, rule.Expression),
-                "regex" => ApiEnvironmentService.ExtractRegex(response.Body, rule.Expression),
-                "header" => response.Headers.TryGetValue(rule.Expression, out var hv) ? hv : null,
-                _ => null
-            };
-
-            results[rule.Variable] = value;
-            if (value is not null)
-                ApiEnvironmentService.SetVariable(rule.Variable, value);
+            try { json = JsonDocument.Parse(response.Body); }
+            catch (JsonException) { }
         }
+
+        using (json)
+        {
+            foreach (var rule in rules)
+            {
+                if (string.IsNullOrWhiteSpace(rule.Variable) || string.IsNullOrWhiteSpace(rule.Expression))
+                    continue;
+                if (!ApiEnvironmentService.IsValidVariableName(rule.Variable))
+                    continue;
+
+                string? value = rule.Source switch
+                {
+                    "jsonpath" when json is not null => ApiEnvironmentService.ExtractJsonPath(json.RootElement, rule.Expression),
+                    "regex" when !response.IsBodyTruncated => ApiEnvironmentService.ExtractRegex(response.Body, rule.Expression),
+                    "header" => response.Headers.TryGetValue(rule.Expression, out var headerValue) ? headerValue : null,
+                    _ => null
+                };
+
+                results[rule.Variable] = value;
+                if (value is not null)
+                    ApiEnvironmentService.SetVariable(rule.Variable, value);
+            }
+        }
+
         return results;
     }
-
     public static string FormatJson(string json)
     {
         try

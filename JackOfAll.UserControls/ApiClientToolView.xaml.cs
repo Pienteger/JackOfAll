@@ -8,12 +8,13 @@ using System.Windows.Input;
 using ICSharpCode.AvalonEdit;
 using JackOfAll.Lib;
 using JackOfAll.Lib.Services;
+using JackOfAll.Lib.Settings;
 using JackOfAll.Lib.Tools;
 using JackOfAll.UserControls.Helpers;
 
 namespace JackOfAll.UserControls;
 
-public partial class ApiClientToolView : UserControl, IStatefulTool
+public partial class ApiClientToolView : UserControl, IStatefulTool, IDisposable
 {
     private List<RequestTab> _openTabs = [];
     private int _activeTabIndex = -1;
@@ -43,6 +44,10 @@ public partial class ApiClientToolView : UserControl, IStatefulTool
         AttachEditorContextMenu(ResponseBody);
         AttachEditorContextMenu(HistoryResponseBody);
         AttachEditorContextMenu(HistoryRequestBody);
+        AvalonEditSearchReplace.Attach(BodyBox);
+        AvalonEditSearchReplace.Attach(ResponseBody);
+        AvalonEditSearchReplace.Attach(HistoryResponseBody);
+        AvalonEditSearchReplace.Attach(HistoryRequestBody);
 RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         ThemeNotifier.ThemeChanged += OnThemeChanged;
         DataObject.AddPastingHandler(UrlBox, OnUrlBoxPaste);
@@ -357,6 +362,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         public int? StatusCode { get; set; }
         public string? StatusLine { get; set; }
         public string? Timing { get; set; }
+        public bool ResponseIsTruncated { get; set; }
+        public long ResponseBodySizeBytes { get; set; }
+        public int ResponsePreviewLimitBytes { get; set; }
         public int RequestTabIndex { get; set; }
     }
 
@@ -464,6 +472,10 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         ResponseBody.Text = tab.ResponseBody ?? "Send a request to see the response.";
         ResponseHeadersList.Children.Clear();
+        BtnFormatResponse.IsEnabled = !tab.ResponseIsTruncated;
+        ResponseNotice.Text = tab.ResponseIsTruncated
+            ? $"Preview limited to {(tab.ResponsePreviewLimitBytes > 0 ? tab.ResponsePreviewLimitBytes : ApiResponseReadOptions.DefaultPreviewLimitBytes) / 1024 / 1024} MB."
+            : "";
 
         if (tab.StatusLine is not null)
         {
@@ -665,6 +677,25 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             return;
         }
 
+        await SendRequestAsync();
+    }
+
+    private async void OnSendAndSaveClick(object sender, RoutedEventArgs e)
+    {
+        if (_isSending) return;
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Save full response",
+            FileName = "response.bin",
+            Filter = "All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog() == true)
+            await SendRequestAsync(dialog.FileName);
+    }
+
+    private async Task SendRequestAsync(string? saveFullResponsePath = null)
+    {
         var url = UrlBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(url)) return;
 
@@ -672,6 +703,8 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         SetSendingState(true);
         StatusBadge.Visibility = Visibility.Collapsed;
         TimingText.Text = "";
+        ResponseNotice.Text = "";
+        BtnFormatResponse.IsEnabled = false;
         ResponseBody.Text = "Sending...";
         ResponseBody.SyntaxHighlighting = null;
         ResponseHeadersList.Children.Clear();
@@ -683,7 +716,14 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         try
         {
-            _lastResponse = await ApiClientService.SendAsync(request, cts.Token);
+            var previewLimitMb = Math.Clamp(
+                AppSettings.Current?.ApiResponsePreviewLimitMb ?? 10, 1, 100);
+            var options = new ApiResponseReadOptions
+            {
+                PreviewLimitBytes = previewLimitMb * 1024 * 1024,
+                SaveFullResponsePath = saveFullResponsePath
+            };
+            _lastResponse = await ApiClientService.SendAsync(request, options, cts.Token);
             ShowResponse(_lastResponse);
 
             if (request.ExtractionRules.Count > 0 && !string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
@@ -697,11 +737,18 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             {
                 var tab = _openTabs[_activeTabIndex];
                 tab.Title = ComputeTabTitle(tab);
+                tab.ResponseBody = ResponseBody.Text;
+                tab.ResponseIsTruncated = _lastResponse.IsBodyTruncated;
+                tab.ResponseBodySizeBytes = _lastResponse.BodySizeBytes;
+                tab.ResponsePreviewLimitBytes = _lastResponse.PreviewLimitBytes;
                 RenderTabBar();
 
-                if (!string.IsNullOrWhiteSpace(tab.SavedName) && _lastResponse is not null)
+                if (!string.IsNullOrWhiteSpace(tab.SavedName))
                 {
-                    ApiHistoryDbService.Add(ActiveWorkspace ?? "", tab.SavedName, request, _lastResponse);
+                    var historyResult = await ApiHistoryDbService.AddAsync(
+                        ActiveWorkspace ?? "", tab.SavedName, request, _lastResponse);
+                    if (!historyResult.Stored)
+                        ResponseNotice.Text = JoinNotice(ResponseNotice.Text, historyResult.Notice);
                     RenderRequestHistory(ActiveWorkspace ?? "", tab.SavedName);
                 }
             }
@@ -739,7 +786,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         _isSending = sending;
         SendButtonText.Text = sending ? "Cancel" : "Send";
         BtnSend.ToolTip = sending ? "Cancel request" : "Send request";
+        BtnSendAndSave.IsEnabled = !sending;
     }
+
     private void ShowResponse(ApiResponse resp)
     {
         StatusBadge.Visibility = Visibility.Visible;
@@ -749,11 +798,20 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         TimingText.Text = $"{resp.ElapsedMs} ms";
 
         var body = resp.Body;
-        var isJson = resp.Headers.TryGetValue("Content-Type", out var ct) && IsJsonContentType(ct);
+        var isJson = !resp.IsBodyTruncated
+            && resp.Headers.TryGetValue("Content-Type", out var ct)
+            && IsJsonContentType(ct);
         if (isJson)
             body = ApiClientService.FormatJson(body);
         ResponseBody.Text = body;
         ResponseBody.SyntaxHighlighting = isJson ? SyntaxHelper.ForExtension(".json") : null;
+        BtnFormatResponse.IsEnabled = !resp.IsBodyTruncated;
+
+        ResponseNotice.Text = resp.IsBodyTruncated
+            ? $"Preview limited to {resp.PreviewLimitBytes / 1024 / 1024} MB."
+            : "";
+        if (!string.IsNullOrWhiteSpace(resp.SavedBodyPath))
+            ResponseNotice.Text = JoinNotice(ResponseNotice.Text, $"Full response saved to {resp.SavedBodyPath}");
 
         ResponseHeadersList.Children.Clear();
         foreach (var h in resp.Headers)
@@ -778,6 +836,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         }
     }
 
+    private static string JoinNotice(string current, string? next) =>
+        string.IsNullOrWhiteSpace(next) ? current :
+        string.IsNullOrWhiteSpace(current) ? next : $"{current} {next}";
     private void ColorizeStatusBadge(string statusLine)
     {
         if (int.TryParse(statusLine.Split(' ')[0], out var code))
@@ -1315,7 +1376,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     private void OnFormatResponseClick(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(ResponseBody.Text)) return;
+        if (!BtnFormatResponse.IsEnabled || string.IsNullOrWhiteSpace(ResponseBody.Text)) return;
         ResponseBody.Text = ApiClientService.FormatJson(ResponseBody.Text);
         ResponseBody.SyntaxHighlighting = LooksLikeJson(ResponseBody.Text) ? SyntaxHelper.ForExtension(".json") : null;
     }
@@ -1409,6 +1470,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
     {
         if (HistoryDetailTabs is null || HistoryResponseBody is null) return;
 
+        entry = ApiHistoryDbService.LoadEntry(entry.Id) ?? entry;
         _selectedHistoryEntry = entry;
         HistoryDetailLabel.Visibility = Visibility.Collapsed;
         HistoryDetailTabs.Visibility = Visibility.Visible;
@@ -1880,5 +1942,10 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             });
         }
         return items;
+    }
+
+    public void Dispose()
+    {
+        ThemeNotifier.ThemeChanged -= OnThemeChanged;
     }
 }

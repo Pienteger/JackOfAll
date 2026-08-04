@@ -12,7 +12,7 @@ using JackOfAll.UserControls.Helpers;
 
 namespace JackOfAll.UserControls;
 
-public partial class CodeRunnerToolView : UserControl, IStatefulTool
+public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposable
 {
     private string _language = "csharp";
     private readonly string _tempDir;
@@ -65,6 +65,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
         Directory.CreateDirectory(_tempDir);
 
         ConfigureEditorTheme();
+        AvalonEditSearchReplace.Attach(CodeEditor);
         CodeEditor.TextChanged += OnCodeChanged;
         CodeEditor.PreviewKeyDown += OnCodeKeyDown;
         ApplySyntaxHighlighting();
@@ -631,5 +632,12 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool
         _isDirty = false;
         UpdateFileTitle();
         SyncFilePanel();
+    }
+
+    public void Dispose()
+    {
+        ThemeNotifier.ThemeChanged -= OnThemeChanged;
+        EnvironmentContext.Changed -= SyncFilePanel;
+        _autoSave.Dispose();
     }
 }

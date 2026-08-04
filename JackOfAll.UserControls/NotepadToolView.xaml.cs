@@ -14,13 +14,14 @@ using Microsoft.Win32;
 
 namespace JackOfAll.UserControls;
 
-public partial class NotepadToolView : UserControl, IStatefulTool
+public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
 {
     private string? _currentPath;
     private bool _isDirty;
     private bool _suppressFileSelection;
     private FileMode _fileMode = FileMode.Markdown;
     private readonly AutoSaveService _autoSave;
+    private readonly System.Windows.Threading.DispatcherTimer _previewDebounce = new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     private enum FileMode { Markdown, Text, Csv, Tsv, Json }
 
@@ -39,11 +40,14 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         ConfigureEditorTheme(JsonOutputBox);
         AttachEditorContextMenu(EditorBox);
         AttachEditorContextMenu(JsonOutputBox);
+        AvalonEditSearchReplace.Attach(EditorBox);
+        AvalonEditSearchReplace.Attach(JsonOutputBox);
         ApplyJsonOutputHighlighting();
         _autoSave = new AutoSaveService(
             () => SaveCurrentFile(),
             () => _isDirty,
             () => _currentPath is not null);
+        _previewDebounce.Tick += (_, _) => { _previewDebounce.Stop(); UpdatePreview(); };
         Loaded += (_, _) => SyncFilePanel();
         EnvironmentContext.Changed += SyncFilePanel;
         ThemeNotifier.ThemeChanged += OnThemeChanged;
@@ -304,6 +308,12 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         _isDirty = true;
         _autoSave.NotifyChanged();
         UpdateStatus();
+        _previewDebounce.Stop();
+        _previewDebounce.Start();
+    }
+
+    private void UpdatePreview()
+    {
         if (PreviewToggle.IsChecked == true && _fileMode == FileMode.Markdown)
             UpdateMarkdownPreview();
         if (CsvPreviewToggle.IsChecked == true && _fileMode is FileMode.Csv or FileMode.Tsv)
@@ -539,7 +549,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         if (separator == '\t') return line.Split('\t');
 
         var result = new List<string>();
-        var current = "";
+        var current = new System.Text.StringBuilder();
         var inQuotes = false;
         for (int i = 0; i < line.Length; i++)
         {
@@ -548,7 +558,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool
             {
                 if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
                 {
-                    current += '"';
+                    current.Append('"');
                     i++;
                 }
                 else
@@ -558,15 +568,15 @@ public partial class NotepadToolView : UserControl, IStatefulTool
             }
             else if (c == separator && !inQuotes)
             {
-                result.Add(current);
-                current = "";
+                result.Add(current.ToString());
+                current.Clear();
             }
             else
             {
-                current += c;
+                current.Append(c);
             }
         }
-        result.Add(current);
+        result.Add(current.ToString());
         return result.ToArray();
     }
 
@@ -896,5 +906,13 @@ public partial class NotepadToolView : UserControl, IStatefulTool
         _isDirty = false;
         UpdateStatus();
         SyncFilePanel();
+    }
+
+    public void Dispose()
+    {
+        _previewDebounce.Stop();
+        ThemeNotifier.ThemeChanged -= OnThemeChanged;
+        EnvironmentContext.Changed -= SyncFilePanel;
+        _autoSave.Dispose();
     }
 }

@@ -142,8 +142,16 @@ public static class ApiEnvironmentService
         try
         {
             using var doc = JsonDocument.Parse(json);
-            var element = doc.RootElement;
+            return ExtractJsonPath(doc.RootElement, path);
+        }
+        catch { return null; }
+    }
 
+    public static string? ExtractJsonPath(JsonElement root, string path)
+    {
+        try
+        {
+            var element = root;
             var segments = path.TrimStart('$', '.').Split('.');
             foreach (var seg in segments)
             {
@@ -186,9 +194,8 @@ public static class ApiEnvironmentService
                 _ => element.GetRawText()
             };
         }
-        catch { return null; }
+        catch (InvalidOperationException) { return null; }
     }
-
     public static string? ExtractRegex(string text, string pattern)
     {
         try

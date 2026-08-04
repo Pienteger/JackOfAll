@@ -45,8 +45,9 @@
                             <DoubleAnimation Storyboard.TargetName="GradientShift"
                                              Storyboard.TargetProperty="X"
                                              From="0" To="1"
-                                             Duration="0:0:10"
-                                             RepeatBehavior="Forever"/>
+                                             Duration="0:0:30"
+                                             RepeatBehavior="Forever"
+                                             Timeline.DesiredFrameRate="15"/>
                         </Storyboard>
                     </BeginStoryboard>
                 </EventTrigger>
