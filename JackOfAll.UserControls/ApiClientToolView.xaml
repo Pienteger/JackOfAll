@@ -225,20 +225,33 @@
                             </DockPanel>
 
                             <DockPanel x:Name="BodyRawPanel" Visibility="Collapsed">
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
-                                    <TextBlock Text="Content-Type:" Foreground="{DynamicResource TextSecondary}"
-                                               FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <ComboBox x:Name="RawContentType" Width="180" FontSize="11"
-                                              Background="{DynamicResource SurfaceBackground}"
-                                              Foreground="{DynamicResource TextPrimary}"
-                                              BorderBrush="{DynamicResource SurfaceBorder}">
-                                        <ComboBoxItem Content="application/json" IsSelected="True"/>
-                                        <ComboBoxItem Content="text/plain"/>
-                                        <ComboBoxItem Content="application/xml"/>
-                                        <ComboBoxItem Content="text/html"/>
-                                        <ComboBoxItem Content="application/javascript"/>
-                                    </ComboBox>
-                                </StackPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <Button Click="OnFormatBodyClick" DockPanel.Dock="Right"
+                                            Padding="8,3"
+                                            Background="{DynamicResource SurfaceBackground}"
+                                            Foreground="{DynamicResource TextPrimary}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                            ToolTip="Format JSON">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE943;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Format" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Content-Type:" Foreground="{DynamicResource TextSecondary}"
+                                                   FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <ComboBox x:Name="RawContentType" Width="180" FontSize="11"
+                                                  Background="{DynamicResource SurfaceBackground}"
+                                                  Foreground="{DynamicResource TextPrimary}"
+                                                  BorderBrush="{DynamicResource SurfaceBorder}">
+                                            <ComboBoxItem Content="application/json" IsSelected="True"/>
+                                            <ComboBoxItem Content="text/plain"/>
+                                            <ComboBoxItem Content="application/xml"/>
+                                            <ComboBoxItem Content="text/html"/>
+                                            <ComboBoxItem Content="application/javascript"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </DockPanel>
                                 <Border BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1"
                                         CornerRadius="6" ClipToBounds="True">
                                     <avalonEdit:TextEditor x:Name="BodyBox"
@@ -308,6 +321,17 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                     <TextBlock Text="Copy" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="OnFormatResponseClick" DockPanel.Dock="Right"
+                                    Padding="8,3" Margin="0,0,4,0"
+                                    Background="{DynamicResource SurfaceBackground}"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    BorderBrush="{DynamicResource SurfaceBorder}" FontSize="11"
+                                    ToolTip="Format JSON">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE943;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Format" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <StackPanel Orientation="Horizontal">

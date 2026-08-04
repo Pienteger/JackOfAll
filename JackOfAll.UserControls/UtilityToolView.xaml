@@ -19,5 +19,14 @@
         <TabItem Header="Timestamp">
             <local:TimestampToolView x:Name="TimestampView"/>
         </TabItem>
+        <TabItem Header="Files">
+            <local:FileSplitterToolView x:Name="FileSplitterView"/>
+        </TabItem>
+        <TabItem Header="Images">
+            <local:ImageConverterToolView x:Name="ImageConverterView"/>
+        </TabItem>
+        <TabItem Header="Text Encode">
+            <local:TextEncodeToolView x:Name="TextEncodeView"/>
+        </TabItem>
     </TabControl>
 </UserControl>

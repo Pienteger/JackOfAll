@@ -926,6 +926,20 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         }
     }
 
+    private void OpenOrSwitchToRequest(ApiRequest req)
+    {
+        if (!string.IsNullOrWhiteSpace(req.Name))
+        {
+            var existingIndex = _openTabs.FindIndex(t => t.SavedName == req.Name);
+            if (existingIndex >= 0)
+            {
+                SwitchToTab(existingIndex);
+                return;
+            }
+        }
+        OpenRequestInNewTab(req);
+    }
+
     private void OpenRequestInNewTab(ApiRequest req)
     {
         var tab = new RequestTab
@@ -1137,15 +1151,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             var btn = MakeSidebarButton(req.Name, req.Method);
             var captured = req;
 
-            btn.Click += (_, _) => LoadRequestToUi(captured);
+            btn.Click += (_, _) => OpenOrSwitchToRequest(captured);
 
             var ctx = new ContextMenu();
-
-            var openInTab = new MenuItem { Header = "Open in New Tab" };
-            openInTab.Click += (_, _) => OpenRequestInNewTab(captured);
-            ctx.Items.Add(openInTab);
-
-            ctx.Items.Add(new Separator());
 
             var del = new MenuItem { Header = "Delete" };
             del.Click += (_, _) =>
@@ -1232,6 +1240,19 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
     {
         if (!string.IsNullOrEmpty(ResponseBody.Text))
             Clipboard.SetText(ResponseBody.Text);
+    }
+
+    private void OnFormatBodyClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(BodyBox.Text)) return;
+        BodyBox.Text = ApiClientService.FormatJson(BodyBox.Text);
+    }
+
+    private void OnFormatResponseClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(ResponseBody.Text)) return;
+        ResponseBody.Text = ApiClientService.FormatJson(ResponseBody.Text);
+        ResponseBody.SyntaxHighlighting = LooksLikeJson(ResponseBody.Text) ? SyntaxHelper.ForExtension(".json") : null;
     }
 
     // ── Request history ─────────────────────────────────────────────

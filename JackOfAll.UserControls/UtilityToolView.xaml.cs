@@ -20,6 +20,9 @@ public partial class UtilityToolView : UserControl, IStatefulTool
         AddPrefixedState(state, "generator.", GeneratorView.SaveState());
         AddPrefixedState(state, "hash.", HashView.SaveState());
         AddPrefixedState(state, "timestamp.", TimestampView.SaveState());
+        AddPrefixedState(state, "files.", FileSplitterView.SaveState());
+        AddPrefixedState(state, "images.", ImageConverterView.SaveState());
+        AddPrefixedState(state, "textEncode.", TextEncodeView.SaveState());
 
         return state;
     }
@@ -29,6 +32,9 @@ public partial class UtilityToolView : UserControl, IStatefulTool
         GeneratorView.LoadState(GetPrefixedState(state, "generator."));
         HashView.LoadState(GetPrefixedState(state, "hash."));
         TimestampView.LoadState(GetPrefixedState(state, "timestamp."));
+        FileSplitterView.LoadState(GetPrefixedState(state, "files."));
+        ImageConverterView.LoadState(GetPrefixedState(state, "images."));
+        TextEncodeView.LoadState(GetPrefixedState(state, "textEncode."));
 
         if (state.TryGetValue("selectedTab", out var selectedTab) &&
             int.TryParse(selectedTab, out var tabIndex) &&
