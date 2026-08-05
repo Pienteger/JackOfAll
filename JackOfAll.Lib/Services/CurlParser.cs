@@ -271,11 +271,15 @@ public static class CurlParser
     {
         var eq = formField.IndexOf('=');
         if (eq <= 0) return;
+        var value = formField[(eq + 1)..];
+        var isFile = value.StartsWith('@');
         target.Add(new KeyValueItem
         {
             Enabled = true,
             Key = formField[..eq],
-            Value = formField[(eq + 1)..]
+            Value = isFile ? "" : value,
+            Kind = isFile ? "file" : "text",
+            FilePath = isFile ? value[1..] : ""
         });
     }
 

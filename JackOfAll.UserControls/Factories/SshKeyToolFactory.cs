@@ -8,7 +8,7 @@ public sealed class SshKeyToolFactory : IToolFactory
 {
     public string ToolId => "sshkeys";
     public string DisplayName => "SSH Keys";
-    public string IconGlyph => "";
+    public string IconGlyph => "M9.125 14.125Q10 13.25 10 12t-.875-2.125T7 9t-2.125.875T4 12t.875 2.125T7 15t2.125-.875M7 18q-2.5 0-4.25-1.75T1 12t1.75-4.25T7 6q2.025 0 3.538 1.15T12.65 10h8.375L23 11.975l-3.5 4L17 14l-2 2l-2-2h-.35q-.625 1.8-2.175 2.9T7 18";
 
     public UserControl CreateView(IMessageBus bus, Action<OpenToolMessage> openTool)
         => new SshKeyToolView();

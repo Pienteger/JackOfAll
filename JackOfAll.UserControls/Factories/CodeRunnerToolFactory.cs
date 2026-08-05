@@ -8,7 +8,7 @@ public sealed class CodeRunnerToolFactory : IToolFactory
 {
     public string ToolId => "code-runner";
     public string DisplayName => "Code Runner";
-    public string IconGlyph => "";
+    public string IconGlyph => "M8 19V5l11 7z";
 
     public UserControl CreateView(IMessageBus bus, Action<OpenToolMessage> openTool)
         => new CodeRunnerToolView();

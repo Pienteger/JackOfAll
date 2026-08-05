@@ -50,6 +50,21 @@ public partial class AppSettings : ObservableObject
     [ObservableProperty]
     private int _apiHistoryStorageLimitMb = 100;
 
+    [ObservableProperty]
+    private int _clipboardMaxEntries = 100;
+
+    [ObservableProperty]
+    private int _clipboardMaxEntryKb = 256;
+
+    [ObservableProperty]
+    private int _clipboardStorageLimitMb = 5;
+
+    [ObservableProperty]
+    private int _logViewerScanLimitMb = 256;
+
+    [ObservableProperty]
+    private int _logViewerRetainedEntries = 100000;
+
     public void Save()
     {
         var dir = Path.GetDirectoryName(SettingsPath)!;
@@ -65,7 +80,12 @@ public partial class AppSettings : ObservableObject
             GitHubToken = GitHubToken,
             ApiResponsePreviewLimitMb = ApiResponsePreviewLimitMb,
             ApiHistoryEntriesPerRequest = ApiHistoryEntriesPerRequest,
-            ApiHistoryStorageLimitMb = ApiHistoryStorageLimitMb
+            ApiHistoryStorageLimitMb = ApiHistoryStorageLimitMb,
+            ClipboardMaxEntries = ClipboardMaxEntries,
+            ClipboardMaxEntryKb = ClipboardMaxEntryKb,
+            ClipboardStorageLimitMb = ClipboardStorageLimitMb,
+            LogViewerScanLimitMb = LogViewerScanLimitMb,
+            LogViewerRetainedEntries = LogViewerRetainedEntries
         };
         var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(SettingsPath, json);
@@ -94,6 +114,11 @@ public partial class AppSettings : ObservableObject
             settings.ApiResponsePreviewLimitMb = Math.Clamp(dto.ApiResponsePreviewLimitMb, 1, 100);
             settings.ApiHistoryEntriesPerRequest = Math.Clamp(dto.ApiHistoryEntriesPerRequest, 10, 200);
             settings.ApiHistoryStorageLimitMb = Math.Clamp(dto.ApiHistoryStorageLimitMb, 10, 500);
+            settings.ClipboardMaxEntries = Math.Clamp(dto.ClipboardMaxEntries, 10, 500);
+            settings.ClipboardMaxEntryKb = Math.Clamp(dto.ClipboardMaxEntryKb, 16, 4096);
+            settings.ClipboardStorageLimitMb = Math.Clamp(dto.ClipboardStorageLimitMb, 1, 100);
+            settings.LogViewerScanLimitMb = Math.Clamp(dto.LogViewerScanLimitMb, 16, 4096);
+            settings.LogViewerRetainedEntries = Math.Clamp(dto.LogViewerRetainedEntries, 10000, 500000);
         }
         catch
         {
@@ -114,5 +139,10 @@ public partial class AppSettings : ObservableObject
         public int ApiResponsePreviewLimitMb { get; set; } = 10;
         public int ApiHistoryEntriesPerRequest { get; set; } = 50;
         public int ApiHistoryStorageLimitMb { get; set; } = 100;
+        public int ClipboardMaxEntries { get; set; } = 100;
+        public int ClipboardMaxEntryKb { get; set; } = 256;
+        public int ClipboardStorageLimitMb { get; set; } = 5;
+        public int LogViewerScanLimitMb { get; set; } = 256;
+        public int LogViewerRetainedEntries { get; set; } = 100000;
     }
 }

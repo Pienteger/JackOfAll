@@ -99,7 +99,15 @@
                                        VerticalAlignment="Center" Margin="0,0,10,0"/>
                             <TextBlock Text="API Client"/>
                         </StackPanel>
-                    </ListBoxItem>                    <ListBoxItem>
+                    </ListBoxItem>
+                    <ListBoxItem>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="Clipboard &amp; Logs"/>
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                        VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -383,6 +391,100 @@
                                        Foreground="{DynamicResource TextSecondary}"/>
                         </StackPanel>
                     </Border>
+                </StackPanel>
+                <!-- Clipboard and Logs Page -->
+                <StackPanel x:Name="PageClipboardLogs" Visibility="Collapsed">
+                    <TextBlock Text="Clipboard &amp; Logs" FontSize="20" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                    <TextBlock Text="Bound memory and disk use while keeping useful context"
+                               FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,20"/>
+                    <Border Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            BorderThickness="1" CornerRadius="8" Padding="20">
+                        <StackPanel>
+                            <TextBlock Text="CLIPBOARD HISTORY" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextDimmed}" Margin="0,0,0,12"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Maximum Entries" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Pinned entries count toward this limit" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="ClipboardEntriesLabel" MinWidth="68" TextAlignment="Right"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ClipboardEntriesSlider" Width="140" Minimum="10" Maximum="500"
+                                            TickFrequency="10" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnClipboardEntriesChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,14"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Maximum Item Size" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Oversized clipboard text is skipped" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="ClipboardEntrySizeLabel" MinWidth="68" TextAlignment="Right"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ClipboardEntrySizeSlider" Width="140" Minimum="16" Maximum="4096"
+                                            TickFrequency="16" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnClipboardEntrySizeChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,14"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Total Clipboard Storage" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Logical retained text payload" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="ClipboardStorageLabel" MinWidth="68" TextAlignment="Right"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ClipboardStorageSlider" Width="140" Minimum="1" Maximum="100"
+                                            TickFrequency="1" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnClipboardStorageChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,18"/>
+                            <TextBlock Text="LOG VIEWER" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextDimmed}" Margin="0,0,0,12"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Maximum File Scan" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Additional file data is clearly marked truncated" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="LogScanLimitLabel" MinWidth="68" TextAlignment="Right"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Slider x:Name="LogScanLimitSlider" Width="140" Minimum="16" Maximum="4096"
+                                            TickFrequency="16" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnLogScanLimitChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,14"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Retained Filter Results" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Maximum parsed rows held in memory" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="LogEntriesLabel" MinWidth="68" TextAlignment="Right"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Slider x:Name="LogEntriesSlider" Width="140" Minimum="10000" Maximum="500000"
+                                            TickFrequency="10000" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnLogEntriesChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Optimized defaults: 100 clips, 256 KB each, 5 MB total; 256 MB log scan and 100,000 retained results."
+                               TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                               Margin="0,14,0,0"/>
                 </StackPanel>
                 <!-- About Page -->
                 <StackPanel x:Name="PageAbout" Visibility="Collapsed">

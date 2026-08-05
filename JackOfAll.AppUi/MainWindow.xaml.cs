@@ -216,6 +216,8 @@ public partial class MainWindow : Window
 
         if (tab.View is SplitPaneHost splitHost)
             splitHost.Dispose();
+        else if (tab.View is IDisposable disposable)
+            disposable.Dispose();
         _tabs.Remove(tab);
 
         ArchiveStore.Save(_archivedTabs);
@@ -448,6 +450,8 @@ public partial class MainWindow : Window
 
             if (tab.View is SplitPaneHost splitHost)
                 splitHost.Dispose();
+            else if (tab.View is IDisposable disposable)
+                disposable.Dispose();
 
             _archivedTabs.Add(new ArchivedTab
             {

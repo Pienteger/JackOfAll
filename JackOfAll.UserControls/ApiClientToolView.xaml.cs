@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -356,12 +357,15 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         public List<KeyValueItem> Params { get; set; } = [];
         public List<KeyValueItem> FormData { get; set; } = [];
         public List<ExtractionRule> ExtractionRules { get; set; } = [];
+        public List<ApiResponseCheck> Checks { get; set; } = [];
         public string? SavedName { get; set; }
         public string? ResponseBody { get; set; }
         public string? ResponseHeaders { get; set; }
         public int? StatusCode { get; set; }
         public string? StatusLine { get; set; }
         public string? Timing { get; set; }
+        public string? ResponseSize { get; set; }
+        public string? ResponseContentType { get; set; }
         public bool ResponseIsTruncated { get; set; }
         public long ResponseBodySizeBytes { get; set; }
         public int ResponsePreviewLimitBytes { get; set; }
@@ -425,8 +429,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         tab.AuthValue = AuthValueBox.Text;
         tab.Headers = CollectKeyValues(HeadersList);
         tab.Params = CollectKeyValues(ParamsList);
-        tab.FormData = CollectKeyValues(FormDataList);
+        tab.FormData = CollectFormData();
         tab.ExtractionRules = CollectExtractionRules();
+        tab.Checks = CollectChecks();
         tab.ResponseBody = ResponseBody.Text;
         tab.RequestTabIndex = RequestTabs.SelectedIndex;
 
@@ -434,11 +439,15 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         {
             tab.StatusLine = StatusText.Text;
             tab.Timing = TimingText.Text;
+            tab.ResponseSize = ResponseSizeText.Text;
+            tab.ResponseContentType = ResponseContentTypeText.Text;
         }
         else
         {
             tab.StatusLine = null;
             tab.Timing = null;
+            tab.ResponseSize = null;
+            tab.ResponseContentType = null;
         }
 
         tab.Title = ComputeTabTitle(tab);
@@ -464,11 +473,16 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         FormDataList.Children.Clear();
         foreach (var f in tab.FormData)
-            AddKeyValueRow(FormDataList, f.Key, f.Value, f.Enabled);
+            AddFormDataRow(f.Key, f.Value, f.Enabled, f.Kind, f.FilePath);
 
         ExtractionRulesList.Children.Clear();
         foreach (var r in tab.ExtractionRules)
             AddExtractionRuleRow(r.Variable, r.Source, r.Expression);
+
+        ChecksList.Children.Clear();
+        foreach (var check in tab.Checks)
+            AddCheckRow(check);
+        CheckResultsExpander.Visibility = Visibility.Collapsed;
 
         ResponseBody.Text = tab.ResponseBody ?? "Send a request to see the response.";
         ResponseHeadersList.Children.Clear();
@@ -482,12 +496,16 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             StatusBadge.Visibility = Visibility.Visible;
             StatusText.Text = tab.StatusLine;
             TimingText.Text = tab.Timing ?? "";
+            ResponseSizeText.Text = tab.ResponseSize ?? "";
+            ResponseContentTypeText.Text = tab.ResponseContentType ?? "";
             ColorizeStatusBadge(tab.StatusLine);
         }
         else
         {
             StatusBadge.Visibility = Visibility.Collapsed;
             TimingText.Text = "";
+            ResponseSizeText.Text = "";
+            ResponseContentTypeText.Text = "";
         }
 
         if (tab.RequestTabIndex >= 0 && tab.RequestTabIndex < RequestTabs.Items.Count)
@@ -703,7 +721,11 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         SetSendingState(true);
         StatusBadge.Visibility = Visibility.Collapsed;
         TimingText.Text = "";
+        ResponseSizeText.Text = "";
+        ResponseContentTypeText.Text = "";
         ResponseNotice.Text = "";
+        CheckResultsExpander.Visibility = Visibility.Collapsed;
+        CheckResultsList.Children.Clear();
         BtnFormatResponse.IsEnabled = false;
         ResponseBody.Text = "Sending...";
         ResponseBody.SyntaxHighlighting = null;
@@ -726,12 +748,22 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             _lastResponse = await ApiClientService.SendAsync(request, options, cts.Token);
             ShowResponse(_lastResponse);
 
+            var needsJson = request.ExtractionRules.Any(rule => rule.Source == "jsonpath")
+                || request.Checks.Any(check => check.Enabled && check.Source == ApiCheckSource.JsonPath);
+            using var parsedJson = needsJson
+                ? ApiClientService.TryParseResponseJson(_lastResponse)
+                : null;
+
             if (request.ExtractionRules.Count > 0 && !string.IsNullOrEmpty(ApiEnvironmentService.ActiveEnvironment))
             {
-                ApiClientService.ApplyExtractionRules(_lastResponse, request.ExtractionRules);
+                ApiClientService.ApplyExtractionRules(
+                    _lastResponse, request.ExtractionRules, parsedJson?.RootElement);
                 RenderVars();
                 UpdateEnvVarCount();
             }
+
+            ShowCheckResults(ApiResponseCheckEvaluator.Evaluate(
+                _lastResponse, request.Checks, parsedJson?.RootElement));
 
             if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count)
             {
@@ -753,11 +785,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
                 }
             }
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex) when (!cts.IsCancellationRequested)
         {
-            ResponseBody.Text = "Request cancelled.";
-            ResponseBody.SyntaxHighlighting = null;
-            TimingText.Text = "Cancelled";
+            ShowRequestError(ApiRequestErrorClassifier.Classify(ex));
         }
         catch (OperationCanceledException)
         {
@@ -767,8 +797,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         }
         catch (Exception ex)
         {
-            ResponseBody.Text = $"Error: {ex.Message}";
-            ResponseBody.SyntaxHighlighting = null;
+            ShowRequestError(ApiRequestErrorClassifier.Classify(ex));
         }
         finally
         {
@@ -781,6 +810,16 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         }
     }
 
+    private void ShowRequestError(ApiRequestError error)
+    {
+        ResponseBody.Text = $"{error.Kind}: {error.Message}";
+        ResponseBody.SyntaxHighlighting = null;
+        TimingText.Text = "Failed";
+        ResponseSizeText.Text = "";
+        ResponseContentTypeText.Text = "";
+        ResponseNotice.Text = error.Message;
+        CheckResultsExpander.Visibility = Visibility.Collapsed;
+    }
     private void SetSendingState(bool sending)
     {
         _isSending = sending;
@@ -796,6 +835,10 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         ColorizeStatusBadge($"{resp.StatusCode}");
         StatusText.Foreground = Brushes.White;
         TimingText.Text = $"{resp.ElapsedMs} ms";
+        ResponseSizeText.Text = FormatByteSize(resp.BodySizeBytes);
+        ResponseContentTypeText.Text = resp.Headers.TryGetValue("Content-Type", out var contentType)
+            ? contentType.Split(';')[0]
+            : "";
 
         var body = resp.Body;
         var isJson = !resp.IsBodyTruncated
@@ -885,10 +928,170 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         BodyFormPanel.Visibility = type is "form-data" or "x-www-form-urlencoded" ? Visibility.Visible : Visibility.Collapsed;
         BodyRawPanel.Visibility = type == "raw" ? Visibility.Visible : Visibility.Collapsed;
         FormDataLabel.Text = type == "x-www-form-urlencoded" ? "FORM URL-ENCODED" : "FORM DATA";
+        UpdateFormDataRowModes();
     }
 
     private void OnAddFormDataClick(object sender, RoutedEventArgs e) =>
-        AddKeyValueRow(FormDataList);
+        AddFormDataRow();
+
+    private void AddFormDataRow(
+        string key = "", string value = "", bool enabled = true,
+        string kind = "text", string filePath = "")
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2), Tag = value };
+
+        var removeButton = new Button
+        {
+            Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = (Brush)FindResource("TextDimmed"),
+            BorderThickness = new Thickness(0), FontSize = 14
+        };
+        DockPanel.SetDock(removeButton, Dock.Right);
+        removeButton.Click += (_, _) => FormDataList.Children.Remove(row);
+        row.Children.Add(removeButton);
+
+        var browseButton = new Button
+        {
+            Content = "Browse", Padding = new Thickness(7, 3, 7, 3),
+            Margin = new Thickness(4, 0, 4, 0), FontSize = 11,
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder")
+        };
+        DockPanel.SetDock(browseButton, Dock.Right);
+        row.Children.Add(browseButton);
+
+        var enabledBox = new CheckBox
+        {
+            IsChecked = enabled, VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        };
+        DockPanel.SetDock(enabledBox, Dock.Left);
+        row.Children.Add(enabledBox);
+
+        var kindBox = new ComboBox
+        {
+            Width = 62, Margin = new Thickness(0, 0, 6, 0), FontSize = 11,
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder")
+        };
+        kindBox.Items.Add(new ComboBoxItem { Content = "Text", Tag = "text" });
+        kindBox.Items.Add(new ComboBoxItem { Content = "File", Tag = "file" });
+        kindBox.SelectedIndex = kind == "file" ? 1 : 0;
+        DockPanel.SetDock(kindBox, Dock.Left);
+        row.Children.Add(kindBox);
+
+        var keyBox = new TextBox
+        {
+            Text = key, Width = 125, Padding = new Thickness(4, 3, 4, 3),
+            Margin = new Thickness(0, 0, 6, 0), FontSize = 12,
+            FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder")
+        };
+        AttachEnvironmentSuggestions(keyBox);
+        DockPanel.SetDock(keyBox, Dock.Left);
+        row.Children.Add(keyBox);
+
+        var valueBox = new TextBox
+        {
+            Text = value, Tag = filePath, Padding = new Thickness(4, 3, 4, 3),
+            FontSize = 12, FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder")
+        };
+        AttachEnvironmentSuggestions(valueBox);
+        row.Children.Add(valueBox);
+
+        browseButton.Click += (_, _) =>
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = $"Select file for {keyBox.Text}" };
+            if (dialog.ShowDialog() != true) return;
+            valueBox.Tag = dialog.FileName;
+            valueBox.Text = FormatFileField(dialog.FileName);
+        };
+        kindBox.SelectionChanged += (_, _) => UpdateFormDataRowMode(row);
+        FormDataList.Children.Add(row);
+        UpdateFormDataRowMode(row);
+    }
+
+    private void UpdateFormDataRowModes()
+    {
+        if (FormDataList is null) return;
+        foreach (var row in FormDataList.Children.OfType<DockPanel>())
+            UpdateFormDataRowMode(row);
+    }
+
+    private void UpdateFormDataRowMode(DockPanel row)
+    {
+        var kindBox = row.Children.OfType<ComboBox>().FirstOrDefault();
+        var valueBox = row.Children.OfType<TextBox>().Skip(1).FirstOrDefault();
+        var browseButton = row.Children.OfType<Button>()
+            .FirstOrDefault(button => Equals(button.Content, "Browse"));
+        if (kindBox is null || valueBox is null || browseButton is null) return;
+
+        var allowsFiles = BodyFormData.IsChecked == true;
+        kindBox.IsEnabled = allowsFiles;
+        if (!allowsFiles) kindBox.SelectedIndex = 0;
+
+        var isFile = allowsFiles
+            && (kindBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "file";
+        if (isFile)
+        {
+            if (!valueBox.IsReadOnly) row.Tag = valueBox.Text;
+            valueBox.IsReadOnly = true;
+            valueBox.Text = FormatFileField(valueBox.Tag as string ?? "");
+        }
+        else
+        {
+            if (valueBox.IsReadOnly) valueBox.Text = row.Tag as string ?? "";
+            valueBox.IsReadOnly = false;
+        }
+        browseButton.Visibility = isFile ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private List<KeyValueItem> CollectFormData()
+    {
+        var items = new List<KeyValueItem>();
+        foreach (var row in FormDataList.Children.OfType<DockPanel>())
+        {
+            var enabledBox = row.Children.OfType<CheckBox>().FirstOrDefault();
+            var kindBox = row.Children.OfType<ComboBox>().FirstOrDefault();
+            var textBoxes = row.Children.OfType<TextBox>().ToList();
+            if (textBoxes.Count < 2) continue;
+            var kind = (kindBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "text";
+            if (BodyFormData.IsChecked != true) kind = "text";
+            items.Add(new KeyValueItem
+            {
+                Enabled = enabledBox?.IsChecked ?? true,
+                Key = textBoxes[0].Text,
+                Value = kind == "text" ? textBoxes[1].Text : row.Tag as string ?? "",
+                Kind = kind,
+                FilePath = kind == "file" ? textBoxes[1].Tag as string ?? "" : ""
+            });
+        }
+        return items;
+    }
+
+    private static string FormatFileField(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "Choose a file…";
+        try
+        {
+            var file = new FileInfo(path);
+            return file.Exists
+                ? $"{file.Name} ({FormatByteSize(file.Length)})"
+                : $"{Path.GetFileName(path)} (missing)";
+        }
+        catch
+        {
+            return $"{Path.GetFileName(path)} (unreadable)";
+        }
+    }
 
     // ── Build request from UI ───────────────────────────────────────
 
@@ -907,10 +1110,11 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             Body = bodyType == "raw" ? BodyBox.Text : "",
             BodyType = bodyType,
             FormData = bodyType is "form-data" or "x-www-form-urlencoded"
-                ? CollectKeyValues(FormDataList) : [],
+                ? CollectFormData() : [],
             AuthType = authType,
             AuthValue = AuthValueBox.Text.Trim(),
-            ExtractionRules = CollectExtractionRules()
+            ExtractionRules = CollectExtractionRules(),
+            Checks = CollectChecks()
         };
 
         if (bodyType == "raw")
@@ -964,7 +1168,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         FormDataList.Children.Clear();
         foreach (var f in req.FormData)
-            AddKeyValueRow(FormDataList, f.Key, f.Value, f.Enabled);
+            AddFormDataRow(f.Key, f.Value, f.Enabled, f.Kind, f.FilePath);
 
         SelectComboByContent(AuthType, req.AuthType);
 
@@ -979,6 +1183,10 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         ExtractionRulesList.Children.Clear();
         foreach (var rule in req.ExtractionRules)
             AddExtractionRuleRow(rule.Variable, rule.Source, rule.Expression);
+
+        ChecksList.Children.Clear();
+        foreach (var check in req.Checks)
+            AddCheckRow(check);
 
         if (_activeTabIndex >= 0 && _activeTabIndex < _openTabs.Count && IsLoaded)
         {
@@ -1016,6 +1224,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             Params = [.. req.Params],
             FormData = [.. req.FormData],
             ExtractionRules = [.. req.ExtractionRules],
+            Checks = req.Checks.Select(check => check with { }).ToList(),
             SavedName = req.Name,
             Title = req.Name
         };
@@ -1178,14 +1387,24 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     // ── Sidebar rendering ───────────────────────────────────────────
 
+    private void OnSavedFilterChanged(object sender, TextChangedEventArgs e)
+    {
+        if (SavedList is not null)
+            RenderSaved();
+    }
     private void RenderSaved()
     {
         SavedList.Children.Clear();
         var requests = ActiveWorkspace is not null
             ? _workspaceRequests
             : ApiClientService.LoadCollection();
+        var filter = SavedFilterBox?.Text.Trim() ?? "";
+        var visibleRequests = string.IsNullOrEmpty(filter)
+            ? requests
+            : requests.Where(request =>
+                request.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        foreach (var req in requests)
+        foreach (var req in visibleRequests)
         {
             var btn = MakeSidebarButton(req.Name, req.Method);
             var captured = req;
@@ -1237,11 +1456,11 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             SavedList.Children.Add(btn);
         }
 
-        if (requests.Count == 0)
+        if (visibleRequests.Count == 0)
         {
             SavedList.Children.Add(new TextBlock
             {
-                Text = "No saved requests",
+                Text = requests.Count == 0 ? "No saved requests" : "No matching requests",
                 FontStyle = FontStyles.Italic,
                 Foreground = (Brush)FindResource("TextDimmed"),
                 FontSize = 11,
@@ -1258,7 +1477,8 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             Headers = source.Headers.Select(item => item with { }).ToList(),
             Params = source.Params.Select(item => item with { }).ToList(),
             FormData = source.FormData.Select(item => item with { }).ToList(),
-            ExtractionRules = source.ExtractionRules.Select(rule => rule with { }).ToList()
+            ExtractionRules = source.ExtractionRules.Select(rule => rule with { }).ToList(),
+            Checks = source.Checks.Select(check => check with { }).ToList()
         };
 
         requests.Add(clone);
@@ -1362,6 +1582,23 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     // ── Response actions ────────────────────────────────────────────
 
+    private void OnCopyCurlClick(object sender, RoutedEventArgs e) => CopyCurl(includeSecrets: false);
+
+    private void OnCopyCurlWithSecretsClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        CopyCurl(includeSecrets: true);
+    }
+
+    private void CopyCurl(bool includeSecrets)
+    {
+        var request = BuildRequest();
+        if (string.IsNullOrWhiteSpace(request.Url)) return;
+        Clipboard.SetText(CurlExportService.ToBash(request, includeSecrets));
+        ResponseNotice.Text = includeSecrets
+            ? "cURL copied with secrets."
+            : "Sanitized cURL copied.";
+    }
     private void OnCopyResponseClick(object sender, RoutedEventArgs e)
     {
         if (!string.IsNullOrEmpty(ResponseBody.Text))
@@ -1683,6 +1920,215 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         }
     }
 
+    // Declarative response checks
+
+    private void OnAddCheckClick(object sender, RoutedEventArgs e) =>
+        AddCheckRow(new ApiResponseCheck
+        {
+            Source = ApiCheckSource.Status,
+            Operator = ApiCheckOperator.Equals
+        });
+
+    private void AddCheckRow(ApiResponseCheck check)
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
+        var removeButton = new Button
+        {
+            Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = (Brush)FindResource("TextDimmed"),
+            BorderThickness = new Thickness(0), FontSize = 14
+        };
+        DockPanel.SetDock(removeButton, Dock.Right);
+        removeButton.Click += (_, _) => ChecksList.Children.Remove(row);
+        row.Children.Add(removeButton);
+
+        var enabledBox = new CheckBox
+        {
+            IsChecked = check.Enabled, VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        };
+        DockPanel.SetDock(enabledBox, Dock.Left);
+        row.Children.Add(enabledBox);
+
+        var sourceBox = MakeCheckCombo(105);
+        foreach (var source in Enum.GetValues<ApiCheckSource>())
+            sourceBox.Items.Add(new ComboBoxItem { Content = CheckSourceLabel(source), Tag = source });
+        sourceBox.SelectedIndex = Array.IndexOf(Enum.GetValues<ApiCheckSource>(), check.Source);
+        DockPanel.SetDock(sourceBox, Dock.Left);
+        row.Children.Add(sourceBox);
+
+        var selectorBox = MakeCheckTextBox(check.Selector, 120);
+        DockPanel.SetDock(selectorBox, Dock.Left);
+        row.Children.Add(selectorBox);
+
+        var operatorBox = MakeCheckCombo(105);
+        DockPanel.SetDock(operatorBox, Dock.Left);
+        row.Children.Add(operatorBox);
+
+        var expectedBox = MakeCheckTextBox(check.Expected);
+        row.Children.Add(expectedBox);
+
+        void UpdateExpectedVisibility()
+        {
+            var op = (operatorBox.SelectedItem as ComboBoxItem)?.Tag is ApiCheckOperator selected
+                ? selected : ApiCheckOperator.Equals;
+            expectedBox.Visibility = op == ApiCheckOperator.Exists
+                ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        void UpdateRow()
+        {
+            var source = (sourceBox.SelectedItem as ComboBoxItem)?.Tag is ApiCheckSource selected
+                ? selected : ApiCheckSource.Status;
+            var previous = (operatorBox.SelectedItem as ComboBoxItem)?.Tag is ApiCheckOperator current
+                ? current : check.Operator;
+            var operators = AllowedCheckOperators(source);
+            operatorBox.Items.Clear();
+            foreach (var item in operators)
+                operatorBox.Items.Add(new ComboBoxItem { Content = CheckOperatorLabel(item), Tag = item });
+            var operatorIndex = Array.IndexOf(operators, previous);
+            operatorBox.SelectedIndex = operatorIndex >= 0 ? operatorIndex : 0;
+
+            var needsSelector = source is ApiCheckSource.Header or ApiCheckSource.JsonPath;
+            selectorBox.Visibility = needsSelector ? Visibility.Visible : Visibility.Collapsed;
+            selectorBox.ToolTip = source == ApiCheckSource.Header ? "Header name" : "JSONPath";
+            expectedBox.ToolTip = source == ApiCheckSource.ResponseTime
+                ? "Milliseconds" : "Expected value";
+            UpdateExpectedVisibility();
+        }
+
+        sourceBox.SelectionChanged += (_, _) => UpdateRow();
+        operatorBox.SelectionChanged += (_, _) => UpdateExpectedVisibility();
+        ChecksList.Children.Add(row);
+        UpdateRow();
+    }
+
+    private ComboBox MakeCheckCombo(double width) => new()
+    {
+        Width = width,
+        Margin = new Thickness(0, 0, 6, 0),
+        FontSize = 11,
+        Background = (Brush)FindResource("SurfaceBackground"),
+        Foreground = (Brush)FindResource("TextPrimary"),
+        BorderBrush = (Brush)FindResource("SurfaceBorder")
+    };
+
+    private TextBox MakeCheckTextBox(string text, double? width = null)
+    {
+        var box = new TextBox
+        {
+            Text = text,
+            Padding = new Thickness(4, 3, 4, 3),
+            Margin = new Thickness(0, 0, 6, 0),
+            FontSize = 11,
+            FontFamily = new FontFamily("Cascadia Code,Consolas,Courier New"),
+            Background = (Brush)FindResource("SurfaceBackground"),
+            Foreground = (Brush)FindResource("TextPrimary"),
+            BorderBrush = (Brush)FindResource("SurfaceBorder")
+        };
+        if (width is not null) box.Width = width.Value;
+        return box;
+    }
+
+    private List<ApiResponseCheck> CollectChecks()
+    {
+        var checks = new List<ApiResponseCheck>();
+        foreach (var row in ChecksList.Children.OfType<DockPanel>())
+        {
+            var enabledBox = row.Children.OfType<CheckBox>().FirstOrDefault();
+            var combos = row.Children.OfType<ComboBox>().ToList();
+            var textBoxes = row.Children.OfType<TextBox>().ToList();
+            if (combos.Count < 2 || textBoxes.Count < 2) continue;
+            checks.Add(new ApiResponseCheck
+            {
+                Enabled = enabledBox?.IsChecked ?? true,
+                Source = (combos[0].SelectedItem as ComboBoxItem)?.Tag is ApiCheckSource source
+                    ? source : ApiCheckSource.Status,
+                Selector = textBoxes[0].Text,
+                Operator = (combos[1].SelectedItem as ComboBoxItem)?.Tag is ApiCheckOperator op
+                    ? op : ApiCheckOperator.Equals,
+                Expected = textBoxes[1].Text
+            });
+        }
+        return checks;
+    }
+
+    private void ShowCheckResults(List<ApiCheckResult> results)
+    {
+        CheckResultsList.Children.Clear();
+        if (results.Count == 0)
+        {
+            CheckResultsExpander.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var passed = results.Count(result => result.Passed);
+        var skipped = results.Count(result => result.Skipped);
+        var failed = results.Count - passed - skipped;
+        CheckSummaryText.Text = $"{passed} passed · {failed} failed"
+            + (skipped > 0 ? $" · {skipped} skipped" : "");
+        CheckSummaryText.Foreground = failed > 0
+            ? new SolidColorBrush(Color.FromRgb(0xC8, 0x32, 0x32))
+            : new SolidColorBrush(Color.FromRgb(0x22, 0x8B, 0x22));
+
+        foreach (var result in results)
+        {
+            var prefix = result.Skipped ? "–" : result.Passed ? "✓" : "✕";
+            CheckResultsList.Children.Add(new TextBlock
+            {
+                Text = $"{prefix} {DescribeCheck(result.Check)} — {result.Message}",
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 2),
+                Foreground = result.Skipped
+                    ? (Brush)FindResource("TextDimmed")
+                    : result.Passed
+                        ? new SolidColorBrush(Color.FromRgb(0x22, 0x8B, 0x22))
+                        : new SolidColorBrush(Color.FromRgb(0xC8, 0x32, 0x32))
+            });
+        }
+
+        CheckResultsExpander.Visibility = Visibility.Visible;
+        CheckResultsExpander.IsExpanded = failed > 0;
+    }
+
+    private static string DescribeCheck(ApiResponseCheck check)
+    {
+        var selector = string.IsNullOrWhiteSpace(check.Selector) ? "" : $" {check.Selector}";
+        var expected = check.Operator == ApiCheckOperator.Exists ? "" : $" {check.Expected}";
+        return $"{CheckSourceLabel(check.Source)}{selector} {CheckOperatorLabel(check.Operator)}{expected}";
+    }
+
+    private static ApiCheckOperator[] AllowedCheckOperators(ApiCheckSource source) => source switch
+    {
+        ApiCheckSource.Status =>
+            [ApiCheckOperator.Equals, ApiCheckOperator.NotEquals, ApiCheckOperator.InRange],
+        ApiCheckSource.ResponseTime => [ApiCheckOperator.LessThan],
+        ApiCheckSource.Header =>
+            [ApiCheckOperator.Exists, ApiCheckOperator.Equals, ApiCheckOperator.Contains],
+        ApiCheckSource.JsonPath =>
+            [ApiCheckOperator.Exists, ApiCheckOperator.Equals, ApiCheckOperator.Contains],
+        ApiCheckSource.Body =>
+            [ApiCheckOperator.Contains, ApiCheckOperator.NotContains],
+        _ => [ApiCheckOperator.Equals]
+    };
+
+    private static string CheckSourceLabel(ApiCheckSource source) => source switch
+    {
+        ApiCheckSource.ResponseTime => "Response time",
+        ApiCheckSource.JsonPath => "JSONPath",
+        _ => source.ToString()
+    };
+
+    private static string CheckOperatorLabel(ApiCheckOperator op) => op switch
+    {
+        ApiCheckOperator.NotEquals => "not equals",
+        ApiCheckOperator.NotContains => "does not contain",
+        ApiCheckOperator.LessThan => "less than",
+        ApiCheckOperator.InRange => "in range",
+        _ => op.ToString().ToLowerInvariant()
+    };
     // ── Extraction rules ────────────────────────────────────────────
 
     private void OnAddExtractionRule(object sender, RoutedEventArgs e) => AddExtractionRuleRow();
@@ -1779,6 +2225,12 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     // ── Helpers ─────────────────────────────────────────────────────
 
+    private static string FormatByteSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024d:F1} KB";
+        return $"{bytes / 1024d / 1024d:F1} MB";
+    }
     private static void SelectComboByContent(ComboBox combo, string value)
     {
         for (int i = 0; i < combo.Items.Count; i++)
@@ -1832,11 +2284,23 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             state[$"{p}respBody"] = tab.ResponseBody ?? "";
             state[$"{p}statusLine"] = tab.StatusLine ?? "";
             state[$"{p}timing"] = tab.Timing ?? "";
+            state[$"{p}respSize"] = tab.ResponseSize ?? "";
+            state[$"{p}respContentType"] = tab.ResponseContentType ?? "";
             state[$"{p}reqTab"] = tab.RequestTabIndex.ToString();
 
             SerializeKvList(state, $"{p}h", tab.Headers);
             SerializeKvList(state, $"{p}p", tab.Params);
             SerializeKvList(state, $"{p}fd", tab.FormData);
+
+            state[$"{p}checkCount"] = tab.Checks.Count.ToString();
+            for (int i = 0; i < tab.Checks.Count; i++)
+            {
+                state[$"{p}check{i}_enabled"] = tab.Checks[i].Enabled.ToString();
+                state[$"{p}check{i}_source"] = tab.Checks[i].Source.ToString();
+                state[$"{p}check{i}_selector"] = tab.Checks[i].Selector;
+                state[$"{p}check{i}_operator"] = tab.Checks[i].Operator.ToString();
+                state[$"{p}check{i}_expected"] = tab.Checks[i].Expected;
+            }
 
             state[$"{p}exCount"] = tab.ExtractionRules.Count.ToString();
             for (int i = 0; i < tab.ExtractionRules.Count; i++)
@@ -1883,6 +2347,8 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
                 ResponseBody = state.GetValueOrDefault($"{p}respBody", "") is var rb && rb != "" ? rb : null,
                 StatusLine = state.GetValueOrDefault($"{p}statusLine", "") is var sl && sl != "" ? sl : null,
                 Timing = state.GetValueOrDefault($"{p}timing", "") is var tm && tm != "" ? tm : null,
+                ResponseSize = state.GetValueOrDefault($"{p}respSize", "") is var rs && rs != "" ? rs : null,
+                ResponseContentType = state.GetValueOrDefault($"{p}respContentType", "") is var rc && rc != "" ? rc : null,
             };
 
             if (state.TryGetValue($"{p}reqTab", out var rt) && int.TryParse(rt, out var rti))
@@ -1891,6 +2357,26 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             tab.Headers = DeserializeKvList(state, $"{p}h");
             tab.Params = DeserializeKvList(state, $"{p}p");
             tab.FormData = DeserializeKvList(state, $"{p}fd");
+
+            if (state.TryGetValue($"{p}checkCount", out var checkCountText)
+                && int.TryParse(checkCountText, out var checkCount))
+            {
+                for (int i = 0; i < checkCount; i++)
+                {
+                    Enum.TryParse(state.GetValueOrDefault($"{p}check{i}_source", "Status"),
+                        out ApiCheckSource source);
+                    Enum.TryParse(state.GetValueOrDefault($"{p}check{i}_operator", "Equals"),
+                        out ApiCheckOperator checkOperator);
+                    tab.Checks.Add(new ApiResponseCheck
+                    {
+                        Enabled = state.GetValueOrDefault($"{p}check{i}_enabled", "True") != "False",
+                        Source = source,
+                        Selector = state.GetValueOrDefault($"{p}check{i}_selector", ""),
+                        Operator = checkOperator,
+                        Expected = state.GetValueOrDefault($"{p}check{i}_expected", "")
+                    });
+                }
+            }
 
             if (state.TryGetValue($"{p}exCount", out var exc) && int.TryParse(exc, out var exCount))
             {
@@ -1925,6 +2411,8 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             state[$"{prefix}{i}_k"] = items[i].Key;
             state[$"{prefix}{i}_v"] = items[i].Value;
             state[$"{prefix}{i}_e"] = items[i].Enabled.ToString();
+            state[$"{prefix}{i}_kind"] = items[i].Kind;
+            state[$"{prefix}{i}_file"] = items[i].FilePath;
         }
     }
 
@@ -1938,7 +2426,9 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             {
                 Key = state.GetValueOrDefault($"{prefix}{i}_k", ""),
                 Value = state.GetValueOrDefault($"{prefix}{i}_v", ""),
-                Enabled = state.GetValueOrDefault($"{prefix}{i}_e", "True") != "False"
+                Enabled = state.GetValueOrDefault($"{prefix}{i}_e", "True") != "False",
+                Kind = state.GetValueOrDefault($"{prefix}{i}_kind", "text"),
+                FilePath = state.GetValueOrDefault($"{prefix}{i}_file", "")
             });
         }
         return items;

@@ -21,6 +21,7 @@ public record ApiRequest
     public string AuthValue { get; set; } = "";
     public string Name { get; set; } = "";
     public List<ExtractionRule> ExtractionRules { get; set; } = [];
+    public List<ApiResponseCheck> Checks { get; set; } = [];
 }
 
 public record KeyValueItem
@@ -28,6 +29,8 @@ public record KeyValueItem
     public bool Enabled { get; set; } = true;
     public string Key { get; set; } = "";
     public string Value { get; set; } = "";
+    public string Kind { get; set; } = "text";
+    public string FilePath { get; set; } = "";
 }
 
 public record ApiResponse
@@ -119,7 +122,9 @@ public static class ApiClientService
             {
                 Enabled = f.Enabled,
                 Key = ApiEnvironmentService.Resolve(f.Key),
-                Value = ApiEnvironmentService.Resolve(f.Value)
+                Value = ApiEnvironmentService.Resolve(f.Value),
+                Kind = f.Kind,
+                FilePath = ApiEnvironmentService.Resolve(f.FilePath)
             }).ToList();
             var resolvedRequest = request with
             {
@@ -162,40 +167,49 @@ public static class ApiClientService
         };
     }
 
+    public static JsonDocument? TryParseResponseJson(ApiResponse response)
+    {
+        if (response.IsBodyTruncated) return null;
+        try { return JsonDocument.Parse(response.Body); }
+        catch (JsonException) { return null; }
+    }
+
     public static Dictionary<string, string?> ApplyExtractionRules(
         ApiResponse response, List<ExtractionRule> rules)
     {
+        using var json = rules.Any(rule => rule.Source == "jsonpath")
+            ? TryParseResponseJson(response)
+            : null;
+        return ApplyExtractionRules(response, rules, json?.RootElement);
+    }
+
+    public static Dictionary<string, string?> ApplyExtractionRules(
+        ApiResponse response, List<ExtractionRule> rules, JsonElement? jsonRoot)
+    {
         var results = new Dictionary<string, string?>();
-        JsonDocument? json = null;
-        if (!response.IsBodyTruncated && rules.Any(rule => rule.Source == "jsonpath"))
+        foreach (var rule in rules)
         {
-            try { json = JsonDocument.Parse(response.Body); }
-            catch (JsonException) { }
-        }
+            if (string.IsNullOrWhiteSpace(rule.Variable) || string.IsNullOrWhiteSpace(rule.Expression))
+                continue;
+            if (!ApiEnvironmentService.IsValidVariableName(rule.Variable))
+                continue;
 
-        using (json)
-        {
-            foreach (var rule in rules)
+            string? value = rule.Source switch
             {
-                if (string.IsNullOrWhiteSpace(rule.Variable) || string.IsNullOrWhiteSpace(rule.Expression))
-                    continue;
-                if (!ApiEnvironmentService.IsValidVariableName(rule.Variable))
-                    continue;
+                "jsonpath" when jsonRoot is not null =>
+                    ApiEnvironmentService.ExtractJsonPath(jsonRoot.Value, rule.Expression),
+                "regex" when !response.IsBodyTruncated =>
+                    ApiEnvironmentService.ExtractRegex(response.Body, rule.Expression),
+                "header" => response.Headers.TryGetValue(rule.Expression, out var headerValue)
+                    ? headerValue
+                    : null,
+                _ => null
+            };
 
-                string? value = rule.Source switch
-                {
-                    "jsonpath" when json is not null => ApiEnvironmentService.ExtractJsonPath(json.RootElement, rule.Expression),
-                    "regex" when !response.IsBodyTruncated => ApiEnvironmentService.ExtractRegex(response.Body, rule.Expression),
-                    "header" => response.Headers.TryGetValue(rule.Expression, out var headerValue) ? headerValue : null,
-                    _ => null
-                };
-
-                results[rule.Variable] = value;
-                if (value is not null)
-                    ApiEnvironmentService.SetVariable(rule.Variable, value);
-            }
+            results[rule.Variable] = value;
+            if (value is not null)
+                ApiEnvironmentService.SetVariable(rule.Variable, value);
         }
-
         return results;
     }
     public static string FormatJson(string json)
@@ -214,9 +228,43 @@ public static class ApiClientService
     private static HttpContent BuildMultipartContent(List<KeyValueItem> formData)
     {
         var content = new MultipartFormDataContent();
-        foreach (var item in formData.Where(f => f.Enabled && !string.IsNullOrWhiteSpace(f.Key)))
-            content.Add(new StringContent(item.Value, Encoding.UTF8), item.Key);
-        return content;
+        try
+        {
+            foreach (var item in formData.Where(f => f.Enabled && !string.IsNullOrWhiteSpace(f.Key)))
+            {
+                if (item.Kind != "file")
+                {
+                    content.Add(new StringContent(item.Value, Encoding.UTF8), item.Key);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+                    throw new ApiRequestValidationException(
+                        $"Multipart field '{item.Key}' references a missing file: {item.FilePath}");
+
+                FileStream stream;
+                try
+                {
+                    stream = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                        81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    throw new ApiRequestValidationException(
+                        $"Multipart field '{item.Key}' cannot read file: {item.FilePath}");
+                }
+
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                content.Add(fileContent, item.Key, Path.GetFileName(item.FilePath));
+            }
+            return content;
+        }
+        catch
+        {
+            content.Dispose();
+            throw;
+        }
     }
 
     private static HttpContent BuildFormUrlEncodedContent(List<KeyValueItem> formData)

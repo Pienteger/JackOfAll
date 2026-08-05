@@ -1,0 +1,170 @@
+<UserControl x:Class="JackOfAll.UserControls.LogViewerToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000"
+             AllowDrop="True" Drop="OnFileDrop" DragOver="OnDragOver">
+    <Grid Margin="20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Click="OnOpenFileClick" Padding="10,5" Margin="6,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                        <TextBlock Text="Open File"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ReloadButton" Click="OnReloadClick" Padding="10,5" Margin="6,0,0,0"
+                        IsEnabled="False" ToolTip="Reload the current file">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                        <TextBlock Text="Reload"/>
+                    </StackPanel>
+                </Button>
+                <ToggleButton x:Name="TailToggle" Click="OnTailClick" Padding="10,5" Margin="6,0,0,0"
+                              IsEnabled="False" ToolTip="Watch the current file for appended lines">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                        <TextBlock Text="Tail"/>
+                    </StackPanel>
+                </ToggleButton>
+                <Button Click="OnPasteClick" Padding="10,5" Margin="6,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                        <TextBlock Text="Paste"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="OnClearClick" Padding="10,5" Margin="6,0,0,0"
+                        Foreground="{DynamicResource DangerBrush}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                        <TextBlock Text="Clear"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                           Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="Log Viewer" Foreground="{DynamicResource TextPrimary}"
+                           FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FileLabel" Foreground="{DynamicResource TextDimmed}"
+                           FontSize="12" VerticalAlignment="Center" Margin="12,2,0,0"
+                           TextTrimming="CharacterEllipsis" MaxWidth="320"/>
+            </StackPanel>
+        </DockPanel>
+
+        <DockPanel Grid.Row="1" Margin="0,0,0,10">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0">
+                <CheckBox x:Name="FilterTrace" Content="Trace" IsChecked="True" Click="OnFilterChanged" Margin="0,0,8,0"/>
+                <CheckBox x:Name="FilterDebug" Content="Debug" IsChecked="True" Click="OnFilterChanged" Margin="0,0,8,0"/>
+                <CheckBox x:Name="FilterInfo" Content="Info" IsChecked="True" Click="OnFilterChanged" Margin="0,0,8,0"/>
+                <CheckBox x:Name="FilterWarn" Content="Warn" IsChecked="True" Click="OnFilterChanged" Margin="0,0,8,0"/>
+                <CheckBox x:Name="FilterError" Content="Error" IsChecked="True" Click="OnFilterChanged" Margin="0,0,8,0"/>
+                <CheckBox x:Name="FilterFatal" Content="Fatal" IsChecked="True" Click="OnFilterChanged"/>
+            </StackPanel>
+            <Grid>
+                <TextBox x:Name="SearchBox" TextChanged="OnSearchChanged"
+                         Padding="32,7,8,7" FontSize="{DynamicResource AppFontSize}"/>
+                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource TextDimmed}" IsHitTestVisible="False"
+                           VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock x:Name="SearchPlaceholder" Text="Search loaded log..."
+                           IsHitTestVisible="False" Foreground="{DynamicResource TextDimmed}"
+                           VerticalAlignment="Center" Margin="34,0,0,0"
+                           FontSize="{DynamicResource AppFontSize}"/>
+            </Grid>
+        </DockPanel>
+
+        <Grid Grid.Row="2">
+            <Border x:Name="DropZone" CornerRadius="10" BorderThickness="2"
+                    Background="{DynamicResource SurfaceBackground}">
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="Gray" Opacity="0.3"/>
+                </Border.BorderBrush>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="40"
+                               Foreground="{DynamicResource TextDimmed}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Drop a log file here" FontSize="16"
+                               Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                    <TextBlock Text="Plain text, JSON lines, Serilog, and common timestamped logs"
+                               FontSize="11" Foreground="{DynamicResource TextDimmed}" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <DataGrid x:Name="LogGrid" Visibility="Collapsed"
+                      AutoGenerateColumns="False" IsReadOnly="True"
+                      CanUserSortColumns="True" CanUserReorderColumns="True" CanUserResizeColumns="True"
+                      SelectionMode="Extended"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      EnableRowVirtualization="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding LineNumber}" Width="70"/>
+                    <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="70"/>
+                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="170"/>
+                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="150"/>
+                </DataGrid.Columns>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Level}" Value="ERROR">
+                                <Setter Property="Foreground" Value="{DynamicResource ErrorText}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Level}" Value="FATAL">
+                                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Level}" Value="WARN">
+                                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Level}" Value="DEBUG">
+                                <Setter Property="Foreground" Value="{DynamicResource TextDimmed}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Level}" Value="TRACE">
+                                <Setter Property="Foreground" Value="{DynamicResource TextDimmed}"/>
+                                <Setter Property="Opacity" Value="0.7"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+
+            <Border x:Name="LoadingPanel" Visibility="Collapsed"
+                    Background="{DynamicResource SurfaceBackground}" Opacity="0.96"
+                    CornerRadius="8" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Width="300">
+                    <TextBlock x:Name="LoadingText" Text="Indexing log..." TextAlignment="Center"
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,10"/>
+                    <ProgressBar x:Name="LoadProgress" Height="6" Minimum="0" Maximum="1"/>
+                    <Button Content="Cancel" Click="OnCancelClick" Margin="0,12,0,0"
+                            HorizontalAlignment="Center" Padding="14,5"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <DockPanel Grid.Row="3" Margin="0,10,0,0">
+            <StackPanel x:Name="PageControls" DockPanel.Dock="Right" Orientation="Horizontal"
+                        Visibility="Collapsed">
+                <Button Content="Previous" Click="OnPreviousPageClick" Padding="9,4"/>
+                <TextBlock x:Name="PageText" VerticalAlignment="Center" Margin="10,0"/>
+                <Button Content="Next" Click="OnNextPageClick" Padding="9,4"/>
+                <TextBlock x:Name="CountText" Foreground="{DynamicResource TextDimmed}"
+                           FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0"/>
+            </StackPanel>
+            <Border CornerRadius="4" Padding="10,6" Background="{DynamicResource SurfaceBackground}">
+                <TextBlock x:Name="StatusText" Text="Drop a file or paste logs to begin."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12"
+                           TextTrimming="CharacterEllipsis"/>
+            </Border>
+        </DockPanel>
+    </Grid>
+</UserControl>

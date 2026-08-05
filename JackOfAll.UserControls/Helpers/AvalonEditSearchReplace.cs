@@ -165,7 +165,23 @@ public partial class AvalonEditFindReplaceWindow : Window
 
         _editor.Select(offset, query.Length);
         _editor.ScrollToLine(_editor.Document.GetLineByOffset(offset).LineNumber);
-        StatusText.Text = "";
+        StatusText.Text = GetMatchStatus(text, query, offset, comparison);
+    }
+
+    private static string GetMatchStatus(
+        string text, string query, int selectedOffset, StringComparison comparison)
+    {
+        var count = 0;
+        var selectedIndex = 0;
+        for (var offset = 0; offset <= text.Length - query.Length;)
+        {
+            var match = text.IndexOf(query, offset, comparison);
+            if (match < 0) break;
+            count++;
+            if (match <= selectedOffset) selectedIndex = count;
+            offset = match + query.Length;
+        }
+        return $"{selectedIndex} of {count} matches";
     }
 
     private void OnNextClick(object sender, RoutedEventArgs e) => FindNext();

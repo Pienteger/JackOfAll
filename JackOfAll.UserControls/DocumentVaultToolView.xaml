@@ -1,0 +1,246 @@
+<UserControl x:Class="JackOfAll.UserControls.DocumentVaultToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000"
+             AllowDrop="True" Drop="OnFileDrop" DragOver="OnDragOver">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" MinWidth="200"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*" MinWidth="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left panel: list -->
+        <Grid Grid.Column="0" Margin="16,16,0,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                <Button DockPanel.Dock="Right" Click="OnAddClick" Padding="8,4"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White" BorderThickness="0"
+                        ToolTip="Add document" Cursor="Hand">
+                    <TextBlock Text="+ Add" FontSize="12" FontWeight="SemiBold"/>
+                </Button>
+                <TextBlock Text="Doc Vault" Foreground="{DynamicResource TextPrimary}"
+                           FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </DockPanel>
+
+            <!-- Search -->
+            <Grid Grid.Row="1" Margin="0,0,0,8">
+                <TextBox x:Name="SearchBox" TextChanged="OnSearchChanged"
+                         Padding="32,7,8,7" FontSize="{DynamicResource AppFontSize}"/>
+                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource TextDimmed}" IsHitTestVisible="False"
+                           VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock x:Name="SearchPlaceholder" Text="Search documents..."
+                           IsHitTestVisible="False" Foreground="{DynamicResource TextDimmed}"
+                           VerticalAlignment="Center" Margin="34,0,0,0"
+                           FontSize="{DynamicResource AppFontSize}"/>
+            </Grid>
+
+            <!-- Category filter -->
+            <ComboBox x:Name="CategoryFilter" Grid.Row="2" Margin="0,0,0,8"
+                      SelectionChanged="OnCategoryFilterChanged"
+                      FontSize="{DynamicResource AppFontSize}" Padding="8,6"/>
+
+            <!-- Document list -->
+            <ListView x:Name="DocList" Grid.Row="3"
+                      Background="Transparent" BorderThickness="0"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                      SelectionMode="Single"
+                      SelectionChanged="OnDocSelected">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0,0,0,4"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <Border x:Name="Bd" Background="{DynamicResource SurfaceBackground}"
+                                            BorderBrush="{DynamicResource SurfaceBorder}"
+                                            BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush"
+                                                    Value="{DynamicResource AccentBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush"
+                                                    Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{DynamicResource TabHoverBackground}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <DockPanel>
+                                <Border DockPanel.Dock="Left" CornerRadius="3"
+                                        Background="{Binding CategoryBrush}"
+                                        Padding="6,2" Margin="0,0,8,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding CategoryShort}" FontSize="9"
+                                               Foreground="White" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           FontSize="13" FontWeight="Medium"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextDimmed}"
+                                       FontSize="11" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding DateText}"
+                                       Foreground="{DynamicResource TextDimmed}"
+                                       FontSize="10" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <!-- Count -->
+            <TextBlock x:Name="CountText" Grid.Row="4" Margin="0,6,0,0"
+                       Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+        </Grid>
+
+        <!-- Splitter -->
+        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center"
+                      VerticalAlignment="Stretch" Background="Transparent"
+                      Cursor="SizeWE"/>
+
+        <!-- Right panel: detail/editor -->
+        <Grid Grid.Column="2" Margin="12,16,16,16">
+            <!-- Empty state -->
+            <StackPanel x:Name="EmptyState" VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="40"
+                           Foreground="{DynamicResource TextDimmed}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Drop files here or click + Add" FontSize="14"
+                           Foreground="{DynamicResource TextSecondary}"
+                           HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                <TextBlock Text="Store VPN configs, DB connections, certificates, app configs"
+                           FontSize="12" Foreground="{DynamicResource TextDimmed}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Detail view -->
+            <Grid x:Name="DetailPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Name -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="DocName" Grid.Column="0" Padding="10,8"
+                             FontSize="15" FontWeight="SemiBold"
+                             TextChanged="OnFieldChanged"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                        <Button Click="OnCopyContent" Padding="10,6"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"
+                                ToolTip="Copy content to clipboard" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Copy" FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnExportFile" Padding="10,6" Margin="6,0,0,0"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"
+                                ToolTip="Export to file" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE78C;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Export" FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnDeleteDoc" Padding="10,6" Margin="6,0,0,0"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource DangerBrush}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"
+                                ToolTip="Delete document" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Delete" FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Category + Tags row -->
+                <Grid Grid.Row="1" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="DocCategory" Grid.Column="0" Width="150"
+                              Padding="8,6" Margin="0,0,10,0"
+                              SelectionChanged="OnFieldChanged"
+                              FontSize="{DynamicResource AppFontSize}"/>
+                    <TextBox x:Name="DocTags" Grid.Column="1" Padding="8,6"
+                             FontSize="{DynamicResource AppFontSize}"
+                             TextChanged="OnFieldChanged"/>
+                </Grid>
+
+                <!-- Tags hint -->
+                <TextBlock Grid.Row="2" Text="Tags (comma-separated)" Margin="160,0,0,4"
+                           Foreground="{DynamicResource TextDimmed}" FontSize="10"/>
+
+                <!-- Notes -->
+                <TextBox x:Name="DocNotes" Grid.Row="3" Padding="8,6" Margin="0,0,0,10"
+                         FontSize="{DynamicResource AppFontSize}"
+                         AcceptsReturn="False" TextWrapping="Wrap"
+                         TextChanged="OnFieldChanged"/>
+
+                <!-- Content -->
+                <TextBox x:Name="DocContent" Grid.Row="4" Padding="10,8"
+                         FontFamily="Cascadia Code,Consolas,Courier New"
+                         FontSize="{DynamicResource MonoFontSize}"
+                         AcceptsReturn="True" AcceptsTab="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         TextChanged="OnFieldChanged"/>
+
+                <!-- Status bar -->
+                <DockPanel Grid.Row="5" Margin="0,8,0,0">
+                    <TextBlock x:Name="DetailStatus"
+                               Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

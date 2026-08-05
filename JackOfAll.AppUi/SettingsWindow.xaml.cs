@@ -21,7 +21,7 @@ public partial class SettingsWindow : Window
         _settings = settings;
         _applyTheme = applyTheme;
 
-        _pages = [PageAppearance, PageEditor, PageAutoSave, PageApiClient, PageAbout];
+        _pages = [PageAppearance, PageEditor, PageAutoSave, PageApiClient, PageClipboardLogs, PageAbout];
 
         FontSizeSlider.Value = settings.FontSize;
         FontSizeLabel.Text = $"{settings.FontSize:F0}";
@@ -54,6 +54,17 @@ public partial class SettingsWindow : Window
         ApiHistoryEntriesLabel.Text = $"{settings.ApiHistoryEntriesPerRequest}";
         ApiHistoryStorageSlider.Value = settings.ApiHistoryStorageLimitMb;
         ApiHistoryStorageLabel.Text = $"{settings.ApiHistoryStorageLimitMb} MB";
+
+        ClipboardEntriesSlider.Value = settings.ClipboardMaxEntries;
+        ClipboardEntriesLabel.Text = $"{settings.ClipboardMaxEntries}";
+        ClipboardEntrySizeSlider.Value = settings.ClipboardMaxEntryKb;
+        ClipboardEntrySizeLabel.Text = $"{settings.ClipboardMaxEntryKb} KB";
+        ClipboardStorageSlider.Value = settings.ClipboardStorageLimitMb;
+        ClipboardStorageLabel.Text = $"{settings.ClipboardStorageLimitMb} MB";
+        LogScanLimitSlider.Value = settings.LogViewerScanLimitMb;
+        LogScanLimitLabel.Text = $"{settings.LogViewerScanLimitMb} MB";
+        LogEntriesSlider.Value = settings.LogViewerRetainedEntries;
+        LogEntriesLabel.Text = $"{settings.LogViewerRetainedEntries:N0}";
 
         var version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
@@ -190,6 +201,53 @@ public partial class SettingsWindow : Window
         var value = (int)(Math.Round(e.NewValue / 10.0) * 10);
         _settings.ApiHistoryStorageLimitMb = value;
         ApiHistoryStorageLabel.Text = $"{value} MB";
+        _settings.Save();
+    }
+
+    // Clipboard and Logs
+
+    private void OnClipboardEntriesChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 10.0) * 10);
+        _settings.ClipboardMaxEntries = value;
+        ClipboardEntriesLabel.Text = $"{value}";
+        _settings.Save();
+    }
+
+    private void OnClipboardEntrySizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 16.0) * 16);
+        _settings.ClipboardMaxEntryKb = value;
+        ClipboardEntrySizeLabel.Text = $"{value} KB";
+        _settings.Save();
+    }
+
+    private void OnClipboardStorageChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)Math.Round(e.NewValue);
+        _settings.ClipboardStorageLimitMb = value;
+        ClipboardStorageLabel.Text = $"{value} MB";
+        _settings.Save();
+    }
+
+    private void OnLogScanLimitChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 16.0) * 16);
+        _settings.LogViewerScanLimitMb = value;
+        LogScanLimitLabel.Text = $"{value} MB";
+        _settings.Save();
+    }
+
+    private void OnLogEntriesChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 10000.0) * 10000);
+        _settings.LogViewerRetainedEntries = value;
+        LogEntriesLabel.Text = $"{value:N0}";
         _settings.Save();
     }
     // ── About ────────────────────────────────────────────────────
