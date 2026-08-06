@@ -12,11 +12,13 @@ using JackOfAll.UserControls.Helpers;
 
 namespace JackOfAll.UserControls;
 
-public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposable
+public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposable, ICloseGuard
 {
     private string _language = "csharp";
     private readonly string _tempDir;
     private readonly AutoSaveService _autoSave;
+    private readonly HashSet<string> _scratchFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly string _scratchId = Guid.NewGuid().ToString("N");
     private string? _currentFilePath;
     private bool _isDirty;
     private bool _suppressFileSelection;
@@ -71,7 +73,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
         ApplySyntaxHighlighting();
 
         _autoSave = new AutoSaveService(
-            () => SaveCurrentFile(),
+            () => TrySaveCurrentFile(),
             () => _isDirty,
             () => _currentFilePath is not null);
 
@@ -184,40 +186,21 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
         if (_suppressFileSelection || !IsLoaded) return;
         if (FileList.SelectedItem is not FileEntry entry) return;
 
-        if (_isDirty)
+        if (_currentFilePath != entry.FullPath && !ConfirmSaveBeforeAction("switching files"))
         {
-            if (_autoSave.IsEnabled)
-            {
-                _autoSave.TrySaveBeforeAction();
-            }
-            else
-            {
-                var answer = MessageBox.Show("Save changes before switching files?",
-                    "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                if (answer == MessageBoxResult.Cancel)
-                {
-                    _suppressFileSelection = true;
-                    if (_currentFilePath is not null)
-                    {
-                        var files = FileList.ItemsSource as List<FileEntry>;
-                        var idx = files?.FindIndex(f => f.FullPath == _currentFilePath) ?? -1;
-                        FileList.SelectedIndex = idx;
-                    }
-                    _suppressFileSelection = false;
-                    return;
-                }
-                if (answer == MessageBoxResult.Yes) SaveCurrentFile();
-            }
+            RestoreFileSelection();
+            return;
         }
 
         OpenFile(entry.FullPath);
     }
 
-    private void OpenFile(string path)
+    private bool OpenFile(string path)
     {
         try
         {
-            CodeEditor.Text = File.ReadAllText(path);
+            var text = File.ReadAllText(path);
+            CodeEditor.Text = text;
             _currentFilePath = path;
             _isDirty = false;
 
@@ -238,71 +221,125 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
             }
 
             UpdateFileTitle();
+            return true;
         }
         catch (Exception ex)
         {
             StatusText.Text = $"Failed to open: {ex.Message}";
+            return false;
         }
     }
-
-    // ── Save ──────────────────────────────────────────────────────
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         if (_currentFilePath is not null)
         {
-            SaveCurrentFile();
+            TrySaveCurrentFile();
             return;
         }
+        TrySaveAsEnvironmentFile();
+    }
 
+    private bool TrySaveAsEnvironmentFile()
+    {
         var env = EnvironmentContext.Current;
-        if (env is null)
+        if (env is null || !Directory.Exists(env.FolderPath))
         {
             StatusText.Text = "Select an environment first.";
-            return;
+            return false;
         }
+
+        var ext = Extensions.GetValueOrDefault(_language, ".txt");
+        var dlg = new InputDialog("Save File", $"File name (e.g. main{ext}):");
+        var owner = Window.GetWindow(this);
+        if (owner is not null) dlg.Owner = owner;
+        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return false;
+
+        var fileName = dlg.ResultText.Trim();
+        if (!Path.HasExtension(fileName)) fileName += ext;
+        if (!TryResolveFileName(env.FolderPath, fileName, out var filePath))
+        {
+            MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+        if (File.Exists(filePath) && MessageBox.Show($"Replace '{fileName}'?", "File Exists",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            return false;
 
         try
         {
-            var ext = Extensions.GetValueOrDefault(_language, ".txt");
-            var dlg = new InputDialog("Save File", $"File name (e.g. main{ext}):");
-            var owner = Window.GetWindow(this);
-            if (owner is not null) dlg.Owner = owner;
-            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
-
-            var fileName = dlg.ResultText.Trim();
-            if (!Path.HasExtension(fileName)) fileName += ext;
-
-            var filePath = Path.Combine(env.FolderPath, fileName);
             File.WriteAllText(filePath, CodeEditor.Text);
             _currentFilePath = filePath;
             _isDirty = false;
             UpdateFileTitle();
             RefreshFileList();
             StatusText.Text = $"Saved: {fileName}";
+            return true;
         }
         catch (Exception ex)
         {
             StatusText.Text = $"Save failed: {ex.Message}";
+            return false;
         }
     }
 
-    private void SaveCurrentFile()
+    private bool TrySaveCurrentFile()
     {
-        if (_currentFilePath is null) return;
+        if (_currentFilePath is null) return false;
         try
         {
             File.WriteAllText(_currentFilePath, CodeEditor.Text);
             _isDirty = false;
             UpdateFileTitle();
             StatusText.Text = $"Saved: {Path.GetFileName(_currentFilePath)}";
+            return true;
         }
         catch (Exception ex)
         {
             StatusText.Text = $"Save failed: {ex.Message}";
+            return false;
         }
     }
 
+    private bool ConfirmSaveBeforeAction(string action)
+    {
+        if (!_isDirty) return true;
+        if (_autoSave.IsEnabled && _currentFilePath is not null)
+            return TrySaveCurrentFile();
+
+        var answer = MessageBox.Show($"Save changes before {action}?", "Unsaved Changes",
+            MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+        return answer switch
+        {
+            MessageBoxResult.No => true,
+            MessageBoxResult.Yes => _currentFilePath is not null
+                ? TrySaveCurrentFile()
+                : TrySaveAsEnvironmentFile(),
+            _ => false
+        };
+    }
+
+    private void RestoreFileSelection()
+    {
+        _suppressFileSelection = true;
+        var files = FileList.ItemsSource as List<FileEntry>;
+        FileList.SelectedIndex = _currentFilePath is null
+            ? -1
+            : files?.FindIndex(file => file.FullPath.Equals(_currentFilePath, StringComparison.OrdinalIgnoreCase)) ?? -1;
+        _suppressFileSelection = false;
+    }
+
+    private static bool TryResolveFileName(string directory, string fileName, out string filePath)
+    {
+        filePath = string.Empty;
+        if (string.IsNullOrWhiteSpace(fileName) || Path.IsPathRooted(fileName) ||
+            fileName is "." or ".." || fileName != Path.GetFileName(fileName) ||
+            fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            return false;
+        filePath = Path.Combine(directory, fileName);
+        return true;
+    }
     private void UpdateFileTitle()
     {
         var name = _currentFilePath is not null ? Path.GetFileName(_currentFilePath) : "untitled";
@@ -317,8 +354,8 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
         if (LanguagePicker.SelectedItem is not ComboBoxItem item) return;
         var lang = item.Tag?.ToString() ?? "csharp";
 
-        if (_language != lang && string.IsNullOrWhiteSpace(CodeEditor.Text)
-            || CodeEditor.Text == Templates.GetValueOrDefault(_language))
+        if (_language != lang && (string.IsNullOrWhiteSpace(CodeEditor.Text)
+            || CodeEditor.Text == Templates.GetValueOrDefault(_language)))
         {
             CodeEditor.Text = Templates.GetValueOrDefault(lang, "");
         }
@@ -338,14 +375,23 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
         string filePath;
         if (_currentFilePath is not null)
         {
-            SaveCurrentFile();
+            if (!TrySaveCurrentFile()) return;
             filePath = _currentFilePath;
         }
         else
         {
             var ext = Extensions.GetValueOrDefault(_language, ".txt");
-            filePath = Path.Combine(_tempDir, $"script{ext}");
-            await File.WriteAllTextAsync(filePath, code);
+            filePath = Path.Combine(_tempDir, $"script-{_scratchId}{ext}");
+            try
+            {
+                await File.WriteAllTextAsync(filePath, code);
+                _scratchFiles.Add(filePath);
+            }
+            catch (Exception exception)
+            {
+                StatusText.Text = $"Run failed: {exception.Message}";
+                return;
+            }
         }
 
         var (exe, args) = ResolveRuntime(_language, filePath);
@@ -421,9 +467,15 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-            using var p = Process.Start(psi);
-            p?.WaitForExit(3000);
-            return p?.ExitCode == 0;
+            using var process = Process.Start(psi);
+            if (process is null) return false;
+            if (!process.WaitForExit(3000))
+            {
+                try { process.Kill(entireProcessTree: true); }
+                catch { }
+                return false;
+            }
+            return process.ExitCode == 0;
         }
         catch { return false; }
     }
@@ -493,24 +545,36 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
         var fileName = dlg.ResultText.Trim();
         if (!Path.HasExtension(fileName)) fileName += ext;
-
-        var filePath = Path.Combine(env.FolderPath, fileName);
+        if (!TryResolveFileName(env.FolderPath, fileName, out var filePath))
+        {
+            MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
         if (File.Exists(filePath))
         {
             MessageBox.Show($"'{fileName}' already exists.", "File Exists",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+        if (!ConfirmSaveBeforeAction("creating another file")) return;
 
-        var template = "";
-        var fileExt = Path.GetExtension(fileName).ToLowerInvariant();
-        if (ExtensionToLanguage.TryGetValue(fileExt, out var lang))
-            template = Templates.GetValueOrDefault(lang, "");
+        try
+        {
+            var template = "";
+            var fileExt = Path.GetExtension(fileName).ToLowerInvariant();
+            if (ExtensionToLanguage.TryGetValue(fileExt, out var lang))
+                template = Templates.GetValueOrDefault(lang, "");
 
-        File.WriteAllText(filePath, template);
-        RefreshFileList();
-        OpenFile(filePath);
-        StatusText.Text = $"Created: {fileName}";
+            File.WriteAllText(filePath, template);
+            RefreshFileList();
+            OpenFile(filePath);
+            StatusText.Text = $"Created: {fileName}";
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = $"Create failed: {exception.Message}";
+        }
     }
 
     private void OnRenameFileClick(object sender, RoutedEventArgs e)
@@ -526,8 +590,13 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
         var newName = dlg.ResultText.Trim();
         var dir = Path.GetDirectoryName(entry.FullPath)!;
-        var newPath = Path.Combine(dir, newName);
-
+        if (!TryResolveFileName(dir, newName, out var newPath))
+        {
+            MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (entry.FullPath.Equals(newPath, StringComparison.Ordinal)) return;
         if (File.Exists(newPath))
         {
             MessageBox.Show($"'{newName}' already exists.", "File Exists",
@@ -535,66 +604,77 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
             return;
         }
 
-        File.Move(entry.FullPath, newPath);
-
-        if (_currentFilePath is not null &&
-            _currentFilePath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            _currentFilePath = newPath;
-            UpdateFileTitle();
-
-            var ext = Path.GetExtension(newPath).ToLowerInvariant();
-            if (ExtensionToLanguage.TryGetValue(ext, out var lang) && lang != _language)
+            File.Move(entry.FullPath, newPath);
+            if (_currentFilePath is not null &&
+                _currentFilePath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
             {
-                _language = lang;
-                for (int i = 0; i < LanguagePicker.Items.Count; i++)
-                {
-                    if ((LanguagePicker.Items[i] as ComboBoxItem)?.Tag?.ToString() == lang)
-                    {
-                        LanguagePicker.SelectedIndex = i;
-                        break;
-                    }
-                }
-                RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
-                ApplySyntaxHighlighting();
-            }
-        }
+                _currentFilePath = newPath;
+                UpdateFileTitle();
 
-        RefreshFileList();
-        StatusText.Text = $"Renamed to: {newName}";
+                var ext = Path.GetExtension(newPath).ToLowerInvariant();
+                if (ExtensionToLanguage.TryGetValue(ext, out var lang) && lang != _language)
+                {
+                    _language = lang;
+                    for (int i = 0; i < LanguagePicker.Items.Count; i++)
+                    {
+                        if ((LanguagePicker.Items[i] as ComboBoxItem)?.Tag?.ToString() == lang)
+                        {
+                            LanguagePicker.SelectedIndex = i;
+                            break;
+                        }
+                    }
+                    RuntimeLabel.Text = RuntimeLabels.GetValueOrDefault(lang, "");
+                    ApplySyntaxHighlighting();
+                }
+            }
+
+            RefreshFileList();
+            StatusText.Text = $"Renamed to: {newName}";
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = $"Rename failed: {exception.Message}";
+        }
     }
 
     private void OnDeleteFileClick(object sender, RoutedEventArgs e)
     {
         if (FileList.SelectedItem is not FileEntry entry) return;
-
-        var result = MessageBox.Show($"Delete '{entry.Name}'?", "Confirm Delete",
+        var deletingCurrent = _currentFilePath is not null &&
+            _currentFilePath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase);
+        var warning = deletingCurrent && _isDirty ? " Unsaved changes will also be lost." : string.Empty;
+        var result = MessageBox.Show($"Delete '{entry.Name}'?{warning}", "Confirm Delete",
             MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (result != MessageBoxResult.Yes) return;
 
-        File.Delete(entry.FullPath);
-
-        if (_currentFilePath is not null &&
-            _currentFilePath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            _currentFilePath = null;
-            CodeEditor.Text = Templates.GetValueOrDefault(_language, "");
-            _isDirty = false;
-            UpdateFileTitle();
+            File.Delete(entry.FullPath);
+            if (deletingCurrent)
+            {
+                _currentFilePath = null;
+                CodeEditor.Text = Templates.GetValueOrDefault(_language, "");
+                _isDirty = false;
+                UpdateFileTitle();
+            }
+            RefreshFileList();
+            StatusText.Text = $"Deleted: {entry.Name}";
         }
-
-        RefreshFileList();
-        StatusText.Text = $"Deleted: {entry.Name}";
+        catch (Exception exception)
+        {
+            StatusText.Text = $"Delete failed: {exception.Message}";
+        }
     }
-
-    // ── IStatefulTool ──────────────────────────────────────────────
 
     public Dictionary<string, string> SaveState()
     {
         var state = new Dictionary<string, string>
         {
             ["language"] = _language,
-            ["code"] = CodeEditor.Text
+            ["code"] = CodeEditor.Text,
+            ["dirty"] = _isDirty.ToString()
         };
 
         if (_currentFilePath is not null)
@@ -620,24 +700,33 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
             ApplySyntaxHighlighting();
         }
 
-        if (state.TryGetValue("filePath", out var fp) && File.Exists(fp))
-        {
-            OpenFile(fp);
-        }
-        else if (state.TryGetValue("code", out var code))
-        {
-            CodeEditor.Text = code;
-        }
+        var hasDirtyState = state.TryGetValue("dirty", out var dirtyText) && bool.TryParse(dirtyText, out _);
+        var wasDirty = hasDirtyState && bool.Parse(dirtyText!);
+        var restoredFile = state.TryGetValue("filePath", out var filePath) &&
+            File.Exists(filePath) && OpenFile(filePath);
+        if (!hasDirtyState && state.TryGetValue("code", out var legacyCode) &&
+            (!restoredFile || legacyCode != CodeEditor.Text))
+            wasDirty = true;
 
-        _isDirty = false;
+        if ((!restoredFile || wasDirty) && state.TryGetValue("code", out var code))
+            CodeEditor.Text = code;
+
+        _isDirty = wasDirty;
         UpdateFileTitle();
         SyncFilePanel();
     }
 
+    public bool ConfirmClose() => ConfirmSaveBeforeAction("closing this tab");
     public void Dispose()
     {
         ThemeNotifier.ThemeChanged -= OnThemeChanged;
         EnvironmentContext.Changed -= SyncFilePanel;
         _autoSave.Dispose();
+        foreach (var scratchFile in _scratchFiles)
+        {
+            try { File.Delete(scratchFile); }
+            catch { }
+        }
+        _scratchFiles.Clear();
     }
 }

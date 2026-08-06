@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -148,9 +149,10 @@ public partial class MainWindow : Window
             CloseTab(tab);
     }
 
-    private void CloseTab(ToolTab tab)
+    private bool CloseTab(ToolTab tab)
     {
-        if (tab.IsPinned) return;
+        if (tab.IsPinned) return false;
+        if (tab.View is ICloseGuard guard && !guard.ConfirmClose()) return false;
 
         if (tab.View is SplitPaneHost splitHost)
             splitHost.Dispose();
@@ -164,6 +166,7 @@ public partial class MainWindow : Window
             AddNewTab();
         else if (TabList.SelectedItem is null)
             TabList.SelectedIndex = Math.Min(idx, _tabs.Count - 1);
+        return true;
     }
 
     private void OnCloseTabClick(object sender, RoutedEventArgs e)
@@ -180,7 +183,7 @@ public partial class MainWindow : Window
 
         var toClose = _tabs.Where(t => t != keep && t.CanClose && !t.IsPinned).ToList();
         foreach (var t in toClose)
-            CloseTab(t);
+            if (!CloseTab(t)) break;
     }
 
     private void OnCloseTabsRight(object sender, RoutedEventArgs e)
@@ -191,7 +194,7 @@ public partial class MainWindow : Window
         var idx = _tabs.IndexOf(anchor);
         var toClose = _tabs.Skip(idx + 1).Where(t => t.CanClose && !t.IsPinned).ToList();
         foreach (var t in toClose)
-            CloseTab(t);
+            if (!CloseTab(t)) break;
     }
 
     // ── Archive / Restore ───────────────────────────────────────────
@@ -720,6 +723,19 @@ public partial class MainWindow : Window
             _ => null
         };
         return id.HasValue ? _tabs.FirstOrDefault(t => t.Id == id.Value) : null;
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        foreach (var tab in _tabs)
+        {
+            if (tab.View is ICloseGuard guard && !guard.ConfirmClose())
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+        base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)

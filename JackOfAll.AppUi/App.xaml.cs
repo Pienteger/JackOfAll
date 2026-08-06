@@ -76,7 +76,6 @@ public partial class App : Application
         registry.Register(new CodeRunnerToolFactory());
         registry.Register(new ClipboardHistoryToolFactory());
         registry.Register(new LogViewerToolFactory());
-        registry.Register(new DocumentVaultToolFactory());
 
         ApplyTheme();
 

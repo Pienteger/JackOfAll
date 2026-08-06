@@ -7,7 +7,7 @@ using JackOfAll.Lib.Tools;
 
 namespace JackOfAll.UserControls;
 
-public partial class SplitPaneHost : UserControl, IDisposable
+public partial class SplitPaneHost : UserControl, IDisposable, ICloseGuard
 {
     private readonly ToolRegistry _registry;
     private readonly IMessageBus _bus;
@@ -95,6 +95,7 @@ public partial class SplitPaneHost : UserControl, IDisposable
 
     private void OnChildClosed(SplitPaneHost closed)
     {
+        if (!closed.ConfirmClose()) return;
         var remaining = closed == _first ? _second! : _first!;
 
         DisposePane(closed);
@@ -286,6 +287,13 @@ public partial class SplitPaneHost : UserControl, IDisposable
         {
             d.Dispose();
         }
+    }
+
+    public bool ConfirmClose()
+    {
+        if (_isSplit)
+            return (_first?.ConfirmClose() ?? true) && (_second?.ConfirmClose() ?? true);
+        return _leafContent is not ICloseGuard guard || guard.ConfirmClose();
     }
 
     public void Dispose()

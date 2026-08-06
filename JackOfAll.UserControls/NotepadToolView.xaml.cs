@@ -14,13 +14,14 @@ using Microsoft.Win32;
 
 namespace JackOfAll.UserControls;
 
-public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
+public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, ICloseGuard
 {
     private string? _currentPath;
     private bool _isDirty;
     private bool _suppressFileSelection;
     private FileMode _fileMode = FileMode.Markdown;
     private readonly AutoSaveService _autoSave;
+    private CancellationTokenSource? _openCts;
     private readonly System.Windows.Threading.DispatcherTimer _previewDebounce = new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     private enum FileMode { Markdown, Text, Csv, Tsv, Json }
@@ -44,7 +45,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
         AvalonEditSearchReplace.Attach(JsonOutputBox);
         ApplyJsonOutputHighlighting();
         _autoSave = new AutoSaveService(
-            () => SaveCurrentFile(),
+            () => TrySaveCurrentFile(),
             () => _isDirty,
             () => _currentPath is not null);
         _previewDebounce.Tick += (_, _) => { _previewDebounce.Stop(); UpdatePreview(); };
@@ -250,57 +251,64 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
 
     private void OnRefreshFiles(object sender, RoutedEventArgs e) => RefreshFileList();
 
-    private void OnFileSelected(object sender, SelectionChangedEventArgs e)
+    private async void OnFileSelected(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressFileSelection) return;
         if (FileList.SelectedItem is not FileEntry entry) return;
 
-        if (_isDirty && _currentPath != entry.FullPath)
+        if (_currentPath != entry.FullPath && !ConfirmSaveBeforeAction("switching files"))
         {
-            if (_autoSave.IsEnabled)
-            {
-                _autoSave.TrySaveBeforeAction();
-            }
-            else
-            {
-                var save = MessageBox.Show("Save changes before switching?", "Unsaved Changes",
-                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                if (save == MessageBoxResult.Cancel)
-                {
-                    _suppressFileSelection = true;
-                    if (_currentPath is not null)
-                    {
-                        var prev = (FileList.ItemsSource as List<FileEntry>)?.FirstOrDefault(f =>
-                            f.FullPath.Equals(_currentPath, StringComparison.OrdinalIgnoreCase));
-                        FileList.SelectedItem = prev;
-                    }
-                    _suppressFileSelection = false;
-                    return;
-                }
-                if (save == MessageBoxResult.Yes)
-                    SaveCurrentFile();
-            }
+            RestoreFileSelection();
+            return;
         }
 
-        OpenFile(entry.FullPath);
+        await OpenFileAsync(entry.FullPath);
     }
 
-    private void OpenFile(string path)
+    private async Task<bool> OpenFileAsync(string path)
     {
-        _currentPath = path;
-        EditorBox.Text = File.ReadAllText(path);
-        _isDirty = false;
-        FileTitle.Text = Path.GetFileName(path);
-        ApplyFileMode(DetectMode(path));
-        UpdateStatus();
+        _openCts?.Cancel();
+        _openCts?.Dispose();
+        _openCts = new CancellationTokenSource();
+        var token = _openCts.Token;
+        try
+        {
+            var text = await File.ReadAllTextAsync(path, token);
+            token.ThrowIfCancellationRequested();
+            _currentPath = path;
+            EditorBox.Text = text;
+            _isDirty = false;
+            FileTitle.Text = Path.GetFileName(path);
+            ApplyFileMode(DetectMode(path));
+            UpdateStatus();
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception exception)
+        {
+            SetStatus($"Open failed: {exception.Message}", "ErrorBackground", "ErrorText");
+            return false;
+        }
     }
 
-    private void SaveCurrentFile()
+    private bool TrySaveCurrentFile()
     {
-        if (_currentPath is null) return;
-        File.WriteAllText(_currentPath, EditorBox.Text);
-        _isDirty = false;
-        UpdateStatus();
+        if (_currentPath is null) return false;
+        try
+        {
+            File.WriteAllText(_currentPath, EditorBox.Text);
+            _isDirty = false;
+            UpdateStatus();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            SetStatus($"Save failed: {exception.Message}", "ErrorBackground", "ErrorText");
+            return false;
+        }
     }
 
     private void OnTextChanged(object? sender, EventArgs e)
@@ -326,24 +334,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
 
     private void OnNewClick(object sender, RoutedEventArgs e)
     {
-        if (_isDirty)
-        {
-            if (_autoSave.IsEnabled)
-            {
-                _autoSave.TrySaveBeforeAction();
-            }
-            else
-            {
-                var save = MessageBox.Show("Save changes first?", "Unsaved Changes",
-                    MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                if (save == MessageBoxResult.Cancel) return;
-                if (save == MessageBoxResult.Yes)
-                {
-                    OnSaveClick(sender, e);
-                    if (_isDirty) return;
-                }
-            }
-        }
+        if (!ConfirmSaveBeforeAction("creating a new document")) return;
 
         EditorBox.Text = string.Empty;
         _currentPath = null;
@@ -356,8 +347,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
         FileList.SelectedItem = null;
         _suppressFileSelection = false;
     }
-
-    private void OnOpenClick(object sender, RoutedEventArgs e)
+    private async void OnOpenClick(object sender, RoutedEventArgs e)
     {
         var initialDir = EnvironmentContext.Current?.FolderPath;
 
@@ -370,10 +360,10 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
         if (initialDir is not null && Directory.Exists(initialDir))
             dlg.InitialDirectory = initialDir;
 
-        if (dlg.ShowDialog() == true)
+        if (dlg.ShowDialog() == true && ConfirmSaveBeforeAction("opening another file"))
         {
-            OpenFile(dlg.FileName);
-            RefreshFileList();
+            if (await OpenFileAsync(dlg.FileName))
+                RefreshFileList();
         }
     }
 
@@ -385,12 +375,12 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
             return;
         }
 
-        File.WriteAllText(_currentPath, EditorBox.Text);
-        _isDirty = false;
-        UpdateStatus();
+        TrySaveCurrentFile();
     }
 
-    private void OnSaveAsClick(object sender, RoutedEventArgs e)
+    private void OnSaveAsClick(object sender, RoutedEventArgs e) => TrySaveAs();
+
+    private bool TrySaveAs()
     {
         var env = EnvironmentContext.Current;
         string defaultDir;
@@ -412,16 +402,60 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
             InitialDirectory = _currentPath is not null ? Path.GetDirectoryName(_currentPath)! : defaultDir
         };
 
-        if (dlg.ShowDialog() == true)
+        if (dlg.ShowDialog() != true) return false;
+        try
         {
+            File.WriteAllText(dlg.FileName, EditorBox.Text);
             _currentPath = dlg.FileName;
-            File.WriteAllText(_currentPath, EditorBox.Text);
             _isDirty = false;
             FileTitle.Text = Path.GetFileName(_currentPath);
             ApplyFileMode(DetectMode(_currentPath));
             UpdateStatus();
             RefreshFileList();
+            return true;
         }
+        catch (Exception exception)
+        {
+            SetStatus($"Save failed: {exception.Message}", "ErrorBackground", "ErrorText");
+            return false;
+        }
+    }
+
+    private bool ConfirmSaveBeforeAction(string action)
+    {
+        if (!_isDirty) return true;
+        if (_autoSave.IsEnabled && _currentPath is not null)
+            return TrySaveCurrentFile();
+
+        var answer = MessageBox.Show($"Save changes before {action}?", "Unsaved Changes",
+            MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+        return answer switch
+        {
+            MessageBoxResult.No => true,
+            MessageBoxResult.Yes => _currentPath is not null ? TrySaveCurrentFile() : TrySaveAs(),
+            _ => false
+        };
+    }
+
+    private void RestoreFileSelection()
+    {
+        _suppressFileSelection = true;
+        FileList.SelectedItem = _currentPath is null
+            ? null
+            : (FileList.ItemsSource as List<FileEntry>)?.FirstOrDefault(file =>
+                file.FullPath.Equals(_currentPath, StringComparison.OrdinalIgnoreCase));
+        _suppressFileSelection = false;
+    }
+
+    private static bool TryResolveFileName(string directory, string fileName, out string filePath)
+    {
+        filePath = string.Empty;
+        if (string.IsNullOrWhiteSpace(fileName) || Path.IsPathRooted(fileName) ||
+            fileName is "." or ".." || fileName != Path.GetFileName(fileName) ||
+            fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            return false;
+        filePath = Path.Combine(directory, fileName);
+        return true;
     }
 
     // ── Markdown preview ──────────────────────────────────────────
@@ -727,7 +761,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
 
     // ── File panel: New / Rename / Delete ─────────────────────────
 
-    private void OnNewFileClick(object sender, RoutedEventArgs e)
+    private async void OnNewFileClick(object sender, RoutedEventArgs e)
     {
         var env = EnvironmentContext.Current;
         if (env is null || !Directory.Exists(env.FolderPath)) return;
@@ -738,16 +772,29 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
         if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
 
         var fileName = dlg.ResultText.Trim();
-        var filePath = Path.Combine(env.FolderPath, fileName);
+        if (!TryResolveFileName(env.FolderPath, fileName, out var filePath))
+        {
+            MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
         if (File.Exists(filePath))
         {
             MessageBox.Show($"'{fileName}' already exists.", "File Exists", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+        if (!ConfirmSaveBeforeAction("creating another file")) return;
 
-        File.WriteAllText(filePath, string.Empty);
-        RefreshFileList();
-        OpenFile(filePath);
+        try
+        {
+            File.WriteAllText(filePath, string.Empty);
+            RefreshFileList();
+            await OpenFileAsync(filePath);
+        }
+        catch (Exception exception)
+        {
+            SetStatus($"Create failed: {exception.Message}", "ErrorBackground", "ErrorText");
+        }
     }
 
     private void OnRenameFileClick(object sender, RoutedEventArgs e)
@@ -763,52 +810,66 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
 
         var newName = dlg.ResultText.Trim();
         var dir = Path.GetDirectoryName(entry.FullPath)!;
-        var newPath = Path.Combine(dir, newName);
-
+        if (!TryResolveFileName(dir, newName, out var newPath))
+        {
+            MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (entry.FullPath.Equals(newPath, StringComparison.Ordinal)) return;
         if (File.Exists(newPath))
         {
             MessageBox.Show($"'{newName}' already exists.", "File Exists", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        File.Move(entry.FullPath, newPath);
-
-        if (_currentPath is not null &&
-            _currentPath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            _currentPath = newPath;
-            FileTitle.Text = newName;
-            ApplyFileMode(DetectMode(newPath));
+            File.Move(entry.FullPath, newPath);
+            if (_currentPath is not null &&
+                _currentPath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                _currentPath = newPath;
+                FileTitle.Text = newName;
+                ApplyFileMode(DetectMode(newPath));
+            }
+            RefreshFileList();
         }
-
-        RefreshFileList();
+        catch (Exception exception)
+        {
+            SetStatus($"Rename failed: {exception.Message}", "ErrorBackground", "ErrorText");
+        }
     }
 
     private void OnDeleteFileClick(object sender, RoutedEventArgs e)
     {
         if (FileList.SelectedItem is not FileEntry entry) return;
-
-        var result = MessageBox.Show($"Delete '{entry.Name}'?", "Confirm Delete",
+        var deletingCurrent = _currentPath is not null &&
+            _currentPath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase);
+        var warning = deletingCurrent && _isDirty ? " Unsaved changes will also be lost." : string.Empty;
+        var result = MessageBox.Show($"Delete '{entry.Name}'?{warning}", "Confirm Delete",
             MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (result != MessageBoxResult.Yes) return;
 
-        File.Delete(entry.FullPath);
-
-        if (_currentPath is not null &&
-            _currentPath.Equals(entry.FullPath, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            _currentPath = null;
-            EditorBox.Text = string.Empty;
-            _isDirty = false;
-            FileTitle.Text = "Untitled";
-            ApplyFileMode(FileMode.Text);
+            File.Delete(entry.FullPath);
+            if (deletingCurrent)
+            {
+                _currentPath = null;
+                EditorBox.Text = string.Empty;
+                _isDirty = false;
+                FileTitle.Text = "Untitled";
+                ApplyFileMode(FileMode.Text);
+            }
+            RefreshFileList();
+            UpdateStatus();
         }
-
-        RefreshFileList();
-        UpdateStatus();
+        catch (Exception exception)
+        {
+            SetStatus($"Delete failed: {exception.Message}", "ErrorBackground", "ErrorText");
+        }
     }
-
-    // ── Secondary panel management ────────────────────────────────
 
     private void ShowSecondaryPanel()
     {
@@ -839,7 +900,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
     private void UpdateStatus()
     {
         var text = EditorBox.Text;
-        var lines = text.Split('\n').Length;
+        var lines = EditorBox.Document.LineCount;
         var chars = text.Length;
         var dirty = _isDirty ? " (modified)" : "";
         var envLabel = EnvironmentContext.Current is not null ? $"  [{EnvironmentContext.Current.Name}]" : "";
@@ -877,39 +938,45 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable
             ["text"] = EditorBox.Text,
             ["title"] = FileTitle.Text,
             ["preview"] = (PreviewToggle.IsChecked == true).ToString(),
-            ["mode"] = _fileMode.ToString()
+            ["mode"] = _fileMode.ToString(),
+            ["dirty"] = _isDirty.ToString()
         };
         if (_currentPath is not null)
             state["path"] = _currentPath;
         return state;
     }
 
-    public void LoadState(Dictionary<string, string> state)
+    public async void LoadState(Dictionary<string, string> state)
     {
-        if (state.TryGetValue("path", out var path) && File.Exists(path))
-        {
-            OpenFile(path);
-        }
-        else
-        {
-            if (state.TryGetValue("text", out var text))
-                EditorBox.Text = text;
-            if (state.TryGetValue("title", out var title))
-                FileTitle.Text = title;
-            if (state.TryGetValue("mode", out var modeStr) && Enum.TryParse<FileMode>(modeStr, out var mode))
-                ApplyFileMode(mode);
-        }
+        var hasDirtyState = state.TryGetValue("dirty", out var dirtyText) && bool.TryParse(dirtyText, out _);
+        var wasDirty = hasDirtyState && bool.Parse(dirtyText!);
+        var restoredFile = state.TryGetValue("path", out var path) && File.Exists(path) &&
+            await OpenFileAsync(path);
+        if (!hasDirtyState && state.TryGetValue("text", out var legacyText) &&
+            (!restoredFile || legacyText != EditorBox.Text))
+            wasDirty = true;
+
+        if ((!restoredFile || wasDirty) && state.TryGetValue("text", out var text))
+            EditorBox.Text = text;
+        if (!restoredFile && state.TryGetValue("title", out var title))
+            FileTitle.Text = title;
+        if (!restoredFile && state.TryGetValue("mode", out var modeStr) && Enum.TryParse<FileMode>(modeStr, out var mode))
+            ApplyFileMode(mode);
 
         if (state.TryGetValue("preview", out var preview) && preview == "True" && _fileMode == FileMode.Markdown)
             PreviewToggle.IsChecked = true;
 
-        _isDirty = false;
+        _isDirty = wasDirty;
         UpdateStatus();
         SyncFilePanel();
     }
 
+    public bool ConfirmClose() => ConfirmSaveBeforeAction("closing this tab");
     public void Dispose()
     {
+        _openCts?.Cancel();
+        _openCts?.Dispose();
+        _openCts = null;
         _previewDebounce.Stop();
         ThemeNotifier.ThemeChanged -= OnThemeChanged;
         EnvironmentContext.Changed -= SyncFilePanel;
