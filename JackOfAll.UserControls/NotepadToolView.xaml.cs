@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -188,8 +189,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
     private void SyncFilePanel()
     {
         if (!IsLoaded) return;
-        var env = EnvironmentContext.Current;
-        if (env is not null && Directory.Exists(env.FolderPath))
+        if (GetToolFolder() is not null)
         {
             ShowFilePanel();
             RefreshFileList();
@@ -197,6 +197,20 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
         else
         {
             HideFilePanel();
+        }
+    }
+
+    private static string? GetToolFolder()
+    {
+        var environment = EnvironmentContext.Current;
+        if (environment is null || !Directory.Exists(environment.FolderPath)) return null;
+        try
+        {
+            return ToolWorkspacePaths.GetEditorFolder(environment);
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -218,8 +232,8 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
 
     private void RefreshFileList()
     {
-        var env = EnvironmentContext.Current;
-        if (env is null || !Directory.Exists(env.FolderPath))
+        var folder = GetToolFolder();
+        if (folder is null)
         {
             FileList.ItemsSource = null;
             FilePanelEmpty.Text = "Folder not found";
@@ -227,8 +241,11 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
             return;
         }
 
-        var files = Directory.GetFiles(env.FolderPath, "*.*", SearchOption.TopDirectoryOnly)
+        var filter = FileSearchBox?.Text.Trim() ?? "";
+        var files = Directory.GetFiles(folder, "*.*", SearchOption.TopDirectoryOnly)
             .Where(f => SupportedExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+            .Where(f => string.IsNullOrEmpty(filter) ||
+                Path.GetFileName(f).Contains(filter, StringComparison.OrdinalIgnoreCase))
             .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
             .Select(f => new FileEntry(Path.GetFileName(f), f))
             .ToList();
@@ -250,6 +267,21 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
     }
 
     private void OnRefreshFiles(object sender, RoutedEventArgs e) => RefreshFileList();
+    private void OnFileSearchChanged(object sender, TextChangedEventArgs e) => RefreshFileList();
+    private void OnOpenFolderClick(object sender, RoutedEventArgs e)
+    {
+        var folder = GetToolFolder();
+        if (folder is null) return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            SetStatus($"Could not open folder: {exception.Message}", "ErrorBackground", "ErrorText");
+        }
+    }
 
     private async void OnFileSelected(object sender, SelectionChangedEventArgs e)
     {
@@ -349,7 +381,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
     }
     private async void OnOpenClick(object sender, RoutedEventArgs e)
     {
-        var initialDir = EnvironmentContext.Current?.FolderPath;
+        var initialDir = GetToolFolder();
 
         var dlg = new OpenFileDialog
         {
@@ -382,11 +414,11 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
 
     private bool TrySaveAs()
     {
-        var env = EnvironmentContext.Current;
+        var toolFolder = GetToolFolder();
         string defaultDir;
-        if (env is not null && Directory.Exists(env.FolderPath))
+        if (toolFolder is not null)
         {
-            defaultDir = env.FolderPath;
+            defaultDir = toolFolder;
         }
         else
         {
@@ -763,8 +795,8 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
 
     private async void OnNewFileClick(object sender, RoutedEventArgs e)
     {
-        var env = EnvironmentContext.Current;
-        if (env is null || !Directory.Exists(env.FolderPath)) return;
+        var folder = GetToolFolder();
+        if (folder is null) return;
 
         var dlg = new InputDialog("New File", "File name (e.g. notes.txt):");
         var owner = Window.GetWindow(this);
@@ -772,7 +804,7 @@ public partial class NotepadToolView : UserControl, IStatefulTool, IDisposable, 
         if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.ResultText)) return;
 
         var fileName = dlg.ResultText.Trim();
-        if (!TryResolveFileName(env.FolderPath, fileName, out var filePath))
+        if (!TryResolveFileName(folder, fileName, out var filePath))
         {
             MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
                 MessageBoxButton.OK, MessageBoxImage.Warning);

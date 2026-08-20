@@ -125,8 +125,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
     private void SyncFilePanel()
     {
         if (!IsLoaded) return;
-        var env = EnvironmentContext.Current;
-        if (env is not null && Directory.Exists(env.FolderPath))
+        if (GetToolFolder() is not null)
         {
             ShowFilePanel(true);
             RefreshFileList();
@@ -134,6 +133,20 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
         else
         {
             ShowFilePanel(false);
+        }
+    }
+
+    private static string? GetToolFolder()
+    {
+        var environment = EnvironmentContext.Current;
+        if (environment is null || !Directory.Exists(environment.FolderPath)) return null;
+        try
+        {
+            return ToolWorkspacePaths.GetCodeRunnerFolder(environment);
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -155,16 +168,19 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
     private void RefreshFileList()
     {
-        var env = EnvironmentContext.Current;
-        if (env is null || !Directory.Exists(env.FolderPath))
+        var folder = GetToolFolder();
+        if (folder is null)
         {
             FileList.ItemsSource = null;
             return;
         }
 
-        var files = Directory.EnumerateFiles(env.FolderPath)
+        var filter = FileSearchBox?.Text.Trim() ?? "";
+        var files = Directory.EnumerateFiles(folder)
             .Where(f => CodeExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-            .OrderBy(f => Path.GetFileName(f))
+            .Where(f => string.IsNullOrEmpty(filter) ||
+                Path.GetFileName(f).Contains(filter, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
             .Select(f => new FileEntry(Path.GetFileName(f), f))
             .ToList();
 
@@ -180,6 +196,25 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
     }
 
     private void OnRefreshFiles(object sender, RoutedEventArgs e) => RefreshFileList();
+    private void OnFileSearchChanged(object sender, TextChangedEventArgs e) => RefreshFileList();
+    private void OnOpenFolderClick(object sender, RoutedEventArgs e)
+    {
+        var folder = GetToolFolder();
+        if (folder is null)
+        {
+            StatusText.Text = "Select an environment first.";
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = $"Could not open folder: {exception.Message}";
+        }
+    }
 
     private void OnFileSelected(object sender, SelectionChangedEventArgs e)
     {
@@ -242,8 +277,8 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
     private bool TrySaveAsEnvironmentFile()
     {
-        var env = EnvironmentContext.Current;
-        if (env is null || !Directory.Exists(env.FolderPath))
+        var folder = GetToolFolder();
+        if (folder is null)
         {
             StatusText.Text = "Select an environment first.";
             return false;
@@ -257,7 +292,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
         var fileName = dlg.ResultText.Trim();
         if (!Path.HasExtension(fileName)) fileName += ext;
-        if (!TryResolveFileName(env.FolderPath, fileName, out var filePath))
+        if (!TryResolveFileName(folder, fileName, out var filePath))
         {
             MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -530,8 +565,8 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
     private void OnNewFileClick(object sender, RoutedEventArgs e)
     {
-        var env = EnvironmentContext.Current;
-        if (env is null || !Directory.Exists(env.FolderPath))
+        var folder = GetToolFolder();
+        if (folder is null)
         {
             StatusText.Text = "Select an environment first.";
             return;
@@ -545,7 +580,7 @@ public partial class CodeRunnerToolView : UserControl, IStatefulTool, IDisposabl
 
         var fileName = dlg.ResultText.Trim();
         if (!Path.HasExtension(fileName)) fileName += ext;
-        if (!TryResolveFileName(env.FolderPath, fileName, out var filePath))
+        if (!TryResolveFileName(folder, fileName, out var filePath))
         {
             MessageBox.Show("Enter a file name without folders or relative path segments.", "Invalid File Name",
                 MessageBoxButton.OK, MessageBoxImage.Warning);

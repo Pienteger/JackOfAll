@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -30,7 +31,8 @@ public partial class ApiClientToolView : UserControl, IStatefulTool, IDisposable
     private int _envSuggestionStart;
     private int _envSuggestionEnd;
 
-    private string? ActiveWorkspace => EnvironmentContext.Current?.Name;
+    private AppEnvironment? ActiveEnvironment => EnvironmentContext.Current;
+    private string? ActiveWorkspace => ActiveEnvironment?.Name;
 
     public ApiClientToolView()
     {
@@ -595,19 +597,36 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     private void SyncWorkspaceFromEnvironment()
     {
-        var ws = ActiveWorkspace;
-        if (ws is not null)
+        var environment = ActiveEnvironment;
+        if (environment is not null)
         {
-            if (!ApiWorkspaceService.List().Contains(ws))
-                ApiWorkspaceService.Create(ws);
-            _workspaceRequests = ApiWorkspaceService.LoadRequests(ws);
+            ApiWorkspaceService.Create(environment);
+            _workspaceRequests = ApiWorkspaceService.LoadRequests(environment);
         }
         else
         {
             _workspaceRequests = [];
         }
         RenderSaved();
-        SidebarTitle.Text = ws is not null ? ws.ToUpperInvariant() : "REQUESTS";
+        SidebarTitle.Text = environment is not null ? environment.Name.ToUpperInvariant() : "REQUESTS";
+        OpenFolderButton.IsEnabled = environment is not null;
+    }
+
+    private void OnOpenFolderClick(object sender, RoutedEventArgs e)
+    {
+        var environment = ActiveEnvironment;
+        if (environment is null) return;
+
+        try
+        {
+            var folder = ToolWorkspacePaths.GetApiClientFolder(environment);
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show($"Could not open folder: {exception.Message}", "Open Folder",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // ── OpenAPI Import ────────────────────────────────────────────────
@@ -671,7 +690,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             foreach (var req in requests)
                 _workspaceRequests.Add(req);
 
-            ApiWorkspaceService.SaveRequests(ActiveWorkspace!, _workspaceRequests);
+            ApiWorkspaceService.SaveRequests(ActiveEnvironment!, _workspaceRequests);
             RenderSaved();
 
             MessageBox.Show($"Imported {requests.Count} request(s).", "Import Complete",
@@ -1359,7 +1378,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
                 _workspaceRequests[existing] = request;
             else
                 _workspaceRequests.Add(request);
-            ApiWorkspaceService.SaveRequests(ActiveWorkspace, _workspaceRequests);
+            ApiWorkspaceService.SaveRequests(ActiveEnvironment!, _workspaceRequests);
         }
         else
         {
@@ -1439,7 +1458,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
                 if (ActiveWorkspace is not null)
                 {
                     _workspaceRequests.Remove(captured);
-                    ApiWorkspaceService.SaveRequests(ActiveWorkspace, _workspaceRequests);
+                    ApiWorkspaceService.SaveRequests(ActiveEnvironment!, _workspaceRequests);
                 }
                 else
                 {
@@ -1524,7 +1543,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
     private void SaveRequests(List<ApiRequest> requests)
     {
         if (ActiveWorkspace is not null)
-            ApiWorkspaceService.SaveRequests(ActiveWorkspace, requests);
+            ApiWorkspaceService.SaveRequests(ActiveEnvironment!, requests);
         else
             ApiClientService.SaveCollection(requests);
     }

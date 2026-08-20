@@ -150,6 +150,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -164,11 +165,24 @@
                                 Foreground="{DynamicResource TextSecondary}" Margin="0,0,4,0">
                             <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
                         </Button>
+                        <Button DockPanel.Dock="Right" Click="OnOpenFolderClick" Padding="4,2"
+                                ToolTip="open in explorer" Background="Transparent" BorderThickness="0"
+                                Foreground="{DynamicResource TextSecondary}" Margin="0,0,4,0">
+                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                        </Button>
                         <TextBlock Text="Files" FontWeight="SemiBold" FontSize="12"
                                    Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                     </DockPanel>
 
-                    <ListBox x:Name="FileList" Grid.Row="1" Margin="4,0,4,4"
+                    <TextBox x:Name="FileSearchBox" Grid.Row="1" Margin="8,2,8,6"
+                             Padding="6,4" FontSize="11"
+                             Background="{DynamicResource AppBackground}"
+                             Foreground="{DynamicResource TextPrimary}"
+                             BorderBrush="{DynamicResource SurfaceBorder}"
+                             ToolTip="Search files"
+                             TextChanged="OnFileSearchChanged"/>
+
+                    <ListBox x:Name="FileList" Grid.Row="2" Margin="4,0,4,4"
                              Background="Transparent" BorderThickness="0"
                              SelectionChanged="OnFileSelected"
                              ScrollViewer.HorizontalScrollBarVisibility="Hidden">
@@ -198,7 +212,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <TextBlock Grid.Row="1" Text="No files yet" FontStyle="Italic"
+                    <TextBlock Grid.Row="2" Text="No files yet" FontStyle="Italic"
                                Foreground="{DynamicResource TextDimmed}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                IsHitTestVisible="False"
