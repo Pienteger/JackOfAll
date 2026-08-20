@@ -31,6 +31,7 @@ public record KeyValueItem
     public string Value { get; set; } = "";
     public string Kind { get; set; } = "text";
     public string FilePath { get; set; } = "";
+    public string ContentType { get; set; } = "";
 }
 
 public record ApiResponse
@@ -124,7 +125,8 @@ public static class ApiClientService
                 Key = ApiEnvironmentService.Resolve(f.Key),
                 Value = ApiEnvironmentService.Resolve(f.Value),
                 Kind = f.Kind,
-                FilePath = ApiEnvironmentService.Resolve(f.FilePath)
+                FilePath = ApiEnvironmentService.Resolve(f.FilePath),
+                ContentType = ApiEnvironmentService.Resolve(f.ContentType)
             }).ToList();
             var resolvedRequest = request with
             {
@@ -255,7 +257,9 @@ public static class ApiClientService
                 }
 
                 var fileContent = new StreamContent(stream);
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                fileContent.Headers.ContentType = MediaTypeHeaderValue.TryParse(item.ContentType, out var contentType)
+                    ? contentType
+                    : new MediaTypeHeaderValue("application/octet-stream");
                 content.Add(fileContent, item.Key, Path.GetFileName(item.FilePath));
             }
             return content;

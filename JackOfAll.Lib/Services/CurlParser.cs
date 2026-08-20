@@ -40,7 +40,7 @@ public static class CurlParser
                 continue;
             }
 
-            if (IsNoValueOption(lower))
+            if (IsNoValueOption(t))
                 continue;
 
             if (TryReadOptionValue(tokens, ref i, "--url", out var urlValue))
@@ -153,10 +153,15 @@ public static class CurlParser
         return request;
     }
 
-    private static bool IsNoValueOption(string option) => option is
-        "--location" or "-l" or "-g" or "-i" or "--include" or "--compressed" or "-s" or "--silent" or "-s" or "--show-error" or
-        "-k" or "--insecure" or "-v" or "--verbose" or "-f" or "--fail" or "--fail-with-body" or
-        "-n" or "--no-buffer" or "--http1.1" or "--http2" or "--http3" or "--globoff";
+    private static bool IsNoValueOption(string option)
+    {
+        if (option == "-F") return false;
+        var lower = option.ToLowerInvariant();
+        return lower is
+            "--location" or "-l" or "-g" or "-i" or "--include" or "--compressed" or "-s" or "--silent" or "--show-error" or
+            "-k" or "--insecure" or "-v" or "--verbose" or "-f" or "--fail" or "--fail-with-body" or
+            "-n" or "--no-buffer" or "--http1.1" or "--http2" or "--http3" or "--globoff";
+    }
 
     private static bool IsIgnoredValueOption(string option) => option is
         "-o" or "--output" or "--connect-timeout" or "--max-time" or "-m" or "--retry" or
@@ -273,14 +278,62 @@ public static class CurlParser
         if (eq <= 0) return;
         var value = formField[(eq + 1)..];
         var isFile = value.StartsWith('@');
+        var filePath = "";
+        var contentType = "";
+        if (isFile)
+            ParseFileFormValue(value[1..], out filePath, out contentType);
         target.Add(new KeyValueItem
         {
             Enabled = true,
             Key = formField[..eq],
             Value = isFile ? "" : value,
             Kind = isFile ? "file" : "text",
-            FilePath = isFile ? value[1..] : ""
+            FilePath = filePath,
+            ContentType = contentType
         });
+    }
+
+    private static void ParseFileFormValue(string value, out string filePath, out string contentType)
+    {
+        filePath = value;
+        contentType = "";
+        var modifiers = "";
+
+        if (value.Length > 1 && value[0] is '\'' or '"')
+        {
+            var quote = value[0];
+            var closingQuote = value.IndexOf(quote, 1);
+            if (closingQuote > 0)
+            {
+                filePath = value[1..closingQuote];
+                modifiers = value[(closingQuote + 1)..];
+            }
+        }
+        else
+        {
+            var modifierIndex = FindFormModifier(value);
+            if (modifierIndex >= 0)
+            {
+                filePath = value[..modifierIndex];
+                modifiers = value[modifierIndex..];
+            }
+        }
+
+        foreach (var modifier in modifiers.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var part = modifier.Trim();
+            if (part.StartsWith("type=", StringComparison.OrdinalIgnoreCase))
+                contentType = part[5..].Trim();
+        }
+    }
+
+    private static int FindFormModifier(string value)
+    {
+        var indexes = new[] { ";type=", ";filename=", ";headers=" }
+            .Select(marker => value.IndexOf(marker, StringComparison.OrdinalIgnoreCase))
+            .Where(index => index >= 0)
+            .ToList();
+        return indexes.Count == 0 ? -1 : indexes.Min();
     }
 
     private static void SplitQueryIntoParams(ApiRequest request)

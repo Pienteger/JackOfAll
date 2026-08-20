@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -339,10 +340,27 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         e.CancelCommand();
         var req = CurlParser.Parse(text);
-        LoadRequestToUi(req);
+        if (CanReplaceActiveTabWithCurl())
+            LoadRequestToUi(req);
+        else
+            OpenRequestInNewTab(req);
     }
 
     // ── Request tab state ──────────────────────────────────────────
+
+    private bool CanReplaceActiveTabWithCurl()
+    {
+        if (_activeTabIndex < 0 || _activeTabIndex >= _openTabs.Count) return true;
+        if (!string.IsNullOrWhiteSpace(_openTabs[_activeTabIndex].SavedName)) return false;
+
+        return string.IsNullOrWhiteSpace(UrlBox.Text)
+            && string.IsNullOrWhiteSpace(BodyBox.Text)
+            && CollectKeyValues(HeadersList).Count == 0
+            && CollectKeyValues(ParamsList).Count == 0
+            && CollectFormData().Count == 0
+            && CollectExtractionRules().Count == 0
+            && CollectChecks().Count == 0;
+    }
 
     private class RequestTab
     {
@@ -372,6 +390,11 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         public long ResponseBodySizeBytes { get; set; }
         public int ResponsePreviewLimitBytes { get; set; }
         public int RequestTabIndex { get; set; }
+        public int ResponseTabIndex { get; set; }
+        public double BodyVerticalOffset { get; set; }
+        public double BodyHorizontalOffset { get; set; }
+        public double ResponseVerticalOffset { get; set; }
+        public double ResponseHorizontalOffset { get; set; }
     }
 
     // ── Tab management ─────────────────────────────────────────────
@@ -436,6 +459,11 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
         tab.Checks = CollectChecks();
         tab.ResponseBody = ResponseBody.Text;
         tab.RequestTabIndex = RequestTabs.SelectedIndex;
+        tab.ResponseTabIndex = ResponseTabs.SelectedIndex;
+        tab.BodyVerticalOffset = BodyBox.VerticalOffset;
+        tab.BodyHorizontalOffset = BodyBox.HorizontalOffset;
+        tab.ResponseVerticalOffset = ResponseBody.VerticalOffset;
+        tab.ResponseHorizontalOffset = ResponseBody.HorizontalOffset;
 
         if (StatusBadge.Visibility == Visibility.Visible)
         {
@@ -475,7 +503,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         FormDataList.Children.Clear();
         foreach (var f in tab.FormData)
-            AddFormDataRow(f.Key, f.Value, f.Enabled, f.Kind, f.FilePath);
+            AddFormDataRow(f.Key, f.Value, f.Enabled, f.Kind, f.FilePath, f.ContentType);
 
         ExtractionRulesList.Children.Clear();
         foreach (var r in tab.ExtractionRules)
@@ -512,6 +540,21 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         if (tab.RequestTabIndex >= 0 && tab.RequestTabIndex < RequestTabs.Items.Count)
             RequestTabs.SelectedIndex = tab.RequestTabIndex;
+
+        if (tab.ResponseTabIndex >= 0 && tab.ResponseTabIndex < ResponseTabs.Items.Count)
+            ResponseTabs.SelectedIndex = tab.ResponseTabIndex;
+
+        var tabId = tab.Id;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            if (_activeTabIndex < 0 || _activeTabIndex >= _openTabs.Count
+                || _openTabs[_activeTabIndex].Id != tabId)
+                return;
+            BodyBox.ScrollToVerticalOffset(tab.BodyVerticalOffset);
+            BodyBox.ScrollToHorizontalOffset(tab.BodyHorizontalOffset);
+            ResponseBody.ScrollToVerticalOffset(tab.ResponseVerticalOffset);
+            ResponseBody.ScrollToHorizontalOffset(tab.ResponseHorizontalOffset);
+        });
 
         RenderRequestHistory(ActiveWorkspace ?? "", tab.SavedName ?? "");
     }
@@ -955,9 +998,14 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
     private void AddFormDataRow(
         string key = "", string value = "", bool enabled = true,
-        string kind = "text", string filePath = "")
+        string kind = "text", string filePath = "", string contentType = "")
     {
-        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2), Tag = value };
+        var row = new DockPanel
+        {
+            Margin = new Thickness(0, 2, 0, 2),
+            Tag = value,
+            DataContext = contentType
+        };
 
         var removeButton = new Button
         {
@@ -1090,7 +1138,8 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
                 Key = textBoxes[0].Text,
                 Value = kind == "text" ? textBoxes[1].Text : row.Tag as string ?? "",
                 Kind = kind,
-                FilePath = kind == "file" ? textBoxes[1].Tag as string ?? "" : ""
+                FilePath = kind == "file" ? textBoxes[1].Tag as string ?? "" : "",
+                ContentType = kind == "file" ? row.DataContext as string ?? "" : ""
             });
         }
         return items;
@@ -1187,7 +1236,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
 
         FormDataList.Children.Clear();
         foreach (var f in req.FormData)
-            AddFormDataRow(f.Key, f.Value, f.Enabled, f.Kind, f.FilePath);
+            AddFormDataRow(f.Key, f.Value, f.Enabled, f.Kind, f.FilePath, f.ContentType);
 
         SelectComboByContent(AuthType, req.AuthType);
 
@@ -2306,6 +2355,11 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             state[$"{p}respSize"] = tab.ResponseSize ?? "";
             state[$"{p}respContentType"] = tab.ResponseContentType ?? "";
             state[$"{p}reqTab"] = tab.RequestTabIndex.ToString();
+            state[$"{p}respTab"] = tab.ResponseTabIndex.ToString();
+            state[$"{p}bodyV"] = tab.BodyVerticalOffset.ToString("R", CultureInfo.InvariantCulture);
+            state[$"{p}bodyH"] = tab.BodyHorizontalOffset.ToString("R", CultureInfo.InvariantCulture);
+            state[$"{p}respV"] = tab.ResponseVerticalOffset.ToString("R", CultureInfo.InvariantCulture);
+            state[$"{p}respH"] = tab.ResponseHorizontalOffset.ToString("R", CultureInfo.InvariantCulture);
 
             SerializeKvList(state, $"{p}h", tab.Headers);
             SerializeKvList(state, $"{p}p", tab.Params);
@@ -2373,6 +2427,14 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             if (state.TryGetValue($"{p}reqTab", out var rt) && int.TryParse(rt, out var rti))
                 tab.RequestTabIndex = rti;
 
+            if (state.TryGetValue($"{p}respTab", out var responseTab)
+                && int.TryParse(responseTab, out var responseTabIndex))
+                tab.ResponseTabIndex = responseTabIndex;
+            tab.BodyVerticalOffset = ParseOffset(state.GetValueOrDefault($"{p}bodyV", "0"));
+            tab.BodyHorizontalOffset = ParseOffset(state.GetValueOrDefault($"{p}bodyH", "0"));
+            tab.ResponseVerticalOffset = ParseOffset(state.GetValueOrDefault($"{p}respV", "0"));
+            tab.ResponseHorizontalOffset = ParseOffset(state.GetValueOrDefault($"{p}respH", "0"));
+
             tab.Headers = DeserializeKvList(state, $"{p}h");
             tab.Params = DeserializeKvList(state, $"{p}p");
             tab.FormData = DeserializeKvList(state, $"{p}fd");
@@ -2432,6 +2494,7 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
             state[$"{prefix}{i}_e"] = items[i].Enabled.ToString();
             state[$"{prefix}{i}_kind"] = items[i].Kind;
             state[$"{prefix}{i}_file"] = items[i].FilePath;
+            state[$"{prefix}{i}_ct"] = items[i].ContentType;
         }
     }
 
@@ -2447,11 +2510,17 @@ RawContentType.SelectionChanged += (_, _) => ApplyRequestBodyHighlighting();
                 Value = state.GetValueOrDefault($"{prefix}{i}_v", ""),
                 Enabled = state.GetValueOrDefault($"{prefix}{i}_e", "True") != "False",
                 Kind = state.GetValueOrDefault($"{prefix}{i}_kind", "text"),
-                FilePath = state.GetValueOrDefault($"{prefix}{i}_file", "")
+                FilePath = state.GetValueOrDefault($"{prefix}{i}_file", ""),
+                ContentType = state.GetValueOrDefault($"{prefix}{i}_ct", "")
             });
         }
         return items;
     }
+
+    private static double ParseOffset(string value) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var offset)
+            ? Math.Max(0, offset)
+            : 0;
 
     public void Dispose()
     {

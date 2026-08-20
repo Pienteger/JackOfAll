@@ -35,7 +35,7 @@ public static class CurlExportService
             foreach (var item in request.FormData.Where(IsActive))
             {
                 var value = item.Kind == "file"
-                    ? $"{item.Key}=@{item.FilePath}"
+                    ? $"{item.Key}=@{item.FilePath}{(string.IsNullOrWhiteSpace(item.ContentType) ? "" : $";type={item.ContentType}")}"
                     : $"{item.Key}={MaskIfSensitive(item, includeSecrets)}";
                 AppendArgument(builder, "-F", value);
             }
