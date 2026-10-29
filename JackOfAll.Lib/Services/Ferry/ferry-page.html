@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10121f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f5fa" media="(prefers-color-scheme: light)">
+<title>Ferry</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%232c3060'/%3E%3Cpath d='M22 44V20m-8 8 8-8 8 8' stroke='%235cd4a0' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M42 20v24m-8-8 8 8 8-8' stroke='%2370acff' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+/* Phone page served by Ferry on the PC. Layout: one column, send area on top, shared feed below. Follows the phone's light/dark setting. */
+:root {
+  --bg: #f4f5fa; --card: #ffffff; --card-hi: #eef0f8; --line: #e1e4ef; --fg: #171a2c; --dim: #5d6484; --faint: #8b91ab;
+  --accent: #4e5caa; --accent-hi: #5f6dc0; --accent-fg: #ffffff; --good: #178a5c; --blue: #2b67cc; --bad: #c93c3c; --track: #e3e6f2;
+  --radius: 16px; --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10121f; --card: #1d2037; --card-hi: #252945; --line: #2c3052; --fg: #eceef8; --dim: #8f97b6; --faint: #646b8c;
+    --accent: #5d6dc6; --accent-hi: #7080d8; --good: #5cd4a0; --blue: #70acff; --bad: #ff7a7a; --track: #343958;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.4 var(--font); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 560px; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top, 0px)) var(--gutter) calc(32px + env(safe-area-inset-bottom, 0px)); }
+
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+header svg { width: 40px; height: 40px; flex: none; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+#status { margin: 1px 0 0; font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
+.on .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
+.off .dot { background: var(--bad); }
+
+.drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center;
+  min-height: 150px; padding: 20px; border-radius: var(--radius); background: var(--accent); color: var(--accent-fg);
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .12s, background .12s; }
+.drop:active { transform: scale(.985); background: var(--accent-hi); }
+.drop.over { background: var(--accent-hi); outline: 3px dashed rgba(255,255,255,.6); outline-offset: -10px; }
+.drop svg { width: 34px; height: 34px; margin-bottom: 6px; }
+.drop strong { font-size: 18px; }
+.drop span { font-size: 14px; opacity: .85; }
+#pick { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.composer { display: flex; gap: 8px; margin-top: 12px; padding: 8px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.composer textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; color: var(--fg); font: inherit; padding: 8px; max-height: 160px; }
+.composer textarea::placeholder { color: var(--faint); }
+.btn { appearance: none; border: 0; border-radius: 11px; padding: 0 16px; min-height: 40px; font: 600 15px var(--font);
+  background: var(--accent); color: var(--accent-fg); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+.btn:disabled { opacity: .45; }
+.btn.ghost { background: var(--card-hi); color: var(--fg); }
+.composer .btn { align-self: flex-end; }
+
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 26px 4px 10px; font-weight: 600; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.item.text { align-items: flex-start; }
+.thumb { width: 52px; height: 52px; border-radius: 11px; flex: none; overflow: hidden; background: var(--card-hi);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--dim); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.body { flex: 1; min-width: 0; }
+.name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 9.8em; overflow: hidden; }
+.meta { font-size: 13px; color: var(--dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag { font-weight: 600; }
+.tag.in { color: var(--blue); }
+.tag.out { color: var(--good); }
+.bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .2s; }
+.failed .meta { color: var(--bad); }
+.empty { color: var(--dim); text-align: center; padding: 28px 16px; margin: 0; background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); font-size: 15px; }
+
+#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0;
+  background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 15px; font-weight: 600; transition: .2s; pointer-events: none; width: max-content; max-width: calc(100% - 32px); text-align: center; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+.locked { text-align: center; padding: 60px 8px; color: var(--dim); }
+.locked strong { display: block; color: var(--fg); font-size: 18px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#2c3060"/><path d="M22 44V20m-8 8 8-8 8 8" stroke="#5cd4a0" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 20v24m-8-8 8 8 8-8" stroke="#70acff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>
+      <h1>Ferry</h1>
+      <p id="status"><span class="dot"></span><span id="statusText">Connecting…</span></p>
+    </div>
+  </header>
+
+  <div id="app">
+    <label class="drop" id="drop" for="pick">
+      <input type="file" id="pick" multiple>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <strong>Send photos and files</strong>
+      <span>to <b id="pcName">your PC</b></span>
+    </label>
+
+    <form class="composer" id="textForm">
+      <textarea id="text" rows="1" placeholder="Type or paste text for your PC" aria-label="Text to send"></textarea>
+      <button class="btn" type="submit" id="sendText" disabled>Send</button>
+    </form>
+
+    <h2>Shared</h2>
+    <ul id="pending"></ul>
+    <ul id="feed"></ul>
+    <p class="empty" id="empty">Nothing shared yet. Files you drop on Ferry on the PC show up here for you to save.</p>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  if (location.search) history.replaceState(null, '', '/');
+
+  var $ = function (id) { return document.getElementById(id); };
+  var rev = 0, lastRev = -1, pcName = 'your PC', online = false;
+
+  function fmtSize(n) {
+    if (n < 1024) return n + ' B';
+    var u = ['KB', 'MB', 'GB', 'TB'], i = -1;
+    do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+    return (n < 10 ? n.toFixed(1) : Math.round(n)) + ' ' + u[i];
+  }
+  function fmtTime(ms) {
+    var d = new Date(ms);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  function ext(name) {
+    var i = name.lastIndexOf('.');
+    return i > 0 && name.length - i <= 5 ? name.slice(i + 1).toUpperCase() : 'FILE';
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  var toastTimer;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+  function setStatus(state, text) {
+    $('status').className = state;
+    $('statusText').textContent = text;
+  }
+
+  // The page is plain http on the local network, so the async clipboard API is often missing; fall back to a selection copy.
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).then(function () { return true; }, legacy);
+    return Promise.resolve(legacy());
+    function legacy() {
+      var ta = document.createElement('textarea');
+      ta.value = t;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, t.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { }
+      ta.remove();
+      return ok;
+    }
+  }
+
+  // ---- feed
+  function render(s) {
+    pcName = s.pc;
+    $('pcName').textContent = s.pc;
+    var feed = $('feed');
+    feed.textContent = '';
+    s.items.forEach(function (it) { feed.appendChild(row(it)); });
+    $('empty').hidden = s.items.length > 0 || $('pending').children.length > 0;
+  }
+
+  function row(it) {
+    var li = el('li', 'item' + (it.text ? ' text' : ''));
+    var tag = it.toPhone ? el('span', 'tag in', 'From ' + pcName) : el('span', 'tag out', 'You sent');
+    var meta = el('div', 'meta');
+    meta.appendChild(tag);
+    meta.appendChild(document.createTextNode((it.text ? '' : ' · ' + fmtSize(it.size)) + ' · ' + fmtTime(it.time)));
+    var body = el('div', 'body');
+
+    if (it.text) {
+      body.appendChild(meta);
+      body.appendChild(el('p', 'msg', it.body));
+      li.appendChild(body);
+      var c = el('button', 'btn ghost', 'Copy');
+      c.type = 'button';
+      c.onclick = function () { copyText(it.body).then(function (ok) { toast(ok ? 'Copied' : 'Press and hold the text to copy it'); }); };
+      li.appendChild(c);
+      return li;
+    }
+
+    var th = el('div', 'thumb');
+    if (it.image) {
+      var img = new Image();
+      img.alt = '';
+      img.loading = 'lazy';
+      img.src = '/t/' + it.id + '?v=' + it.time;
+      img.onerror = function () { th.textContent = ext(it.name); };
+      th.appendChild(img);
+    } else th.textContent = ext(it.name);
+    li.appendChild(th);
+    body.appendChild(el('div', 'name', it.name));
+    body.appendChild(meta);
+    li.appendChild(body);
+    var a = el('a', 'btn' + (it.toPhone ? '' : ' ghost'), it.toPhone ? 'Save' : 'Open');
+    a.href = '/f/' + it.id + (it.toPhone ? '?dl=1' : '');
+    if (it.toPhone) a.setAttribute('download', it.name); else a.target = '_blank';
+    li.appendChild(a);
+    return li;
+  }
+
+  function poll() {
+    fetch('/api/state?since=' + rev, { cache: 'no-store' }).then(function (r) {
+      if (r.status === 403) { locked(); throw 'locked'; }
+      return r.json();
+    }).then(function (s) {
+      if (!online) { online = true; setStatus('on', 'Connected to ' + s.pc); }
+      rev = s.rev;
+      if (rev !== lastRev) { lastRev = rev; render(s); }
+      poll();
+    }).catch(function (e) {
+      if (e === 'locked') return;
+      online = false;
+      setStatus('off', 'Can’t reach ' + pcName + '. Retrying…');
+      setTimeout(poll, 2500);
+    });
+  }
+
+  function locked() {
+    setStatus('off', 'Link expired');
+    var a = $('app');
+    a.textContent = '';
+    var d = el('div', 'locked');
+    d.appendChild(el('strong', null, 'This link has changed'));
+    d.appendChild(document.createTextNode('Scan the QR code in Ferry on your PC again.'));
+    a.appendChild(d);
+  }
+
+  // ---- uploads: one at a time, each with its own row and progress bar
+  var queue = [], busy = false;
+
+  function addFiles(list) {
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      var li = el('li', 'item');
+      li.appendChild(el('div', 'thumb', ext(f.name || 'file')));
+      var body = el('div', 'body');
+      body.appendChild(el('div', 'name', f.name || 'file'));
+      var meta = el('div', 'meta', 'Waiting · ' + fmtSize(f.size));
+      body.appendChild(meta);
+      var bar = el('div', 'bar');
+      var fill = el('i');
+      bar.appendChild(fill);
+      body.appendChild(bar);
+      li.appendChild(body);
+      $('pending').appendChild(li);
+      queue.push({ file: f, li: li, meta: meta, fill: fill });
+    }
+    $('empty').hidden = true;
+    pump();
+  }
+
+  function pump() {
+    if (busy || !queue.length) return;
+    busy = true;
+    var job = queue.shift(), f = job.file, start = Date.now();
+    var x = new XMLHttpRequest();
+    x.open('PUT', '/api/upload?name=' + encodeURIComponent(f.name || 'file') + '&mtime=' + (f.lastModified || 0));
+    x.upload.onprogress = function (e) {
+      if (!e.lengthComputable) return;
+      var secs = (Date.now() - start) / 1000, rate = secs > 0.3 ? e.loaded / secs : 0;
+      job.fill.style.width = (100 * e.loaded / e.total).toFixed(1) + '%';
+      job.meta.textContent = fmtSize(e.loaded) + ' of ' + fmtSize(e.total) + (rate ? ' · ' + fmtSize(rate) + '/s' : '');
+    };
+    function done(err) {
+      if (err) {
+        job.li.classList.add('failed');
+        job.meta.textContent = err;
+        job.fill.parentNode.remove();
+        var retry = el('button', 'btn ghost', 'Retry');
+        retry.type = 'button';
+        retry.onclick = function () { job.li.remove(); addFiles([f]); };
+        job.li.appendChild(retry);
+      } else job.li.remove();
+      busy = false;
+      pump();
+    }
+    x.onload = function () {
+      if (x.status === 200) return done();
+      var msg = 'Failed';
+      try { msg = JSON.parse(x.responseText).error || msg; } catch (e) { }
+      done(msg);
+    };
+    x.onerror = function () { done('Connection lost. The PC may be asleep.'); };
+    x.send(f);
+  }
+
+  $('pick').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+
+  var drop = $('drop');
+  ['dragenter', 'dragover'].forEach(function (t) {
+    document.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    document.addEventListener(t, function (e) { e.preventDefault(); if (t === 'drop' || !e.relatedTarget) drop.classList.remove('over'); });
+  });
+  document.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+  // ---- text
+  var ta = $('text'), send = $('sendText');
+  function grow() { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; send.disabled = !ta.value.trim(); }
+  ta.addEventListener('input', grow);
+  $('textForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var t = ta.value;
+    if (!t.trim()) return;
+    send.disabled = true;
+    fetch('/api/text', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: t }).then(function (r) {
+      if (!r.ok) throw 0;
+      ta.value = '';
+      grow();
+      toast('Sent to ' + pcName);
+    }).catch(function () { send.disabled = false; toast('Couldn’t send. Check the connection.'); });
+  });
+
+  poll();
+})();
+</script>
+</body>
+</html>

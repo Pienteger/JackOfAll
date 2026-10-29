@@ -60,6 +60,15 @@ public partial class AppSettings : ObservableObject
     private int _clipboardStorageLimitMb = 5;
 
     [ObservableProperty]
+    private int _clipboardImageStorageMb = 300;
+
+    [ObservableProperty]
+    private bool _clipboardRecordInBackground = true;
+
+    [ObservableProperty]
+    private bool _clipboardQuickPicker = true;
+
+    [ObservableProperty]
     private int _logViewerScanLimitMb = 256;
 
     [ObservableProperty]
@@ -84,6 +93,9 @@ public partial class AppSettings : ObservableObject
             ClipboardMaxEntries = ClipboardMaxEntries,
             ClipboardMaxEntryKb = ClipboardMaxEntryKb,
             ClipboardStorageLimitMb = ClipboardStorageLimitMb,
+            ClipboardImageStorageMb = ClipboardImageStorageMb,
+            ClipboardRecordInBackground = ClipboardRecordInBackground,
+            ClipboardQuickPicker = ClipboardQuickPicker,
             LogViewerScanLimitMb = LogViewerScanLimitMb,
             LogViewerRetainedEntries = LogViewerRetainedEntries
         };
@@ -117,6 +129,9 @@ public partial class AppSettings : ObservableObject
             settings.ClipboardMaxEntries = Math.Clamp(dto.ClipboardMaxEntries, 10, 500);
             settings.ClipboardMaxEntryKb = Math.Clamp(dto.ClipboardMaxEntryKb, 16, 4096);
             settings.ClipboardStorageLimitMb = Math.Clamp(dto.ClipboardStorageLimitMb, 1, 100);
+            settings.ClipboardImageStorageMb = Math.Clamp(dto.ClipboardImageStorageMb, 0, 2000);
+            settings.ClipboardRecordInBackground = dto.ClipboardRecordInBackground;
+            settings.ClipboardQuickPicker = dto.ClipboardQuickPicker;
             settings.LogViewerScanLimitMb = Math.Clamp(dto.LogViewerScanLimitMb, 16, 4096);
             settings.LogViewerRetainedEntries = Math.Clamp(dto.LogViewerRetainedEntries, 10000, 500000);
         }
@@ -142,6 +157,9 @@ public partial class AppSettings : ObservableObject
         public int ClipboardMaxEntries { get; set; } = 100;
         public int ClipboardMaxEntryKb { get; set; } = 256;
         public int ClipboardStorageLimitMb { get; set; } = 5;
+        public int ClipboardImageStorageMb { get; set; } = 300;
+        public bool ClipboardRecordInBackground { get; set; } = true;
+        public bool ClipboardQuickPicker { get; set; } = true;
         public int LogViewerScanLimitMb { get; set; } = 256;
         public int LogViewerRetainedEntries { get; set; } = 100000;
     }

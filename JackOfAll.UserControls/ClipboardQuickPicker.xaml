@@ -1,0 +1,121 @@
+<Window x:Class="JackOfAll.UserControls.ClipboardQuickPicker"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:JackOfAll.UserControls"
+        x:ClassModifier="internal"
+        Title="Clipboard" Width="860" Height="560"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="True">
+    <Window.Resources>
+        <ResourceDictionary Source="/JackOfAll.UserControls;component/ClipboardTemplates.xaml"/>
+    </Window.Resources>
+
+    <!-- The margin leaves room for the shadow around the rounded panel -->
+    <Border Margin="14" CornerRadius="12" Background="{DynamicResource AppBackground}"
+            BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.35" Color="Black"/>
+        </Border.Effect>
+        <Grid Margin="16,12,16,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Search -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondary}" Margin="2,0,12,0"/>
+                <TextBox x:Name="SearchBox" Grid.Column="1" FontSize="17" TextChanged="OnSearchChanged"
+                         Background="Transparent" BorderThickness="0" Padding="0,6"
+                         Foreground="{DynamicResource TextPrimary}" CaretBrush="{DynamicResource TextPrimary}"/>
+                <TextBlock x:Name="SearchPlaceholder" Grid.Column="1" Text="Search your clipboard history"
+                           FontSize="17" IsHitTestVisible="False" VerticalAlignment="Center" Margin="2,0,0,0"
+                           Foreground="{DynamicResource TextDimmed}"/>
+                <TextBlock x:Name="CountText" Grid.Column="2" FontSize="12" VerticalAlignment="Center" Margin="12,0,4,0"
+                           Foreground="{DynamicResource TextDimmed}"/>
+            </Grid>
+
+            <!-- Filters -->
+            <Border Grid.Row="1" BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="0,1,0,0" Padding="0,10,0,10">
+                <StackPanel x:Name="FilterBar" Orientation="Horizontal">
+                    <RadioButton Content="All" Tag="{x:Static local:ClipFilter.All}" IsChecked="True"
+                                 GroupName="PickerFilter" Style="{StaticResource ClipChip}" Checked="OnFilterChecked"/>
+                    <RadioButton Content="Pinned" Tag="{x:Static local:ClipFilter.Pinned}"
+                                 GroupName="PickerFilter" Style="{StaticResource ClipChip}" Checked="OnFilterChecked"/>
+                    <RadioButton Content="Text" Tag="{x:Static local:ClipFilter.Text}"
+                                 GroupName="PickerFilter" Style="{StaticResource ClipChip}" Checked="OnFilterChecked"/>
+                    <RadioButton Content="Images" Tag="{x:Static local:ClipFilter.Images}"
+                                 GroupName="PickerFilter" Style="{StaticResource ClipChip}" Checked="OnFilterChecked"/>
+                    <RadioButton Content="Files" Tag="{x:Static local:ClipFilter.Files}"
+                                 GroupName="PickerFilter" Style="{StaticResource ClipChip}" Checked="OnFilterChecked"/>
+                    <TextBlock Text="Tab switches" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0"
+                               Foreground="{DynamicResource TextDimmed}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- List and preview -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="330"/>
+                </Grid.ColumnDefinitions>
+                <ListBox x:Name="ClipList" Grid.Column="0" Background="Transparent" BorderThickness="0"
+                         Focusable="False"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ItemTemplate="{StaticResource ClipRowContent}"
+                         SelectionChanged="OnSelectionChanged"
+                         MouseDoubleClick="OnListDoubleClick">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" CornerRadius="8" Padding="10,8" Margin="0,0,4,2"
+                                                Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TabHoverBackground}"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+
+                <TextBlock x:Name="EmptyText" Grid.Column="0" Visibility="Collapsed" TextWrapping="Wrap" TextAlignment="Center"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="340"
+                           Foreground="{DynamicResource TextSecondary}"/>
+
+                <local:ClipPreview x:Name="Preview" Grid.Column="2"/>
+            </Grid>
+
+            <!-- Keys -->
+            <Border Grid.Row="3" BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="0,1,0,0" Padding="2,8,2,0" Margin="0,10,0,0">
+                <TextBlock x:Name="HintText" FontSize="11" TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextDimmed}"/>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

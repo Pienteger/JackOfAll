@@ -448,6 +448,41 @@
                                             ValueChanged="OnClipboardStorageChanged"/>
                                 </StackPanel>
                             </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,14"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Image Storage" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Copied images and screenshots on disk; 0 stops recording images" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="ClipboardImageStorageLabel" MinWidth="68" TextAlignment="Right"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Slider x:Name="ClipboardImageStorageSlider" Width="140" Minimum="0" Maximum="2000"
+                                            TickFrequency="50" IsSnapToTickEnabled="True"
+                                            ValueChanged="OnClipboardImageStorageChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,14"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Record in the Background" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Keep recording while JackOfAll runs, even with no Clipboard tab open" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <CheckBox x:Name="ClipboardBackgroundCheck" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                          VerticalAlignment="Center" Checked="OnClipboardBackgroundChanged" Unchecked="OnClipboardBackgroundChanged"/>
+                            </DockPanel>
+                            <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,14"/>
+                            <DockPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Quick Picker Shortcut" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text="Ctrl+Shift+V searches the history and pastes into any app (Ctrl+Alt+V if it is taken)" FontSize="12"
+                                               TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+                                <CheckBox x:Name="ClipboardPickerCheck" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                          VerticalAlignment="Center" Checked="OnClipboardPickerChanged" Unchecked="OnClipboardPickerChanged"/>
+                            </DockPanel>
                             <Separator Background="{DynamicResource SurfaceBorder}" Margin="0,18"/>
                             <TextBlock Text="LOG VIEWER" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextDimmed}" Margin="0,0,0,12"/>
@@ -482,7 +517,7 @@
                             </DockPanel>
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="Optimized defaults: 100 clips, 256 KB each, 5 MB total; 256 MB log scan and 100,000 retained results."
+                    <TextBlock Text="Optimized defaults: 100 clips, 256 KB each, 5 MB of text and 300 MB of images; 256 MB log scan and 100,000 retained results."
                                TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondary}"
                                Margin="0,14,0,0"/>
                 </StackPanel>
