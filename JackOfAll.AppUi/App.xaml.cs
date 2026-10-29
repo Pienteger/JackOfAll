@@ -75,13 +75,22 @@ public partial class App : Application
         registry.Register(new GitHubToolFactory(settings));
         registry.Register(new ApiClientToolFactory());
         registry.Register(new CodeRunnerToolFactory());
-        registry.Register(new ClipboardHistoryToolFactory());
+        var clipboard = new ClipboardHistoryToolFactory();
+        registry.Register(clipboard);
         registry.Register(new LogViewerToolFactory());
+        registry.Register(new FerryToolFactory());
+        var tally = new TallyToolFactory();
+        registry.Register(tally);
+        registry.Register(new UndertowToolFactory());
+        registry.Register(new SpaceLensToolFactory());
+        registry.Register(new HushToolFactory());
 
         ApplyTheme();
 
         var window = new MainWindow(registry, bus, settings, ApplyTheme);
         window.Show();
+        clipboard.Start(window, settings);
+        tally.Start(window);
     }
 
     private static void FocusExistingInstance()

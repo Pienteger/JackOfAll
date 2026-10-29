@@ -1,0 +1,342 @@
+<UserControl x:Class="JackOfAll.UserControls.SpaceLensToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:h="clr-namespace:JackOfAll.UserControls.Helpers"
+             mc:Ignorable="d"
+             AllowDrop="True"
+             d:DesignHeight="720" d:DesignWidth="1100">
+    <TabControl x:Name="Tabs" Margin="0" SelectionChanged="OnTabChanged" Padding="0" BorderThickness="0"
+                Background="{DynamicResource AppBackground}">
+        <TabControl.Resources>
+            <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
+        </TabControl.Resources>
+
+        <!-- ── Map ─────────────────────────────────────────────── -->
+        <TabItem Header="Map">
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Toolbar -->
+                <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button x:Name="BtnScan" Click="OnScanClick" Padding="12,4" Margin="4,0,0,0"
+                                Style="{StaticResource PrimaryButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="ScanGlyph" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="ScanLabel" Text="Scan" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnFolder" Click="OnFolderClick" Padding="10,4" Margin="4,0,0,0"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Choose folder" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnCleanup" Click="OnCleanupClick" Padding="10,4" Margin="4,0,0,0"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}"
+                                ToolTip="Find build output and caches you can safely delete (Ctrl+K)">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Clean up" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <ComboBox x:Name="DriveBox" MinWidth="340" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                </DockPanel>
+
+                <!-- Breadcrumbs -->
+                <DockPanel Grid.Row="1" Margin="0,0,0,8">
+                    <Button x:Name="BtnUp" DockPanel.Dock="Left" Click="OnUpClick" IsEnabled="False" Padding="8,3"
+                            Background="{DynamicResource SurfaceBackground}"
+                            Foreground="{DynamicResource TextPrimary}"
+                            BorderBrush="{DynamicResource SurfaceBorder}"
+                            ToolTip="Up one folder (Backspace)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74A;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Up" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <WrapPanel x:Name="Crumbs" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </DockPanel>
+
+                <!-- Map + side panel -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="240"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="380" MinWidth="260"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="{DynamicResource SurfaceBackground}"
+                            BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1" CornerRadius="6"
+                            Padding="3" ClipToBounds="True">
+                        <Grid>
+                            <h:TreemapCanvas x:Name="Map"/>
+                            <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock Text="Where did my disk space go?" FontSize="22" FontWeight="Light"
+                                           Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Pick a drive and press Scan, or drop any folder here. Every file becomes a tile, sized by the space it takes."
+                                           TextWrapping="Wrap" TextAlignment="Center" MaxWidth="440" Margin="0,8,0,0"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+                            <StackPanel x:Name="ScanState" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" Width="440">
+                                <TextBlock x:Name="ScanLine1" Text="Scanning…" FontSize="22" FontWeight="Light"
+                                           Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center"/>
+                                <ProgressBar IsIndeterminate="True" Height="4" Margin="0,12" BorderThickness="0"
+                                             Background="{DynamicResource AppBackground}" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock x:Name="ScanLine2" Foreground="{DynamicResource TextSecondary}"
+                                           TextTrimming="CharacterEllipsis" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+                    <DockPanel Grid.Column="2">
+                        <Border DockPanel.Dock="Top" Background="{DynamicResource SurfaceBackground}"
+                                BorderBrush="{DynamicResource SurfaceBorder}" BorderThickness="1" CornerRadius="6"
+                                Padding="12,10" Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="WHAT'S TAKING THE SPACE" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                                <TextBlock Text="Click a row to highlight it on the map" FontSize="11"
+                                           Foreground="{DynamicResource TextDimmed}" Margin="0,2,0,8"/>
+                                <Grid x:Name="ShareBar" Height="8" Margin="0,0,0,8" ClipToBounds="True"/>
+                                <ItemsControl x:Name="LegendList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Click="OnLegendClick" Tag="{Binding Cat}" Style="{StaticResource GhostButton}"
+                                                    HorizontalContentAlignment="Stretch" Padding="6,3" Opacity="{Binding Opacity}">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Pct}" Width="52" TextAlignment="Right"
+                                                               Foreground="{DynamicResource TextSecondary}"/>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding SizeText}"
+                                                               Foreground="{DynamicResource TextPrimary}"/>
+                                                    <Border Width="10" Height="10" CornerRadius="2" Background="{Binding Swatch}"
+                                                            Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <TabControl x:Name="SideTabs" Padding="0,4,0,0" BorderThickness="0" Background="Transparent">
+                            <TabItem Header="Largest files">
+                                <DataGrid x:Name="FilesGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                                          HeadersVisibility="Column" GridLinesVisibility="None"
+                                          SelectionChanged="OnFileSelected" MouseDoubleClick="OnFileDoubleClick"
+                                          PreviewMouseRightButtonUp="OnFileRightClick">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="Name" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="6,4">
+                                                        <Border Width="9" Height="9" CornerRadius="2" Background="{Binding Swatch}"
+                                                                Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="76">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource HeaderColor}"/>
+                                                    <Setter Property="TextAlignment" Value="Right"/>
+                                                    <Setter Property="Padding" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="1.2*">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                    <Setter Property="Padding" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+                            <TabItem Header="File types">
+                                <DataGrid x:Name="TypesGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                                          HeadersVisibility="Column" GridLinesVisibility="None"
+                                          SelectionChanged="OnTypeSelected">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="Type" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="6,4">
+                                                        <Border Width="9" Height="9" CornerRadius="2" Background="{Binding Swatch}"
+                                                                Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="80">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource HeaderColor}"/>
+                                                    <Setter Property="TextAlignment" Value="Right"/>
+                                                    <Setter Property="Padding" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="Files" Binding="{Binding Count}" Width="70">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                    <Setter Property="TextAlignment" Value="Right"/>
+                                                    <Setter Property="Padding" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="Share" Binding="{Binding Share}" Width="64">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                    <Setter Property="TextAlignment" Value="Right"/>
+                                                    <Setter Property="Padding" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+                        </TabControl>
+                    </DockPanel>
+                </Grid>
+
+                <!-- Status bar -->
+                <Border Grid.Row="3" Margin="0,8,0,0" CornerRadius="4" Padding="8,4" Background="{DynamicResource SurfaceBackground}">
+                    <DockPanel>
+                        <TextBlock x:Name="StatsText" DockPanel.Dock="Right" Foreground="{DynamicResource TextDimmed}" FontSize="12" Margin="12,0,0,0"/>
+                        <TextBlock x:Name="StatusText" Text="Pick a drive and press Scan."
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </TabItem>
+
+        <!-- ── Clean up (Crow) ─────────────────────────────────── -->
+        <TabItem Header="Clean up" x:Name="CleanupTab">
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                    <DockPanel>
+                        <Button x:Name="BtnFindJunk" DockPanel.Dock="Right" Click="OnFindJunkClick" Padding="10,4"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Look again" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text="Reclaim space from things that rebuild themselves" FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock x:Name="CleanupNote" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{DynamicResource TextSecondary}"/>
+                </StackPanel>
+
+                <DataGrid x:Name="JunkGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False"
+                          SelectionMode="Single" HeadersVisibility="Column" GridLinesVisibility="None">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="" Width="40">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding Checked, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="What" Binding="{Binding Name}" Width="240" IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                    <Setter Property="Padding" Value="6,4"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="190" IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                    <Setter Property="Padding" Value="6,4"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="90" IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource HeaderColor}"/>
+                                    <Setter Property="TextAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="6,4"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Where" Binding="{Binding Where}" Width="*" IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="Padding" Value="6,4"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock x:Name="JunkEmpty" Grid.Row="1" Text="Looking for junk…" FontStyle="Italic"
+                           Foreground="{DynamicResource TextDimmed}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsHitTestVisible="False"/>
+
+                <DockPanel Grid.Row="2" Margin="0,10,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button x:Name="BtnShowJunk" Click="OnShowJunkClick" Padding="10,4" IsEnabled="False"
+                                Background="{DynamicResource SurfaceBackground}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource SurfaceBorder}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE890;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Show build output on map" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnDeleteJunk" Click="OnDeleteJunkClick" Padding="12,4" Margin="6,0,0,0" IsEnabled="False"
+                                Style="{StaticResource DangerButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="DeleteLabel" Text="Delete selected" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock x:Name="JunkSummary" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"
+                               TextWrapping="Wrap" Margin="0,0,12,0"/>
+                </DockPanel>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</UserControl>
