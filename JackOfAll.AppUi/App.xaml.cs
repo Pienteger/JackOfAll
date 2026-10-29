@@ -68,6 +68,7 @@ public partial class App : Application
         registry.Register(new DiffToolFactory());
         registry.Register(new EnvVarToolFactory());
         registry.Register(new PortScannerToolFactory());
+        registry.Register(new ConnectivityToolFactory());
         registry.Register(new SshKeyToolFactory());
         registry.Register(new NotepadToolFactory());
         registry.Register(new WellbeingToolFactory());

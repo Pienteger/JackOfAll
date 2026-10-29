@@ -1,0 +1,155 @@
+<UserControl x:Class="JackOfAll.UserControls.Connectivity.BluetoothPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:h="clr-namespace:JackOfAll.UserControls.Helpers">
+    <UserControl.Resources>
+        <ResourceDictionary Source="ConnectivityStyles.xaml"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="12"/>
+            <ColumnDefinition Width="360"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Style="{StaticResource Card}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*" MinHeight="90"/>
+                    <RowDefinition Height="16"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="2*" MinHeight="120"/>
+                </Grid.RowDefinitions>
+
+                <DockPanel Margin="0,0,0,14">
+                    <Button x:Name="BtnScan" DockPanel.Dock="Right" Click="OnScanClick" Style="{StaticResource SecondaryButton}"
+                            ToolTip="Listen for Bluetooth LE devices advertising nearby">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE702;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="ScanLabel" Text="Pause scan" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse x:Name="RadioDot" Width="9" Height="9" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="RadioText" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="RadioDetail" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <TextBlock Grid.Row="1" x:Name="PairedHeader" Text="PAIRED DEVICES" Style="{StaticResource SectionLabel}" Margin="0,0,0,8"/>
+                <Grid Grid.Row="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="PairedList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="110"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource AppBackground}" HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding Glyph}" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{Binding GlyphBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Category}" Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="2" CornerRadius="9" Padding="8,1" Margin="8,0" Background="{Binding ChipBackground}" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Status}" FontSize="10.5" FontWeight="SemiBold" Foreground="{Binding ChipForeground}"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                    Visibility="{Binding BatteryVisibility}" ToolTip="Battery level reported by the device">
+                                            <h:LevelBar Width="60" Height="6" Fraction="{Binding BatteryFraction}" Fill="{Binding BatteryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding BatteryText}" Foreground="{DynamicResource TextSecondary}" FontSize="11" Width="38"
+                                                       TextAlignment="Right" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock x:Name="PairedEmpty" Text="Loading…" Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                               VerticalAlignment="Top" IsHitTestVisible="False"/>
+                </Grid>
+
+                <DockPanel Grid.Row="4" Margin="0,0,0,8">
+                    <TextBlock x:Name="NearbyCount" DockPanel.Dock="Right" Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+                    <TextBlock Text="NEARBY (LIVE, BLUETOOTH LE)" Style="{StaticResource SectionLabel}"/>
+                </DockPanel>
+                <Grid Grid.Row="5">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="NearbyList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="44"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="56"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Width="8" Height="8" Fill="{Binding DotBrush}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontWeight="{Binding Weight}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextDimmed}" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <h:LevelBar Grid.Column="2" Height="5" Fraction="{Binding Fraction}" Fill="{Binding BarBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding RssiText}" Foreground="{DynamicResource TextSecondary}" FontSize="11"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding DistanceText}" Foreground="{DynamicResource TextSecondary}" FontSize="11"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Rough estimate from signal strength"/>
+                                        <Button Grid.Column="5" Content="Find" Click="OnFindClick" Tag="{Binding Address}" Style="{StaticResource SecondaryButton}"
+                                                FontSize="11" Padding="8,1" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock x:Name="NearbyEmpty" Text="Listening…" Foreground="{DynamicResource TextDimmed}" FontStyle="Italic"
+                               VerticalAlignment="Top" IsHitTestVisible="False" TextWrapping="Wrap"/>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="2" Style="{StaticResource Card}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top">
+                    <Button x:Name="BtnBeeps" DockPanel.Dock="Right" Click="OnBeepsClick" Style="{StaticResource SecondaryButton}"
+                            ToolTip="Beeps speed up and rise in pitch as you get closer">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="BeepsGlyph" Text="&#xE74F;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="BeepsLabel" Text="Beeps off" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="FINDER" Style="{StaticResource SectionLabel}"/>
+                </DockPanel>
+
+                <StackPanel DockPanel.Dock="Bottom">
+                    <TextBlock Text="LAST 30 SECONDS" Style="{StaticResource SectionLabel}" Margin="0,8,0,6"/>
+                    <h:SignalSparkline x:Name="FinderSpark" Height="64"/>
+                    <TextBlock Style="{StaticResource Body}" FontSize="11" Foreground="{DynamicResource TextDimmed}" Margin="0,10,0,0"
+                               Text="Phones, AirPods and most trackers change their Bluetooth address every few minutes for privacy. If your device vanishes from the list, pick it again."/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center">
+                    <TextBlock x:Name="FinderName" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                               HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="FinderDistance" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,2,0,10"/>
+                    <Border CornerRadius="16" Padding="16,6" Background="{DynamicResource AppBackground}" HorizontalAlignment="Center">
+                        <TextBlock x:Name="FinderTrend" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" TextAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <h:SignalGauge x:Name="FinderGauge" MinHeight="180"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>
