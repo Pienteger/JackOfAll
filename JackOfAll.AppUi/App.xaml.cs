@@ -77,6 +77,7 @@ public partial class App : Application
         var clipboard = new ClipboardHistoryToolFactory();
         registry.Register(clipboard);
         registry.Register(new LogViewerToolFactory());
+        registry.Register(new FerryToolFactory());
 
         ApplyTheme();
 
