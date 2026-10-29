@@ -1,5 +1,7 @@
+using System.Windows;
 using System.Windows.Controls;
 using JackOfAll.Lib.Messaging;
+using JackOfAll.Lib.Settings;
 using JackOfAll.Lib.Tools;
 using JackOfAll.UserControls.Services;
 
@@ -14,4 +16,7 @@ public sealed class ClipboardHistoryToolFactory : IToolFactory
 
     public UserControl CreateView(IMessageBus bus, Action<OpenToolMessage> openTool)
         => new ClipboardHistoryToolView(_service);
+
+    /// <summary>Starts background recording and the quick-picker shortcut once the main window exists.</summary>
+    public void Start(Window mainWindow, AppSettings settings) => _service.Start(mainWindow, settings);
 }

@@ -61,6 +61,10 @@ public partial class SettingsWindow : Window
         ClipboardEntrySizeLabel.Text = $"{settings.ClipboardMaxEntryKb} KB";
         ClipboardStorageSlider.Value = settings.ClipboardStorageLimitMb;
         ClipboardStorageLabel.Text = $"{settings.ClipboardStorageLimitMb} MB";
+        ClipboardImageStorageSlider.Value = settings.ClipboardImageStorageMb;
+        ClipboardImageStorageLabel.Text = settings.ClipboardImageStorageMb == 0 ? "Off" : $"{settings.ClipboardImageStorageMb} MB";
+        ClipboardBackgroundCheck.IsChecked = settings.ClipboardRecordInBackground;
+        ClipboardPickerCheck.IsChecked = settings.ClipboardQuickPicker;
         LogScanLimitSlider.Value = settings.LogViewerScanLimitMb;
         LogScanLimitLabel.Text = $"{settings.LogViewerScanLimitMb} MB";
         LogEntriesSlider.Value = settings.LogViewerRetainedEntries;
@@ -230,6 +234,29 @@ public partial class SettingsWindow : Window
         var value = (int)Math.Round(e.NewValue);
         _settings.ClipboardStorageLimitMb = value;
         ClipboardStorageLabel.Text = $"{value} MB";
+        _settings.Save();
+    }
+
+    private void OnClipboardImageStorageChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_initializing) return;
+        var value = (int)(Math.Round(e.NewValue / 50.0) * 50);
+        _settings.ClipboardImageStorageMb = value;
+        ClipboardImageStorageLabel.Text = value == 0 ? "Off" : $"{value} MB";
+        _settings.Save();
+    }
+
+    private void OnClipboardBackgroundChanged(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        _settings.ClipboardRecordInBackground = ClipboardBackgroundCheck.IsChecked == true;
+        _settings.Save();
+    }
+
+    private void OnClipboardPickerChanged(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        _settings.ClipboardQuickPicker = ClipboardPickerCheck.IsChecked == true;
         _settings.Save();
     }
 

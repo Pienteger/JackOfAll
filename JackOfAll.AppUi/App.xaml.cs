@@ -74,13 +74,15 @@ public partial class App : Application
         registry.Register(new GitHubToolFactory(settings));
         registry.Register(new ApiClientToolFactory());
         registry.Register(new CodeRunnerToolFactory());
-        registry.Register(new ClipboardHistoryToolFactory());
+        var clipboard = new ClipboardHistoryToolFactory();
+        registry.Register(clipboard);
         registry.Register(new LogViewerToolFactory());
 
         ApplyTheme();
 
         var window = new MainWindow(registry, bus, settings, ApplyTheme);
         window.Show();
+        clipboard.Start(window, settings);
     }
 
     private static void FocusExistingInstance()
