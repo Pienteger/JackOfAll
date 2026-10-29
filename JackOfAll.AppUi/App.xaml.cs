@@ -81,6 +81,8 @@ public partial class App : Application
         var tally = new TallyToolFactory();
         registry.Register(tally);
         registry.Register(new UndertowToolFactory());
+        registry.Register(new SpaceLensToolFactory());
+        registry.Register(new HushToolFactory());
 
         ApplyTheme();
 
