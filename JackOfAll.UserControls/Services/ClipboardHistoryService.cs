@@ -235,10 +235,16 @@ internal sealed class ClipboardHistoryService : IDisposable
         catch (OutOfMemoryException) { NotifyStatus("Clipboard item skipped: it was too large to read."); }
     }
 
+    /// <summary>
+    /// Password managers (and the Connectivity tool's Wi-Fi password copy) add this format to ask clipboard
+    /// history tools, Windows' own included, not to record the clip.
+    /// </summary>
+    public const string ExcludeFromHistoryFormat = "ExcludeClipboardContentFromMonitorProcessing";
+
     // Password managers mark their copies with these formats; Windows' own clipboard history skips them too.
     private static bool IsPrivate(IDataObject data)
     {
-        if (data.GetDataPresent("ExcludeClipboardContentFromMonitorProcessing") || data.GetDataPresent("Clipboard Viewer Ignore"))
+        if (data.GetDataPresent(ExcludeFromHistoryFormat) || data.GetDataPresent("Clipboard Viewer Ignore"))
             return true;
         return data.GetDataPresent("CanIncludeInClipboardHistory")
             && data.GetData("CanIncludeInClipboardHistory") is MemoryStream { Length: >= 4 } flag

@@ -1,0 +1,452 @@
+<UserControl x:Class="JackOfAll.UserControls.ConnectivityToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:h="clr-namespace:JackOfAll.UserControls.Helpers"
+             xmlns:c="clr-namespace:JackOfAll.UserControls.Connectivity"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1000">
+    <UserControl.Resources>
+        <ResourceDictionary Source="Connectivity/ConnectivityStyles.xaml"/>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Connection summary -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+            <TextBlock Text="Connectivity" Foreground="{DynamicResource TextPrimary}"
+                       FontSize="{DynamicResource AppFontSize}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock x:Name="LinkSummary" Margin="12,0,0,0" Foreground="{DynamicResource TextSecondary}"
+                       FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+
+        <TabControl Grid.Row="1" x:Name="Sections" SelectionChanged="OnSectionChanged"
+                    Background="{DynamicResource AppBackground}" BorderThickness="0" Padding="0,8,0,0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
+            </TabControl.Resources>
+
+            <!-- ============================== Hunt ============================== -->
+            <TabItem Header="Wi-Fi Hunt">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="340"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top">
+                                <Button x:Name="BtnBeeps" DockPanel.Dock="Right" Click="OnBeepsClick" Style="{StaticResource SecondaryButton}"
+                                        ToolTip="Beeps speed up and rise in pitch as the signal gets stronger (B)">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="BeepsGlyph" Text="&#xE74F;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="BeepsLabel" Text="Beeps off" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Text="SIGNAL HUNT" Style="{StaticResource SectionLabel}"/>
+                            </DockPanel>
+
+                            <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="80"/>
+                                </Grid.RowDefinitions>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button x:Name="BtnResetBest" DockPanel.Dock="Right" Content="Reset best" Click="OnResetBestClick"
+                                            Style="{StaticResource SecondaryButton}" FontSize="11" Padding="8,2"/>
+                                    <TextBlock Text="LAST MINUTE" Style="{StaticResource SectionLabel}"/>
+                                </DockPanel>
+                                <h:SignalSparkline x:Name="Sparkline" Grid.Row="1"/>
+                            </Grid>
+
+                            <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center">
+                                <TextBlock x:Name="QualityLabel" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="QualityQuip" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Center" Margin="0,2,0,10"/>
+                                <Border CornerRadius="16" Padding="18,7" Background="{DynamicResource AppBackground}" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="TrendText" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"/>
+                                </Border>
+                                <TextBlock x:Name="HuntStats" Foreground="{DynamicResource TextSecondary}" FontSize="12"
+                                           HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                            </StackPanel>
+
+                            <h:SignalGauge x:Name="Gauge" MinHeight="200"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top">
+                                <TextBlock Text="SPOTS" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock Style="{StaticResource Body}" Margin="0,6,0,12"
+                                           Text="Stand somewhere, press Mark, and it averages the signal for 3 seconds. Compare rooms, desks, or that one corner of the sofa."/>
+                            </StackPanel>
+
+                            <!-- Mark / name / measuring -->
+                            <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                <Button x:Name="BtnMark" Click="OnMarkClick" Style="{StaticResource PrimaryButton}" Padding="10,7">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Mark this spot" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <DockPanel x:Name="NamePanel" Visibility="Collapsed">
+                                    <Button DockPanel.Dock="Right" Content="Measure" Click="OnMeasureClick" Style="{StaticResource PrimaryButton}"
+                                            Padding="12,6" Margin="6,0,0,0"/>
+                                    <TextBox x:Name="SpotName" KeyDown="OnSpotNameKeyDown" MaxLength="28" Padding="6,5"
+                                             Background="{DynamicResource AppBackground}" Foreground="{DynamicResource TextPrimary}"
+                                             BorderBrush="{DynamicResource AccentBrush}" VerticalContentAlignment="Center"
+                                             ToolTip="Name this spot, then press Enter"/>
+                                </DockPanel>
+                                <StackPanel x:Name="MeasurePanel" Visibility="Collapsed">
+                                    <TextBlock x:Name="MeasureText" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
+                                    <h:LevelBar x:Name="MeasureBar" Height="8" Fill="{DynamicResource AccentBrush}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock x:Name="SpotsTip" DockPanel.Dock="Bottom" Style="{StaticResource Body}" Margin="0,8,0,0"/>
+
+                            <Grid>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="SpotsList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="32"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="72"/>
+                                                        <ColumnDefinition Width="24"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Width="24" Height="24" CornerRadius="12" Background="{Binding BadgeBrush}" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Rank}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding BadgeForeground}"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                        <h:LevelBar Height="6" Margin="0,5,0,0" Fraction="{Binding Fraction}" Fill="{Binding Brush}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                        <TextBlock Text="{Binding DbmText}" Foreground="{Binding Brush}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                                        <TextBlock Text="{Binding Quality}" Foreground="{DynamicResource TextDimmed}" FontSize="10.5" HorizontalAlignment="Right"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="3" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                            Style="{StaticResource GhostButton}" Foreground="{DynamicResource TextDimmed}" Padding="4"
+                                                            Click="OnDeleteSpotClick" Tag="{Binding Spot}" ToolTip="Forget this spot"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <TextBlock x:Name="SpotsEmpty" Text="No spots yet for this network." Foreground="{DynamicResource TextDimmed}"
+                                           FontStyle="Italic" VerticalAlignment="Top" IsHitTestVisible="False"/>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Airspace ============================== -->
+            <TabItem Header="Airspace">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="220"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="*" MinHeight="260"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="3*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBlock x:Name="Count24" DockPanel.Dock="Right" Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+                                    <TextBlock Text="2.4 GHZ" Style="{StaticResource SectionLabel}"/>
+                                </DockPanel>
+                                <h:SpectrumChart x:Name="Spectrum24"/>
+                            </DockPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <TextBlock x:Name="Count5" DockPanel.Dock="Right" Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+                                    <TextBlock Text="5 GHZ" Style="{StaticResource SectionLabel}"/>
+                                </DockPanel>
+                                <h:SpectrumChart x:Name="Spectrum5"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="YOUR CHANNEL" Style="{StaticResource SectionLabel}"/>
+                                    <Border x:Name="CrowdChip" CornerRadius="9" Padding="9,1" Margin="8,0,0,0" Visibility="Collapsed">
+                                        <TextBlock x:Name="CrowdText" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Bottom" x:Name="ScoreboardPanel" Margin="0,10,0,0">
+                                    <TextBlock Text="CHANNEL SCOREBOARD (SHORTER IS QUIETER)" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                                    <h:ChannelScoreboard x:Name="Scoreboard" Height="54"/>
+                                </StackPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="AdviceList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,0,7">
+                                                    <Ellipse DockPanel.Dock="Left" Width="5" Height="5" Fill="{DynamicResource TextDimmed}"
+                                                             VerticalAlignment="Top" Margin="0,7,9,0"/>
+                                                    <TextBlock Text="{Binding}" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                    <Button x:Name="BtnRescan" DockPanel.Dock="Right" Click="OnRescanClick" Style="{StaticResource SecondaryButton}"
+                                            FontSize="11" Padding="8,2" ToolTip="Scan for networks again (R)">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock x:Name="RescanLabel" Text="Rescan" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="NearbyHeader" Text="NEARBY" Style="{StaticResource SectionLabel}"/>
+                                </DockPanel>
+                                <Grid>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl x:Name="NearbyList">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="16"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="60"/>
+                                                            <ColumnDefinition Width="52"/>
+                                                            <ColumnDefinition Width="36"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Ellipse Width="8" Height="8" Fill="{Binding DotBrush}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}"
+                                                                   FontWeight="{Binding Weight}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding BandChannel}" Foreground="{DynamicResource TextSecondary}"
+                                                                   FontSize="11" VerticalAlignment="Center"/>
+                                                        <h:LevelBar Grid.Column="3" Height="5" Fraction="{Binding Fraction}" Fill="{Binding BarBrush}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="4" Text="{Binding Rssi}" Foreground="{DynamicResource TextSecondary}"
+                                                                   FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <TextBlock x:Name="NearbyEmpty" Text="Looking around…" Foreground="{DynamicResource TextDimmed}"
+                                               FontStyle="Italic" VerticalAlignment="Top" IsHitTestVisible="False"/>
+                                </Grid>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Pulse ============================== -->
+            <TabItem Header="Pulse">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="200"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="#3b82f6" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock x:Name="RouterLegend" Text="Router" Foreground="{DynamicResource TextSecondary}" FontSize="11" VerticalAlignment="Center"/>
+                                    <Ellipse Width="8" Height="8" Fill="#a855f7" VerticalAlignment="Center" Margin="16,0,6,0"/>
+                                    <TextBlock Text="Internet (1.1.1.1)" Foreground="{DynamicResource TextSecondary}" FontSize="11" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="LATENCY, LAST 2 MINUTES" Style="{StaticResource SectionLabel}"/>
+                            </DockPanel>
+                            <h:LatencyChart x:Name="Latency"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="#3b82f6" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="ROUTER" Style="{StaticResource SectionLabel}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,6">
+                                    <TextBlock x:Name="RouterAvg" Text="--" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text=" ms avg" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Bottom" Margin="2,0,0,5"/>
+                                </StackPanel>
+                                <TextBlock x:Name="RouterJitter" FontSize="12"/>
+                                <TextBlock x:Name="RouterLoss" FontSize="12" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="#a855f7" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="INTERNET" Style="{StaticResource SectionLabel}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,6">
+                                    <TextBlock x:Name="InternetAvg" Text="--" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
+                                    <TextBlock Text=" ms avg" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Bottom" Margin="2,0,0,5"/>
+                                </StackPanel>
+                                <TextBlock x:Name="InternetJitter" FontSize="12"/>
+                                <TextBlock x:Name="InternetLoss" FontSize="12" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="4" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="VERDICT" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock x:Name="VerdictHead" FontSize="18" FontWeight="SemiBold" Margin="0,6,0,4"/>
+                                <TextBlock x:Name="VerdictBody" Style="{StaticResource Body}"/>
+                                <WrapPanel x:Name="ReadinessPanel" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="4" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="190"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="SPEED TEST" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock Style="{StaticResource Body}" FontSize="11" Margin="0,4,0,10" Foreground="{DynamicResource TextDimmed}"
+                                           Text="Uses Cloudflare's test servers, about 8 seconds each way."/>
+                                <Button x:Name="BtnSpeed" Click="OnSpeedTestClick" Style="{StaticResource PrimaryButton}" Padding="10,6" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xEC4A;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="SpeedButtonLabel" Text="Run speed test" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="DownLabel" Text="DOWNLOAD" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock x:Name="DownValue" Text="--" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource TextDimmed}"/>
+                                <TextBlock Text="Mbps" Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock x:Name="UpLabel" Text="UPLOAD" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock x:Name="UpValue" Text="--" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource TextDimmed}"/>
+                                <TextBlock Text="Mbps" Foreground="{DynamicResource TextDimmed}" FontSize="11"/>
+                            </StackPanel>
+                            <TextBlock x:Name="SpeedNote" Grid.Column="3" Style="{StaticResource Body}" VerticalAlignment="Center"
+                                       Text="Run it to see whether Wi-Fi or your internet plan is what's holding you back."/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Share ============================== -->
+            <TabItem Header="Wi-Fi Share">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="280"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" Padding="8,16">
+                        <DockPanel>
+                            <TextBlock x:Name="SavedHeader" DockPanel.Dock="Top" Text="SAVED NETWORKS" Style="{StaticResource SectionLabel}" Margin="8,0,0,8"/>
+                            <ListBox x:Name="SavedList" SelectionChanged="OnSavedSelectionChanged" BorderThickness="0"
+                                     Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="4,4">
+                                            <TextBlock Text="{Binding Title}" Foreground="{DynamicResource TextPrimary}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource TextSecondary}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource Card}" Padding="24">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel x:Name="ShareDetail">
+                                <TextBlock Text="SHARE THIS NETWORK" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock x:Name="ShareSsid" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                                           Margin="0,6,0,2" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="ShareAuth" Foreground="{DynamicResource TextSecondary}"/>
+
+                                <TextBlock Text="PASSWORD" Style="{StaticResource SectionLabel}" Margin="0,24,0,6"/>
+                                <Border CornerRadius="6" Background="{DynamicResource AppBackground}" Padding="12,6">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button x:Name="BtnReveal" Content="Reveal" Click="OnRevealClick" Style="{StaticResource PrimaryButton}" Padding="12,4"/>
+                                            <Button x:Name="BtnCopy" Content="Copy" Click="OnCopyClick" Style="{StaticResource SecondaryButton}" Margin="6,0,0,0"
+                                                    ToolTip="Copied without being saved to clipboard history"/>
+                                            <Button x:Name="BtnHide" Content="Hide" Click="OnHideClick" Style="{StaticResource SecondaryButton}" Margin="6,0,0,0"/>
+                                        </StackPanel>
+                                        <!-- a TextBlock, not a TextBox, so Copy (which skips clipboard history) is the only way out -->
+                                        <TextBlock x:Name="PasswordText" Foreground="{DynamicResource TextPrimary}"
+                                                   FontFamily="Cascadia Code,Consolas,Courier New" FontSize="14"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    </DockPanel>
+                                </Border>
+                                <TextBlock x:Name="ShareHint" Style="{StaticResource Body}" Margin="0,12,0,0"/>
+                                <TextBlock Style="{StaticResource Body}" FontSize="11" Foreground="{DynamicResource TextDimmed}" Margin="0,24,0,0"
+                                           Text="The password is only read when you click Reveal and never leaves this PC."/>
+                            </StackPanel>
+                            <h:QrCodeImage x:Name="QrImage" Grid.Column="2" Width="280" Height="280" VerticalAlignment="Top"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <!-- ============================== Bluetooth / Adapters / LAN ============================== -->
+            <TabItem Header="Bluetooth">
+                <c:BluetoothPanel x:Name="Bluetooth"/>
+            </TabItem>
+            <TabItem Header="Adapters">
+                <c:AdaptersPanel x:Name="Adapters"/>
+            </TabItem>
+            <TabItem Header="LAN Devices">
+                <c:LanDevicesPanel x:Name="LanDevices"/>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
