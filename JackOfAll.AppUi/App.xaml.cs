@@ -78,12 +78,16 @@ public partial class App : Application
         registry.Register(clipboard);
         registry.Register(new LogViewerToolFactory());
         registry.Register(new FerryToolFactory());
+        var tally = new TallyToolFactory();
+        registry.Register(tally);
+        registry.Register(new UndertowToolFactory());
 
         ApplyTheme();
 
         var window = new MainWindow(registry, bus, settings, ApplyTheme);
         window.Show();
         clipboard.Start(window, settings);
+        tally.Start(window);
     }
 
     private static void FocusExistingInstance()

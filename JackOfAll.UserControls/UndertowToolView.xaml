@@ -1,0 +1,240 @@
+<UserControl x:Class="JackOfAll.UserControls.UndertowToolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1000">
+    <UserControl.Resources>
+        <Style x:Key="RowAction" TargetType="Button">
+            <Setter Property="Padding" Value="10,2"/>
+            <Setter Property="Background" Value="{DynamicResource AppBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorder}"/>
+        </Style>
+        <Style x:Key="Toolbar" TargetType="Button">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorder}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="UNDERTOW" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"/>
+            <TextBlock Text="Why your PC is slow to boot: the boot timing Windows records, what starts with Windows, and who talks to the network. Every change can be undone."
+                       FontSize="12" Foreground="{DynamicResource TextDimmed}" Margin="0,2,0,8" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <TabControl Grid.Row="1" x:Name="Tabs" Background="{DynamicResource AppBackground}" BorderThickness="0" Padding="0"
+                    SelectionChanged="OnTabChanged">
+            <TabControl.Resources>
+                <Style TargetType="TabItem" BasedOn="{StaticResource InnerTabItem}"/>
+            </TabControl.Resources>
+
+            <!-- Boot -->
+            <TabItem Header="Boot">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="170"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <DockPanel Margin="0,0,0,10">
+                        <Button x:Name="BtnReadBoot" DockPanel.Dock="Right" Click="OnReadBootClick" Style="{StaticResource PrimaryButton}" Padding="12,5">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="ShieldGlyph" Text="&#xEA18;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Read boot timing" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <StackPanel>
+                            <TextBlock x:Name="BootHeadline" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="BootSubline" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <DataGrid x:Name="BootGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                              SelectionChanged="OnBootSelected">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Boot" Binding="{Binding WhenText}" Width="*" SortMemberPath="When"/>
+                            <DataGridTextColumn Header="Total" Binding="{Binding BootText}" Width="90" SortMemberPath="BootMs"/>
+                            <DataGridTextColumn Header="Until desktop" Binding="{Binding MainPathText}" Width="110" SortMemberPath="MainPathMs"/>
+                            <DataGridTextColumn Header="After desktop" Binding="{Binding PostBootText}" Width="110" SortMemberPath="PostBootMs"/>
+                            <DataGridTextColumn Header="Startup apps" Binding="{Binding StartupApps}" Width="100"/>
+                            <DataGridTextColumn Header="Slowed by" Binding="{Binding SlowText}" Width="110"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="340"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Background="{DynamicResource SurfaceBackground}" BorderBrush="{DynamicResource SurfaceBorder}"
+                                BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,10,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="WHERE THE TIME WENT" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,8"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="PhasePanel"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                        <DataGrid x:Name="CulpritGrid" Grid.Column="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="What slowed it down" Binding="{Binding Display}" Width="*"/>
+                                <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="110"/>
+                                <DataGridTextColumn Header="Took" Binding="{Binding TotalMs, StringFormat={}{0:#,0} ms}" Width="90" SortMemberPath="TotalMs"/>
+                                <DataGridTextColumn Header="Slower by" Binding="{Binding SlowedByMs, StringFormat={}{0:#,0} ms}" Width="100" SortMemberPath="SlowedByMs"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Startup apps -->
+            <TabItem Header="Startup apps">
+                <DockPanel Margin="0,10,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Refresh" Click="OnRefreshStartupClick" Style="{StaticResource Toolbar}"/>
+                        <TextBlock x:Name="StartupSummary" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+                    </DockPanel>
+                    <DataGrid x:Name="StartupGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding ActionText}" Click="OnToggleStartupClick" Style="{StaticResource RowAction}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="State" Binding="{Binding StateText}" Width="55"/>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180"/>
+                            <DataGridTextColumn Header="Publisher" Binding="{Binding Publisher}" Width="150"/>
+                            <DataGridTextColumn Header="Slowed boot" Binding="{Binding SlowedBoot}" Width="95"/>
+                            <DataGridTextColumn Header="Where" Binding="{Binding Location}" Width="170"/>
+                            <DataGridTextColumn Header="Command" Binding="{Binding Command}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Services -->
+            <TabItem Header="Services">
+                <DockPanel Margin="0,10,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Refresh" Click="OnRefreshServicesClick" Style="{StaticResource Toolbar}"/>
+                        <CheckBox x:Name="HideMsServices" DockPanel.Dock="Right" Content="Hide Microsoft services" IsChecked="True"
+                                  VerticalAlignment="Center" Margin="12,0,0,0" Click="OnServiceFilterClick"/>
+                        <TextBlock x:Name="ServiceSummary" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+                    </DockPanel>
+                    <DataGrid x:Name="ServiceGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding ActionText}" Click="OnToggleServiceClick" Style="{StaticResource RowAction}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Service" Binding="{Binding DisplayName}" Width="220"/>
+                            <DataGridTextColumn Header="Starts" Binding="{Binding StartMode}" Width="140"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="75"/>
+                            <DataGridTextColumn Header="Publisher" Binding="{Binding Publisher}" Width="160"/>
+                            <DataGridTextColumn Header="Program" Binding="{Binding Path}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Scheduled tasks -->
+            <TabItem Header="Scheduled tasks">
+                <DockPanel Margin="0,10,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Refresh" Click="OnRefreshTasksClick" Style="{StaticResource Toolbar}"/>
+                        <CheckBox x:Name="HideMsTasks" DockPanel.Dock="Right" Content="Hide Windows tasks" IsChecked="True"
+                                  VerticalAlignment="Center" Margin="12,0,0,0" Click="OnTaskFilterClick"/>
+                        <TextBlock x:Name="TaskSummary" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+                    </DockPanel>
+                    <DataGrid x:Name="TaskGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding ActionText}" Click="OnToggleTaskClick" Style="{StaticResource RowAction}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="State" Binding="{Binding StateText}" Width="55"/>
+                            <DataGridTextColumn Header="Task" Binding="{Binding Name}" Width="200"/>
+                            <DataGridTextColumn Header="When" Binding="{Binding Trigger}" Width="140"/>
+                            <DataGridTextColumn Header="Folder" Binding="{Binding Folder}" Width="140"/>
+                            <DataGridTextColumn Header="Runs" Binding="{Binding Action}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Network -->
+            <TabItem Header="Network">
+                <DockPanel Margin="0,10,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Refresh" Click="OnRefreshNetworkClick" Style="{StaticResource Toolbar}"/>
+                        <CheckBox x:Name="LiveNetwork" DockPanel.Dock="Right" Content="Live" VerticalAlignment="Center" Margin="12,0,0,0"
+                                  Click="OnLiveClick" ToolTip="Refresh every 5 seconds while this tab is open"/>
+                        <CheckBox x:Name="IncludeLocal" DockPanel.Dock="Right" Content="Include listening and local" VerticalAlignment="Center"
+                                  Margin="12,0,0,0" Click="OnRefreshNetworkClick"/>
+                        <TextBox x:Name="NetFilter" DockPanel.Dock="Right" Width="180" Margin="12,0,0,0" Padding="4,3"
+                                 ToolTip="Filter by process, address or host" TextChanged="OnNetFilterChanged"/>
+                        <TextBlock x:Name="NetSummary" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+                    </DockPanel>
+                    <DataGrid x:Name="NetGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Process" Binding="{Binding Process}" Width="160"/>
+                            <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="65"/>
+                            <DataGridTextColumn Header="Connects to" Binding="{Binding Remote}" Width="200"/>
+                            <DataGridTextColumn Header="Host" Binding="{Binding Host}" Width="*"/>
+                            <DataGridTextColumn Header="Port" Binding="{Binding RemotePort}" Width="65"/>
+                            <DataGridTextColumn Header="State" Binding="{Binding State}" Width="100"/>
+                            <DataGridTextColumn Header="Local port" Binding="{Binding LocalPort}" Width="85"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Changes -->
+            <TabItem Header="Changes">
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"
+                               Text="Everything Undertow turned off or on, newest first. Undo puts it back the way it was."/>
+                    <DataGrid x:Name="ChangeGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding ActionText}" IsEnabled="{Binding CanUndo}" Click="OnUndoClick" Style="{StaticResource RowAction}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="When" Binding="{Binding WhenText}" Width="110"/>
+                            <DataGridTextColumn Header="What" Binding="{Binding Kind}" Width="120"/>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Change" Binding="{Binding ChangeText}" Width="260"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+
+        <TextBlock Grid.Row="2" x:Name="StatusText" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextDimmed}"/>
+    </Grid>
+</UserControl>
