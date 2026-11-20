@@ -37,3 +37,25 @@ jobs:
           $assets = (Get-ChildItem artifacts/release -File).FullName
           gh release create $env:RELEASE_TAG @assets --verify-tag --generate-notes --title "JackOfAll $env:RELEASE_TAG"
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }
+
+  winget:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check WinGet token
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if [ -z "$WINGET_TOKEN" ]; then
+            echo '::error::Add the WINGET_TOKEN repository secret with public_repo and workflow scopes.'
+            exit 1
+          fi
+      - name: Submit WinGet update
+        uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: Pienteger.JackOfAll
+          installers-regex: '^JackOfAll-win-(x64|arm64)\.exe$'
+          release-tag: ${{ github.ref_name }}
+          fork-user: ${{ vars.WINGET_FORK_USER || 'MahmudX' }}
+          token: ${{ secrets.WINGET_TOKEN }}

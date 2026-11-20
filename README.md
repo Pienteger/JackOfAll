@@ -9,8 +9,8 @@ A collection of Windows desktop utilities built with WPF and .NET 10.
 Push a stable version tag to create a GitHub release:
 
 ```powershell
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
 The Windows release workflow publishes `JackOfAll-win-x64.exe` and
@@ -57,6 +57,51 @@ winget install jackofall
 winget install --id Pienteger.JackOfAll --exact
 ```
 
-Generating release manifests does not itself register the package with WinGet.
-Submit the generated manifests for each later release as well. See Microsoft's
-[manifest submission instructions](https://learn.microsoft.com/en-us/windows/package-manager/package/repository).
+The first version must be accepted into `microsoft/winget-pkgs` before automated
+updates can run. The initial submission is
+[PR #484751](https://github.com/microsoft/winget-pkgs/pull/484751).
+
+Later tagged releases automatically submit WinGet update pull requests using
+[winget-releaser](https://github.com/vedantmgoyal9/winget-releaser), after the
+executables are published. The WinGet job runs in the same workflow because
+releases created with `GITHUB_TOKEN` do not trigger another release workflow.
+
+One-time setup:
+
+1. Create a [classic GitHub personal access token](https://github.com/settings/tokens/new)
+   for **MahmudX**, with `public_repo` and `workflow` scopes.
+2. Add it as the **WINGET_TOKEN** repository secret under **Settings → Secrets and
+   variables → Actions → New repository secret** in
+   [repository settings](https://github.com/Pienteger/JackOfAll/settings/secrets/actions).
+
+The action uses the existing `MahmudX/winget-pkgs` fork. If you use a different
+account, fork `microsoft/winget-pkgs` there and set the repository Actions variable
+`WINGET_FORK_USER` to that account. Microsoft still validates and reviews each
+submitted update. A WinGet submission failure leaves the GitHub release available.
+
+### Publish an automatic WinGet update
+
+After the initial WinGet package is accepted and the one-time setup is complete:
+
+1. Commit and push the changes you want to release to `master`.
+2. Tag that commit with a new stable version and push the tag:
+
+   ```powershell
+   git tag v1.0.1
+   git push origin v1.0.1
+   ```
+
+   Replace `1.0.1` with the next unused version. The tag sets the executable and
+   WinGet package versions; no project-file version edit is needed.
+3. Open [Windows release runs](https://github.com/Pienteger/JackOfAll/actions/workflows/release.yml).
+   The `release` job publishes both executables, then `winget` opens an update PR
+   in `microsoft/winget-pkgs` using `WINGET_TOKEN`.
+4. After Microsoft merges and indexes the update, users can upgrade with:
+
+   ```powershell
+   winget upgrade --id Pienteger.JackOfAll --exact
+   ```
+
+If only the `winget` job fails, fix the reported issue (for example, an expired
+token), then choose **Re-run failed jobs** on that workflow run. Do not recreate
+the release or reuse its version tag for different binaries.
