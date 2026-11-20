@@ -481,3 +481,6 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 .dotnet-build-home/
+
+# Release build output
+artifacts/
