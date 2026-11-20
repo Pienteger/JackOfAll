@@ -1,3 +1,5 @@
+[![Windows release](https://github.com/Pienteger/JackOfAll/actions/workflows/release.yml/badge.svg)](https://github.com/Pienteger/JackOfAll/actions/workflows/release.yml)
+
 # JackOfAll
 
 A collection of Windows desktop utilities built with WPF and .NET 10.
